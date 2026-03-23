@@ -1,4 +1,5 @@
 import logo from "../assets/logo.png";
+import { Link } from "react-router-dom";
 
 export default function LoginPage() {
   return (
@@ -49,9 +50,9 @@ export default function LoginPage() {
         </button>
         <div className="mt-12 text-center">
           <p>Don't have an account?</p>
-          <a href="/signup" className="text-blue-500">
+          <Link to="/signup" className="text-blue-500">
             Sign up
-          </a>
+          </Link>
         </div>
         <hr className="w-sm border-t border-gray-300 mx-auto mt-4" />
 
