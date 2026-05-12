@@ -36,7 +36,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-gray-400 mb-6">
         <Link to="/home" className="hover:text-[#F2AA25]">Home</Link>
@@ -46,23 +46,23 @@ export default function ProductDetailPage() {
         <span className="text-[#1e2d3d] font-medium">{product.product_name}</span>
       </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Image */}
         <div className="rounded-2xl overflow-hidden shadow-sm bg-white">
           <img
             src={product.product_image_url}
             alt={product.product_name}
-            className="w-full h-80 sm:h-[480px] object-cover"
+            className="w-full h-56 sm:h-72 object-cover"
           />
         </div>
 
         {/* Details */}
         <div className="flex flex-col">
           <span className="text-sm text-gray-400 font-medium uppercase tracking-wide mb-1">{product.category}</span>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#1e2d3d] mb-2">{product.product_name}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-[#1e2d3d] mb-2">{product.product_name}</h1>
 
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-[#F2AA25] font-bold text-3xl">GHS {product.unit_price.toLocaleString()}</span>
+            <span className="text-[#F2AA25] font-bold text-2xl">GHS {product.unit_price.toLocaleString()}</span>
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
               product.product_status === "Available"
                 ? "bg-green-100 text-green-700"
@@ -72,10 +72,10 @@ export default function ProductDetailPage() {
             </span>
           </div>
 
-          <p className="text-gray-500 text-sm leading-relaxed mb-6">{product.description}</p>
+          <p className="text-gray-500 text-sm leading-relaxed mb-4">{product.description}</p>
 
           {/* Size selector */}
-          <div className="mb-5">
+          <div className="mb-4">
             <p className="font-semibold text-[#1e2d3d] mb-2 text-sm">
               Size <span className="text-gray-400 font-normal ml-1">{selectedSize && `— ${selectedSize}`}</span>
             </p>
@@ -84,7 +84,7 @@ export default function ProductDetailPage() {
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}
-                  className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-colors ${
+                  className={`px-3 py-1.5 rounded-xl border text-sm font-semibold transition-colors ${
                     selectedSize === size
                       ? "border-[#F2AA25] bg-[#F2AA25] text-white"
                       : "border-gray-200 text-[#1e2d3d] hover:border-[#F2AA25]"
@@ -97,7 +97,7 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Colour selector */}
-          <div className="mb-5">
+          <div className="mb-4">
             <p className="font-semibold text-[#1e2d3d] mb-2 text-sm">
               Colour <span className="text-gray-400 font-normal ml-1">{selectedColour && `— ${selectedColour}`}</span>
             </p>
@@ -110,7 +110,7 @@ export default function ProductDetailPage() {
                     key={colour}
                     onClick={() => setSelectedColour(colour)}
                     title={colour}
-                    className={`w-9 h-9 rounded-full border-2 transition-all ${
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${
                       isSelected ? "border-[#F2AA25] scale-110" : "border-gray-200 hover:border-gray-400"
                     }`}
                     style={{ background: bg }}
@@ -121,17 +121,17 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Quantity */}
-          <div className="mb-6">
+          <div className="mb-4">
             <p className="font-semibold text-[#1e2d3d] mb-2 text-sm">Quantity</p>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center font-bold text-[#1e2d3d] hover:border-[#F2AA25] transition-colors"
+                className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center font-bold text-[#1e2d3d] hover:border-[#F2AA25] transition-colors"
               >−</button>
               <span className="w-10 text-center font-semibold text-[#1e2d3d]">{quantity}</span>
               <button
                 onClick={() => setQuantity(q => q + 1)}
-                className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center font-bold text-[#1e2d3d] hover:border-[#F2AA25] transition-colors"
+                className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center font-bold text-[#1e2d3d] hover:border-[#F2AA25] transition-colors"
               >+</button>
             </div>
           </div>
@@ -142,7 +142,7 @@ export default function ProductDetailPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={handleAddToCart}
-              className={`flex-1 font-bold py-4 rounded-2xl text-white transition-all ${
+              className={`flex-1 font-bold py-3 rounded-2xl text-white transition-all ${
                 added ? "bg-green-500" : "bg-[#F2AA25] hover:opacity-90"
               }`}
             >
@@ -150,7 +150,7 @@ export default function ProductDetailPage() {
             </button>
             <button
               onClick={() => { handleAddToCart(); navigate("/cart"); }}
-              className="flex-1 font-bold py-4 rounded-2xl border-2 border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white transition-colors"
+              className="flex-1 font-bold py-3 rounded-2xl border-2 border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white transition-colors"
             >
               Buy Now
             </button>

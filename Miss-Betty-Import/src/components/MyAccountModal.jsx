@@ -25,9 +25,9 @@ export default function MyAccountModal({ onClose }) {
   }
 
   const readOnlyClass =
-    "w-full bg-gray-100 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-500 cursor-default outline-none";
+    "w-full bg-gray-100 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-500 cursor-default outline-none";
   const editClass =
-    "w-full border border-gray-300 rounded-2xl px-4 py-3 text-sm outline-none focus:border-[#F2AA25] transition-colors";
+    "w-full border border-gray-300 rounded-2xl px-4 py-2.5 text-sm outline-none focus:border-[#F2AA25] transition-colors";
 
   return (
     <div
@@ -39,8 +39,8 @@ export default function MyAccountModal({ onClose }) {
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
-          <h2 className="font-bold text-[#1e2d3d] text-lg">My Account</h2>
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100">
+          <h2 className="font-bold text-[#1e2d3d] text-base">My Account</h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
@@ -51,11 +51,11 @@ export default function MyAccountModal({ onClose }) {
           </button>
         </div>
 
-        <div className="px-6 py-5 flex flex-col gap-4">
+        <div className="px-5 py-4 flex flex-col gap-3">
           {/* Avatar */}
-          <div className="flex justify-center mb-1">
+          <div className="flex justify-center">
             <div
-              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl"
+              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base"
               style={{ backgroundColor: "#F2AA25" }}
             >
               {initials}
@@ -96,7 +96,7 @@ export default function MyAccountModal({ onClose }) {
           <button
             onClick={handleSave}
             disabled={phone === user.phone || !phone.trim()}
-            className={`w-full font-bold py-3 rounded-2xl text-sm transition-colors mt-1 ${
+            className={`w-full font-bold py-2.5 rounded-2xl text-sm transition-colors mt-0.5 ${
               saved
                 ? "bg-green-500 text-white"
                 : "bg-[#F2AA25] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"

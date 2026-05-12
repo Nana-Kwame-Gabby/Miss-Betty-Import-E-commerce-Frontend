@@ -37,9 +37,9 @@ function DeliveryUpdateModal({ order, onClose, onSave }) {
   }
 
   const readOnlyClass =
-    "w-full bg-gray-100 border border-gray-200 rounded-2xl px-4 py-3 text-sm text-gray-500 cursor-default outline-none";
+    "w-full bg-gray-100 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-500 cursor-default outline-none";
   const inputClass = (field) =>
-    `w-full border rounded-2xl px-4 py-3 text-sm outline-none transition-colors ${
+    `w-full border rounded-2xl px-4 py-2.5 text-sm outline-none transition-colors ${
       errors[field] ? "border-red-400 focus:border-red-400" : "border-gray-300 focus:border-[#F2AA25]"
     }`;
 
@@ -53,7 +53,7 @@ function DeliveryUpdateModal({ order, onClose, onSave }) {
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
           <div>
             <h2 className="font-bold text-[#1e2d3d] text-lg">Update Delivery</h2>
             <span className="text-xs font-semibold text-[#F2AA25] bg-amber-50 px-2 py-0.5 rounded-full mt-1 inline-block">
@@ -70,7 +70,7 @@ function DeliveryUpdateModal({ order, onClose, onSave }) {
           </button>
         </div>
 
-        <div className="px-6 py-5 flex flex-col gap-4">
+        <div className="px-5 py-4 flex flex-col gap-3">
           {/* Read-only contact info */}
           <div>
             <label className="block text-xs font-semibold text-[#1e2d3d] uppercase tracking-wide mb-1.5">Full Name</label>
@@ -114,13 +114,13 @@ function DeliveryUpdateModal({ order, onClose, onSave }) {
           <div className="flex gap-3 mt-1">
             <button
               onClick={onClose}
-              className="flex-1 border border-gray-300 text-gray-600 font-semibold py-3 rounded-2xl text-sm hover:border-gray-400 transition-colors"
+              className="flex-1 border border-gray-300 text-gray-600 font-semibold py-2.5 rounded-2xl text-sm hover:border-gray-400 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="flex-1 bg-[#F2AA25] text-white font-bold py-3 rounded-2xl text-sm hover:opacity-90 transition-opacity"
+              className="flex-1 bg-[#F2AA25] text-white font-bold py-2.5 rounded-2xl text-sm hover:opacity-90 transition-opacity"
             >
               Save Changes
             </button>
@@ -141,9 +141,9 @@ export default function MyOrdersPage() {
 
   if (orders.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-24 text-center">
-        <div className="text-7xl mb-6">📦</div>
-        <h2 className="text-2xl font-bold text-[#1e2d3d] mb-2">No orders yet</h2>
+      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+        <div className="text-5xl mb-3">📦</div>
+        <h2 className="text-xl font-bold text-[#1e2d3d] mb-2">No orders yet</h2>
         <p className="text-gray-400 mb-8">You haven't placed any orders. Start shopping!</p>
         <Link to="/shop" className="inline-block bg-[#F2AA25] text-white font-bold px-8 py-3 rounded-2xl hover:opacity-90">
           Shop Now
@@ -153,8 +153,8 @@ export default function MyOrdersPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl sm:text-3xl font-bold text-[#1e2d3d] mb-8">My Orders</h1>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      <h1 className="text-xl sm:text-2xl font-bold text-[#1e2d3d] mb-5">My Orders</h1>
 
       {/* Desktop table */}
       <div className="hidden sm:block bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -162,28 +162,28 @@ export default function MyOrdersPage() {
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
               {["Order ID", "Date", "Items", "Size", "Colour", "Total", "Status", ""].map(h => (
-                <th key={h} className="text-left px-4 py-4 font-semibold text-[#1e2d3d] whitespace-nowrap">{h}</th>
+                <th key={h} className="text-left px-3 py-3 font-semibold text-[#1e2d3d] whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {orders.map((order, i) => (
               <tr key={order.order_id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
-                <td className="px-4 py-4 font-semibold text-[#F2AA25] whitespace-nowrap">{order.order_id}</td>
-                <td className="px-4 py-4 text-gray-500 whitespace-nowrap">
+                <td className="px-3 py-3 font-semibold text-[#F2AA25] whitespace-nowrap">{order.order_id}</td>
+                <td className="px-3 py-3 text-gray-500 whitespace-nowrap">
                   {new Date(order.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                 </td>
-                <td className="px-4 py-4 text-gray-600">
+                <td className="px-3 py-3 text-gray-600">
                   {order.items.map((item, idx) => (
                     <span key={idx} className="block">{item.name} ×{item.qty}</span>
                   ))}
                 </td>
-                <td className="px-4 py-4 text-gray-600">
+                <td className="px-3 py-3 text-gray-600">
                   {order.items.map((item, idx) => (
                     <span key={idx} className="block">{item.size}</span>
                   ))}
                 </td>
-                <td className="px-4 py-4">
+                <td className="px-3 py-3">
                   {order.items.map((item, idx) => (
                     <span key={idx} className="flex items-center gap-1.5 mb-0.5">
                       <span
@@ -194,15 +194,15 @@ export default function MyOrdersPage() {
                     </span>
                   ))}
                 </td>
-                <td className="px-4 py-4 font-bold text-[#1e2d3d] whitespace-nowrap">
+                <td className="px-3 py-3 font-bold text-[#1e2d3d] whitespace-nowrap">
                   GHS {order.total.toLocaleString()}
                 </td>
-                <td className="px-4 py-4">
+                <td className="px-3 py-3">
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyles[order.status] || "bg-gray-100 text-gray-600"}`}>
                     {order.status}
                   </span>
                 </td>
-                <td className="px-4 py-4">
+                <td className="px-3 py-3">
                   {order.canEditDelivery && (
                     <button
                       onClick={() => setEditingOrder(order)}
@@ -219,9 +219,9 @@ export default function MyOrdersPage() {
       </div>
 
       {/* Mobile cards */}
-      <div className="sm:hidden flex flex-col gap-4">
+      <div className="sm:hidden flex flex-col gap-3">
         {orders.map(order => (
-          <div key={order.order_id} className="bg-white rounded-2xl shadow-sm p-5">
+          <div key={order.order_id} className="bg-white rounded-2xl shadow-sm p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="font-bold text-[#F2AA25]">{order.order_id}</span>
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyles[order.status] || "bg-gray-100 text-gray-600"}`}>
@@ -258,7 +258,7 @@ export default function MyOrdersPage() {
         ))}
       </div>
 
-      <div className="mt-8 text-center">
+      <div className="mt-5 text-center">
         <Link to="/shop" className="inline-block text-[#F2AA25] font-semibold hover:underline">
           ← Continue Shopping
         </Link>

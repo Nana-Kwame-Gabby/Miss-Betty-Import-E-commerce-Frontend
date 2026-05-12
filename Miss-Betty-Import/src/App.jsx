@@ -6,6 +6,8 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 
 import LoginPage from "./components/LoginPage";
 import SignUp from "./components/SignUp";
+import ForgotPasswordPage from "./components/ForgotPasswordPage";
+import ResetPasswordPage from "./components/ResetPasswordPage";
 
 import Layout from "./components/layout/Layout";
 
@@ -42,6 +44,8 @@ function App() {
               {/* Public — auth pages */}
               <Route path="/" element={<LoginPage />} />
               <Route path="/signup" element={<SignUp />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
 
               {/* Protected — all customer pages */}
               <Route element={<ProtectedLayout />}>

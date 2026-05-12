@@ -77,13 +77,13 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-12">
 
           {/* Logo */}
           <Link to="/shop" className="flex items-center gap-2 flex-shrink-0">
-            <img src={logo} alt="Miss Betty Import" className="h-10 w-auto" />
-            <span className="font-bold text-[#1e2d3d] hidden sm:block text-lg leading-tight">
-              Miss Betty<br /><span className="text-[#F2AA25] text-sm font-semibold">Import</span>
+            <img src={logo} alt="Miss Betty Import" className="h-8 w-auto" />
+            <span className="font-bold text-[#1e2d3d] hidden sm:block text-sm leading-tight">
+              Miss Betty<br /><span className="text-[#F2AA25] text-xs font-semibold">Import</span>
             </span>
           </Link>
 

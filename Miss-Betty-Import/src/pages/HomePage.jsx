@@ -32,7 +32,7 @@ function ProductDetailModal({ product, onClose }) {
         onClick={e => e.stopPropagation()}
       >
         {/* Top bar */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
             {product.category}
           </span>
@@ -51,7 +51,7 @@ function ProductDetailModal({ product, onClose }) {
           <img
             src={product.product_image_url}
             alt={product.product_name}
-            className="w-full h-64 sm:h-80 object-cover"
+            className="w-full h-48 sm:h-64 object-cover"
           />
           <span
             className={`absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full ${
@@ -65,20 +65,20 @@ function ProductDetailModal({ product, onClose }) {
         </div>
 
         {/* Details */}
-        <div className="px-5 py-5">
-          <h2 className="font-bold text-[#1e2d3d] text-xl mb-1 leading-snug">
+        <div className="px-4 py-3">
+          <h2 className="font-bold text-[#1e2d3d] text-lg mb-1 leading-snug">
             {product.product_name}
           </h2>
-          <p className="text-[#F2AA25] font-bold text-2xl mb-4">
+          <p className="text-[#F2AA25] font-bold text-xl mb-3">
             GHS {product.unit_price.toLocaleString()}
           </p>
-          <p className="text-gray-500 text-sm leading-relaxed mb-5">
+          <p className="text-gray-500 text-sm leading-relaxed mb-3">
             {product.description}
           </p>
 
           {/* Size */}
           {product.sizes.length > 0 && (
-            <div className="mb-4">
+            <div className="mb-3">
               <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Size</p>
               <div className="flex flex-wrap gap-2">
                 {product.sizes.map(s => (
@@ -100,7 +100,7 @@ function ProductDetailModal({ product, onClose }) {
 
           {/* Colour */}
           {product.colours.length > 0 && (
-            <div className="mb-5">
+            <div className="mb-3">
               <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
                 Colour: <span className="font-normal normal-case text-gray-500">{selectedColour}</span>
               </p>
@@ -127,23 +127,23 @@ function ProductDetailModal({ product, onClose }) {
             <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
               <button
                 onClick={() => setQty(q => Math.max(1, q - 1))}
-                className="px-3 py-2.5 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none"
+                className="px-3 py-2 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none"
               >
                 −
               </button>
-              <span className="px-3 py-2.5 text-sm font-semibold text-[#1e2d3d] min-w-[2rem] text-center">
+              <span className="px-3 py-2 text-sm font-semibold text-[#1e2d3d] min-w-[2rem] text-center">
                 {qty}
               </span>
               <button
                 onClick={() => setQty(q => q + 1)}
-                className="px-3 py-2.5 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none"
+                className="px-3 py-2 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none"
               >
                 +
               </button>
             </div>
             <button
               onClick={handleAdd}
-              className={`flex-1 font-semibold py-2.5 rounded-xl text-sm transition-colors ${
+              className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-colors ${
                 added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
               }`}
             >
@@ -176,7 +176,7 @@ function ProductCard({ product, onSelect }) {
         <img
           src={product.product_image_url}
           alt={product.product_name}
-          className="w-full h-44 sm:h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-36 sm:h-44 object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <span
           className={`absolute top-2 right-2 text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -188,19 +188,19 @@ function ProductCard({ product, onSelect }) {
           {product.product_status}
         </span>
       </div>
-      <div className="p-3 sm:p-4 flex flex-col flex-1">
-        <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full w-fit mb-2 truncate max-w-full">
+      <div className="p-2.5 sm:p-3 flex flex-col flex-1">
+        <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full w-fit mb-1 truncate max-w-full">
           {product.category}
         </span>
-        <h3 className="font-semibold text-[#1e2d3d] text-sm sm:text-base mb-1 line-clamp-2 flex-1">
+        <h3 className="font-semibold text-[#1e2d3d] text-xs sm:text-sm mb-0.5 line-clamp-2 flex-1">
           {product.product_name}
         </h3>
-        <p className="text-[#F2AA25] font-bold text-base sm:text-lg mb-3">
+        <p className="text-[#F2AA25] font-bold text-sm sm:text-base mb-2">
           GHS {product.unit_price.toLocaleString()}
         </p>
         <button
           onClick={handleAdd}
-          className={`w-full font-semibold py-2 rounded-xl text-sm transition-colors ${
+          className={`w-full font-semibold py-1.5 rounded-xl text-sm transition-colors ${
             added
               ? "bg-green-500 text-white"
               : "bg-[#F2AA25] text-white hover:opacity-90"
@@ -215,7 +215,7 @@ function ProductCard({ product, onSelect }) {
 
 function ReviewCard({ review }) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col gap-3">
+    <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-3">
       <div className="flex items-center gap-3">
         <div
           className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
@@ -278,7 +278,7 @@ export default function HomePage() {
       `}</style>
 
       {/* Marquee banner */}
-      <div className="bg-[#F2AA25] py-2 overflow-hidden">
+      <div className="bg-[#F2AA25] py-1.5 overflow-hidden">
         <div className="marquee-track">
           {[1, 2].map(i => (
             <span key={i} className="text-white font-semibold text-sm whitespace-nowrap px-8">
@@ -293,11 +293,11 @@ export default function HomePage() {
 
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2">
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Logo */}
             <Link to="/" className="flex-shrink-0">
-              <img src={logo} alt="Miss Betty Import" className="h-10 sm:h-12 w-auto spin-vertical" />
+              <img src={logo} alt="Miss Betty Import" className="h-8 sm:h-9 w-auto spin-vertical" />
             </Link>
 
             {/* Search */}
@@ -310,7 +310,7 @@ export default function HomePage() {
                 placeholder="Search products…"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full border border-gray-200 rounded-2xl pl-9 pr-4 py-2.5 text-sm outline-none focus:border-[#F2AA25] transition-colors"
+                className="w-full border border-gray-200 rounded-2xl pl-9 pr-4 py-2 text-sm outline-none focus:border-[#F2AA25] transition-colors"
               />
             </div>
 
@@ -349,7 +349,7 @@ export default function HomePage() {
 
       {/* Category pills */}
       <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2">
           <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
             <button
               onClick={() => setActiveCategory("All")}
@@ -380,9 +380,9 @@ export default function HomePage() {
       </div>
 
       {/* Products section */}
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-6">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4">
         {/* Status filter + results count */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <p className="text-gray-400 text-sm">
             {filtered.length} {filtered.length === 1 ? "product" : "products"} found
           </p>
@@ -405,7 +405,7 @@ export default function HomePage() {
 
         {/* Grid */}
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
             {filtered.map(p => <ProductCard key={p.id} product={p} onSelect={setSelectedProduct} />)}
           </div>
         ) : (
@@ -428,26 +428,26 @@ export default function HomePage() {
       )}
 
       {/* Reviews */}
-      <section className="bg-white py-12 px-3 sm:px-6">
+      <section className="bg-white py-8 px-3 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-xl sm:text-2xl font-bold text-[#1e2d3d] text-center mb-8">
             What Our Customers Say
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {mockReviews.map(r => <ReviewCard key={r.id} review={r} />)}
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#1e2d3d] text-white px-4 py-10">
+      <footer className="bg-[#1e2d3d] text-white px-4 py-7">
         <div className="max-w-3xl mx-auto text-center">
-          <p className="text-gray-300 text-sm leading-relaxed mb-6">
+          <p className="text-gray-300 text-sm leading-relaxed mb-4">
             Miss Betty Import is a duly registered business with the Office of the
             Registrar of Companies, Republic of Ghana, under the Registration of
             Business Names Act, 1962 (Act 151).
           </p>
-          <div className="flex justify-center items-center gap-4 sm:gap-8 flex-wrap mb-6 text-sm">
+          <div className="flex justify-center items-center gap-4 sm:gap-8 flex-wrap mb-4 text-sm">
             <a
               href="https://wa.me/233200000000"
               target="_blank"
