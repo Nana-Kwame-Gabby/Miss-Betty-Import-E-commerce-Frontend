@@ -1,13 +1,16 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { categories, products, colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import MyAccountModal from "../components/MyAccountModal";
 
 function AccountDropdown() {
   const [open, setOpen] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const ref = useRef(null);
 
   useEffect(() => {
@@ -49,13 +52,12 @@ function AccountDropdown() {
             <span>📦</span> Orders
           </Link>
           <div className="border-t border-gray-100 my-1" />
-          <Link
-            to="/"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+          <button
+            onClick={async () => { setOpen(false); await signOut(); navigate("/"); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors text-left"
           >
             <span>🚪</span> Sign out
-          </Link>
+          </button>
         </div>
       )}
 

@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { useCart } from "../../context/CartContext";
+import { useAuth } from "../../context/AuthContext";
 import MyAccountModal from "../MyAccountModal";
 
 function AccountDropdown() {
   const [open, setOpen] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const ref = useRef(null);
 
   useEffect(() => {
@@ -48,13 +51,12 @@ function AccountDropdown() {
             <span>📦</span> Orders
           </Link>
           <div className="border-t border-gray-100 my-1" />
-          <Link
-            to="/"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+          <button
+            onClick={async () => { setOpen(false); await signOut(); navigate("/"); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors text-left"
           >
             <span>🚪</span> Sign out
-          </Link>
+          </button>
         </div>
       )}
 
@@ -136,7 +138,7 @@ export default function Navbar() {
             <NavLink to="/shop" className={navClass} onClick={() => setMenuOpen(false)}>Shop</NavLink>
             <NavLink to="/my-orders" className={navClass} onClick={() => setMenuOpen(false)}>My Orders</NavLink>
             <Link to="/my-orders" className="flex items-center gap-2 text-[#1e2d3d] font-medium" onClick={() => setMenuOpen(false)}>📦 Orders</Link>
-            <Link to="/" className="flex items-center gap-2 text-red-500 font-medium" onClick={() => setMenuOpen(false)}>🚪 Sign out</Link>
+            <button onClick={async () => { setMenuOpen(false); await signOut(); navigate("/"); }} className="flex items-center gap-2 text-red-500 font-medium text-left">🚪 Sign out</button>
           </div>
         )}
       </div>

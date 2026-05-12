@@ -1,18 +1,26 @@
-import { createContext, useContext, useState } from "react";
-
-const mockUser = {
-  fullName: "Ama Boateng",
-  email: "ama.boateng@example.com",
-  phone: "+233 24 123 4567",
-};
+import { createContext, useContext } from "react";
+import { supabase } from "../lib/supabase";
+import { useAuth } from "./AuthContext";
 
 const UserContext = createContext(null);
 
 export function UserProvider({ children }) {
-  const [user, setUser] = useState(mockUser);
+  const { session } = useAuth();
 
-  function updatePhone(phone) {
-    setUser(prev => ({ ...prev, phone }));
+  const user = {
+    fullName: session?.user?.user_metadata?.full_name ?? "",
+    email: session?.user?.email ?? "",
+    phone: session?.user?.user_metadata?.phone ?? "",
+  };
+
+  async function updatePhone(newPhone) {
+    await supabase.auth.updateUser({ data: { phone: newPhone } });
+    if (session?.user?.id) {
+      await supabase
+        .from("customers")
+        .update({ telephone: newPhone })
+        .eq("auth_id", session.user.id);
+    }
   }
 
   return (
