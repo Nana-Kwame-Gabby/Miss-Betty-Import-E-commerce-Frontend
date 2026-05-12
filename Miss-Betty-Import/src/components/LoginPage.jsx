@@ -3,10 +3,9 @@ import { Link } from "react-router-dom";
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100">
-      <div className=" bg-white rounded-lg shadow-lg size-150 flex justify-center items-center flex-col pb-10 ">
-        <style>{`
-        .spin-vertical{
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-8">
+      <style>{`
+        .spin-vertical {
           animation: spinY 5s linear infinite;
           transform-style: preserve-3d;
           will-change: transform;
@@ -16,51 +15,68 @@ export default function LoginPage() {
           to   { transform: rotateY(360deg); }
         }
       `}</style>
-        <div>
-          <img
-            src={logo}
-            alt="Miss Betty Import Logo"
-            className="h-20 mx-auto spin-vertical"
-          />
-        </div>
-        <div className="text-center mb-10 ">
-          <h1 className="font-semibold text-2xl">
-            Welcome to Miss Betty Import
-          </h1>
-          <p className="text-l font-medium">Please log in to continue</p>
-        </div>
-        <div className="border rounded-sm p-1 mb-2 w-sm h-10">
+
+      <div className="bg-white rounded-2xl shadow-lg w-full max-w-md px-5 py-8 sm:px-10 sm:py-10 flex flex-col items-center">
+        <img
+          src={logo}
+          alt="Miss Betty Import Logo"
+          className="h-16 sm:h-20 mx-auto spin-vertical mb-4"
+        />
+
+        <h1 className="font-bold text-xl sm:text-2xl text-[#1e2d3d] text-center">
+          Welcome to Miss Betty Import
+        </h1>
+        <p className="text-sm sm:text-base font-medium text-center mb-6 sm:mb-8">
+          Please log in to continue
+        </p>
+
+        <div className="w-full mb-4 sm:mb-5">
+          <label className="block font-semibold text-[#1e2d3d] mb-2 text-sm sm:text-base">
+            Email Address
+          </label>
           <input
             type="email"
             id="email"
-            placeholder="Email"
-            className=" outline-none w-sm p-1"
+            placeholder="your@email.com"
+            className="w-full border border-gray-300 rounded-2xl px-4 py-3 sm:py-4 text-sm sm:text-base outline-none focus:border-[#F2AA25]"
           />
         </div>
-        <div className="border rounded-sm p-1 mt-sm w-sm h-10">
+
+        <div className="w-full mb-3 sm:mb-4">
+          <label className="block font-semibold text-[#1e2d3d] mb-2 text-sm sm:text-base">
+            Password
+          </label>
           <input
             type="password"
             id="password"
-            placeholder="Password"
-            className=" outline-none w-sm p-1"
+            placeholder="Enter your password"
+            className="w-full border border-gray-300 rounded-2xl px-4 py-3 sm:py-4 text-sm sm:text-base outline-none focus:border-[#F2AA25]"
           />
         </div>
-        <button className="bg-gray-700 font-semibold text-white p-2 rounded-sm mt-8 w-24">
-          Log in
-        </button>
-        <div className="mt-12 text-center">
-          <p>Don't have an account?</p>
-          <Link to="/signup" className="text-blue-500">
-            Sign up
-          </Link>
-        </div>
-        <hr className="w-sm border-t border-gray-300 mx-auto mt-4" />
 
-        <div className="mt-10">
-          <a href="/forgot-password" className="text-blue-500">
+        <div className="w-full flex justify-between items-center mb-5 sm:mb-6">
+          <label className="flex items-center gap-2 font-medium text-[#1e2d3d] text-sm sm:text-base cursor-pointer">
+            <input type="checkbox" className="w-4 h-4 sm:w-5 sm:h-5 rounded" />
+            Remember me
+          </label>
+          <a href="/forgot-password" className="text-[#F2AA25] font-medium text-sm sm:text-base">
             Forgot password?
           </a>
         </div>
+
+        <button
+          className="w-full font-bold text-base sm:text-lg rounded-2xl py-3 sm:py-4 mb-5 sm:mb-6 text-white cursor-pointer"
+          style={{ backgroundColor: "#F2AA25" }}
+        >
+          Login
+        </button>
+
+        <p className="font-medium text-[#1e2d3d] text-sm sm:text-base text-center">
+          Don't have an account?{" "}
+          <Link to="/signup" className="font-semibold" style={{ color: "#F2AA25" }}>
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );
