@@ -29,8 +29,10 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
   }
 
+  const isAdmin = session?.user?.user_metadata?.role === 'admin';
+
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, signIn, signOut, loading }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, signIn, signOut, loading, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

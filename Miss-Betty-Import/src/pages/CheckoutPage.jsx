@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useUser } from "../context/UserContext";
+import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Eastern", "Central",
@@ -12,6 +14,7 @@ const ghanaRegions = [
 export default function CheckoutPage() {
   const { cartItems, subtotal, clearCart } = useCart();
   const { user } = useUser();
+  const { session } = useAuth();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -19,6 +22,7 @@ export default function CheckoutPage() {
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   function validate() {
     const e = {};
@@ -32,15 +36,67 @@ export default function CheckoutPage() {
     setErrors(prev => ({ ...prev, [e.target.name]: "" }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) return setErrors(errs);
+
     setSubmitting(true);
-    setTimeout(() => {
+    setSubmitError("");
+
+    try {
+      // 1. Get customer_id
+      const { data: cust, error: custError } = await supabase
+        .from('customers')
+        .select('customer_id')
+        .eq('auth_id', session.user.id)
+        .single();
+
+      if (custError || !cust) throw new Error("Could not find your account. Please try again.");
+
+      // 2. Generate order_id
+      const orderId = `ORD-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000) + 1000}`;
+
+      // 3. Insert one orders row per cart item
+      const orderRows = cartItems.map(item => ({
+        order_id: orderId,
+        customer_id: cust.customer_id,
+        product_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        size: item.size || null,
+        colour: item.colour || null,
+        status: 'Pending',
+        delivery_region: form.region,
+        delivery_town: form.town,
+        can_edit_delivery: true,
+      }));
+
+      const { error: ordersError } = await supabase.from('orders').insert(orderRows);
+      if (ordersError) throw new Error(ordersError.message);
+
+      // 4. Insert invoice rows
+      const invoiceRows = cartItems.map(item => ({
+        invoice_id: orderId,
+        customer_name: form.fullName,
+        product_name: item.product_name,
+        size: item.size || null,
+        colour: item.colour || null,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total: item.unit_price * item.quantity,
+      }));
+
+      const { error: invoicesError } = await supabase.from('invoices').insert(invoiceRows);
+      if (invoicesError) throw new Error(invoicesError.message);
+
+      // 5. Clear cart + navigate
       clearCart();
-      navigate("/order-confirmation", { state: { form, items: cartItems, subtotal } });
-    }, 1000);
+      navigate('/order-confirmation', { state: { form, items: cartItems, subtotal, orderId } });
+    } catch (err) {
+      setSubmitError(err.message);
+      setSubmitting(false);
+    }
   }
 
   if (cartItems.length === 0) {
@@ -110,6 +166,10 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {submitError && (
+            <p className="text-red-500 text-sm bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">{submitError}</p>
+          )}
+
           <button
             type="submit"
             disabled={submitting}
@@ -134,7 +194,11 @@ export default function CheckoutPage() {
             <div className="flex flex-col gap-2.5 mb-3">
               {cartItems.map(item => (
                 <div key={item.cartKey} className="flex items-start gap-3">
-                  <img src={item.product_image_url} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl flex-shrink-0" />
+                  {item.product_image_url ? (
+                    <img src={item.product_image_url} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-12 bg-gray-100 rounded-xl flex-shrink-0" />
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-[#1e2d3d] truncate">{item.product_name}</p>
                     <p className="text-xs text-gray-400">{item.size} · {item.colour} · ×{item.quantity}</p>

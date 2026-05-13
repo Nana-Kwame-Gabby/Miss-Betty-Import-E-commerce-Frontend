@@ -1,14 +1,8 @@
 import { useLocation, Link } from "react-router-dom";
 
-function generateOrderId() {
-  const year = new Date().getFullYear();
-  const num = Math.floor(Math.random() * 9000) + 1000;
-  return `ORD-${year}-${num}`;
-}
-
 export default function OrderConfirmationPage() {
   const { state } = useLocation();
-  const orderId = generateOrderId();
+  const orderId = state?.orderId ?? '—';
 
   if (!state) {
     return (
@@ -47,7 +41,11 @@ export default function OrderConfirmationPage() {
         <div className="flex flex-col gap-2.5 mb-3">
           {items.map(item => (
             <div key={item.cartKey} className="flex items-center gap-3">
-              <img src={item.product_image_url} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl" />
+              {item.product_image_url ? (
+                <img src={item.product_image_url} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl" />
+              ) : (
+                <div className="w-10 h-12 bg-gray-100 rounded-xl flex-shrink-0" />
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-[#1e2d3d] truncate">{item.product_name}</p>
                 <p className="text-xs text-gray-400">{item.size} · {item.colour} · ×{item.quantity}</p>

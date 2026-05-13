@@ -1,20 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { products, colourMap } from "../data/mockData";
+import { colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
+import { supabase } from "../lib/supabase";
+
+function mapProduct(p) {
+  return {
+    id: p.product_id,
+    category: p.category?.category_name ?? 'Others',
+    product_name: p.product_name,
+    product_image_url: p.product_image_url ?? '',
+    unit_price: Number(p.unit_price),
+    description: p.description ?? '',
+    sizes: p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : [],
+    colours: p.colour ? p.colour.split(',').map(c => c.trim()).filter(Boolean) : [],
+    product_status: p.product_status?.status_name ?? 'Available',
+  };
+}
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
-  const product = products.find(p => p.id === Number(id));
-
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedColour, setSelectedColour] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState("");
   const [added, setAdded] = useState(false);
+
+  useEffect(() => {
+    async function loadProduct() {
+      const { data } = await supabase
+        .from('products')
+        .select('*, category(category_name), product_status(status_name)')
+        .eq('product_id', Number(id))
+        .single();
+      if (data) {
+        const mapped = mapProduct(data);
+        setProduct(mapped);
+        setSelectedSize(mapped.sizes[0] ?? null);
+        setSelectedColour(mapped.colours[0] ?? null);
+      }
+      setLoading(false);
+    }
+    loadProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -27,8 +68,8 @@ export default function ProductDetailPage() {
   }
 
   function handleAddToCart() {
-    if (!selectedSize) return setError("Please select a size.");
-    if (!selectedColour) return setError("Please select a colour.");
+    if (!selectedSize && product.sizes.length > 0) return setError("Please select a size.");
+    if (!selectedColour && product.colours.length > 0) return setError("Please select a colour.");
     setError("");
     addToCart(product, quantity, selectedSize, selectedColour);
     setAdded(true);
@@ -49,11 +90,17 @@ export default function ProductDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Image */}
         <div className="rounded-2xl overflow-hidden shadow-sm bg-white">
-          <img
-            src={product.product_image_url}
-            alt={product.product_name}
-            className="w-full h-56 sm:h-72 object-cover"
-          />
+          {product.product_image_url ? (
+            <img
+              src={product.product_image_url}
+              alt={product.product_name}
+              className="w-full h-56 sm:h-72 object-cover"
+            />
+          ) : (
+            <div className="w-full h-56 sm:h-72 bg-gray-100 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+          )}
         </div>
 
         {/* Details */}
@@ -72,53 +119,59 @@ export default function ProductDetailPage() {
             </span>
           </div>
 
-          <p className="text-gray-500 text-sm leading-relaxed mb-4">{product.description}</p>
+          {product.description && (
+            <p className="text-gray-500 text-sm leading-relaxed mb-4">{product.description}</p>
+          )}
 
           {/* Size selector */}
-          <div className="mb-4">
-            <p className="font-semibold text-[#1e2d3d] mb-2 text-sm">
-              Size <span className="text-gray-400 font-normal ml-1">{selectedSize && `— ${selectedSize}`}</span>
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {product.sizes.map(size => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`px-3 py-1.5 rounded-xl border text-sm font-semibold transition-colors ${
-                    selectedSize === size
-                      ? "border-[#F2AA25] bg-[#F2AA25] text-white"
-                      : "border-gray-200 text-[#1e2d3d] hover:border-[#F2AA25]"
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
+          {product.sizes.length > 0 && (
+            <div className="mb-4">
+              <p className="font-semibold text-[#1e2d3d] mb-2 text-sm">
+                Size <span className="text-gray-400 font-normal ml-1">{selectedSize && `— ${selectedSize}`}</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {product.sizes.map(size => (
+                  <button
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={`px-3 py-1.5 rounded-xl border text-sm font-semibold transition-colors ${
+                      selectedSize === size
+                        ? "border-[#F2AA25] bg-[#F2AA25] text-white"
+                        : "border-gray-200 text-[#1e2d3d] hover:border-[#F2AA25]"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Colour selector */}
-          <div className="mb-4">
-            <p className="font-semibold text-[#1e2d3d] mb-2 text-sm">
-              Colour <span className="text-gray-400 font-normal ml-1">{selectedColour && `— ${selectedColour}`}</span>
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {product.colours.map(colour => {
-                const bg = colourMap[colour] || "#ccc";
-                const isSelected = selectedColour === colour;
-                return (
-                  <button
-                    key={colour}
-                    onClick={() => setSelectedColour(colour)}
-                    title={colour}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
-                      isSelected ? "border-[#F2AA25] scale-110" : "border-gray-200 hover:border-gray-400"
-                    }`}
-                    style={{ background: bg }}
-                  />
-                );
-              })}
+          {product.colours.length > 0 && (
+            <div className="mb-4">
+              <p className="font-semibold text-[#1e2d3d] mb-2 text-sm">
+                Colour <span className="text-gray-400 font-normal ml-1">{selectedColour && `— ${selectedColour}`}</span>
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {product.colours.map(colour => {
+                  const bg = colourMap[colour] || "#ccc";
+                  const isSelected = selectedColour === colour;
+                  return (
+                    <button
+                      key={colour}
+                      onClick={() => setSelectedColour(colour)}
+                      title={colour}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        isSelected ? "border-[#F2AA25] scale-110" : "border-gray-200 hover:border-gray-400"
+                      }`}
+                      style={{ background: bg }}
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Quantity */}
           <div className="mb-4">

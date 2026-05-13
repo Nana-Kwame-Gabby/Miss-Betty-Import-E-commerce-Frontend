@@ -8,7 +8,7 @@ import MyAccountModal from "../MyAccountModal";
 function AccountDropdown() {
   const [open, setOpen] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
-  const { signOut } = useAuth();
+  const { signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const ref = useRef(null);
 
@@ -50,6 +50,15 @@ function AccountDropdown() {
           >
             <span>📦</span> Orders
           </Link>
+          {isAdmin && (
+            <Link
+              to="/admin"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+            >
+              <span>⚙️</span> Admin Panel
+            </Link>
+          )}
           <div className="border-t border-gray-100 my-1" />
           <button
             onClick={async () => { setOpen(false); await signOut(); navigate("/"); }}

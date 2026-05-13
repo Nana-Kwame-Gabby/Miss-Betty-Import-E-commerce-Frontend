@@ -1,13 +1,38 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import logo from "../assets/logo.png";
-import { categories, products, mockReviews, colourMap } from "../data/mockData";
+import { mockReviews, colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
+import { supabase } from "../lib/supabase";
+
+const CATEGORY_ICONS = {
+  'Mother care items': '👶',
+  'Beddings': '🛏️',
+  'Dresses, bags & shoes': '👗',
+  'Furniture': '🪑',
+  'Electrical appliances': '🔌',
+  'Kitchenware': '🍳',
+  'Others': '📦',
+};
+
+function mapProduct(p) {
+  return {
+    id: p.product_id,
+    category: p.category?.category_name ?? 'Others',
+    product_name: p.product_name,
+    product_image_url: p.product_image_url ?? '',
+    unit_price: Number(p.unit_price),
+    description: p.description ?? '',
+    sizes: p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : [],
+    colours: p.colour ? p.colour.split(',').map(c => c.trim()).filter(Boolean) : [],
+    product_status: p.product_status?.status_name ?? 'Available',
+  };
+}
 
 function ProductDetailModal({ product, onClose }) {
   const { addToCart } = useCart();
-  const [selectedSize, setSelectedSize] = useState(product.sizes[0]);
-  const [selectedColour, setSelectedColour] = useState(product.colours[0]);
+  const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? null);
+  const [selectedColour, setSelectedColour] = useState(product.colours[0] ?? null);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
@@ -31,7 +56,6 @@ function ProductDetailModal({ product, onClose }) {
         className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        {/* Top bar */}
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
             {product.category}
@@ -46,13 +70,18 @@ function ProductDetailModal({ product, onClose }) {
           </button>
         </div>
 
-        {/* Image */}
         <div className="relative">
-          <img
-            src={product.product_image_url}
-            alt={product.product_name}
-            className="w-full h-48 sm:h-64 object-cover"
-          />
+          {product.product_image_url ? (
+            <img
+              src={product.product_image_url}
+              alt={product.product_name}
+              className="w-full h-48 sm:h-64 object-cover"
+            />
+          ) : (
+            <div className="w-full h-48 sm:h-64 bg-gray-100 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+          )}
           <span
             className={`absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full ${
               product.product_status === "Available"
@@ -64,7 +93,6 @@ function ProductDetailModal({ product, onClose }) {
           </span>
         </div>
 
-        {/* Details */}
         <div className="px-4 py-3">
           <h2 className="font-bold text-[#1e2d3d] text-lg mb-1 leading-snug">
             {product.product_name}
@@ -72,11 +100,12 @@ function ProductDetailModal({ product, onClose }) {
           <p className="text-[#F2AA25] font-bold text-xl mb-3">
             GHS {product.unit_price.toLocaleString()}
           </p>
-          <p className="text-gray-500 text-sm leading-relaxed mb-3">
-            {product.description}
-          </p>
+          {product.description && (
+            <p className="text-gray-500 text-sm leading-relaxed mb-3">
+              {product.description}
+            </p>
+          )}
 
-          {/* Size */}
           {product.sizes.length > 0 && (
             <div className="mb-3">
               <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Size</p>
@@ -98,7 +127,6 @@ function ProductDetailModal({ product, onClose }) {
             </div>
           )}
 
-          {/* Colour */}
           {product.colours.length > 0 && (
             <div className="mb-3">
               <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
@@ -122,7 +150,6 @@ function ProductDetailModal({ product, onClose }) {
             </div>
           )}
 
-          {/* Quantity + Add to Cart */}
           <div className="flex items-center gap-3 pb-2">
             <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
               <button
@@ -162,7 +189,7 @@ function ProductCard({ product, onSelect }) {
 
   function handleAdd(e) {
     e.stopPropagation();
-    addToCart(product, 1, product.sizes[0], product.colours[0]);
+    addToCart(product, 1, product.sizes[0] ?? null, product.colours[0] ?? null);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   }
@@ -173,11 +200,17 @@ function ProductCard({ product, onSelect }) {
       onClick={() => onSelect(product)}
     >
       <div className="relative overflow-hidden">
-        <img
-          src={product.product_image_url}
-          alt={product.product_name}
-          className="w-full h-36 sm:h-44 object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+        {product.product_image_url ? (
+          <img
+            src={product.product_image_url}
+            alt={product.product_name}
+            className="w-full h-36 sm:h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-36 sm:h-44 bg-gray-100 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+        )}
         <span
           className={`absolute top-2 right-2 text-xs font-semibold px-2 py-0.5 rounded-full ${
             product.product_status === "Available"
@@ -241,6 +274,24 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [dbCategories, setDbCategories] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      const [{ data: prods }, { data: cats }] = await Promise.all([
+        supabase.from('products')
+          .select('*, category(category_name), product_status(status_name)')
+          .order('product_id', { ascending: false }),
+        supabase.from('category').select('*').order('category_name'),
+      ]);
+      setProducts((prods ?? []).map(mapProduct));
+      setDbCategories(cats ?? []);
+      setLoadingProducts(false);
+    }
+    loadData();
+  }, []);
 
   const filtered = useMemo(() => {
     return products.filter(p => {
@@ -249,7 +300,7 @@ export default function HomePage() {
       const matchStatus = statusFilter === "All" || p.product_status === statusFilter;
       return matchSearch && matchCat && matchStatus;
     });
-  }, [search, activeCategory, statusFilter]);
+  }, [products, search, activeCategory, statusFilter]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -295,12 +346,10 @@ export default function HomePage() {
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2">
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Logo */}
             <Link to="/" className="flex-shrink-0">
               <img src={logo} alt="Miss Betty Import" className="h-8 sm:h-9 w-auto spin-vertical" />
             </Link>
 
-            {/* Search */}
             <div className="flex-1 relative">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -314,7 +363,6 @@ export default function HomePage() {
               />
             </div>
 
-            {/* Cart */}
             <Link to="/cart" className="relative flex-shrink-0 p-1.5 text-[#1e2d3d] hover:text-[#F2AA25] transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
@@ -327,7 +375,6 @@ export default function HomePage() {
               )}
             </Link>
 
-            {/* Auth buttons */}
             <div className="flex items-center gap-2 flex-shrink-0">
               <Link
                 to="/"
@@ -361,18 +408,18 @@ export default function HomePage() {
             >
               All
             </button>
-            {categories.map(cat => (
+            {dbCategories.map(cat => (
               <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.name)}
+                key={cat.category_id}
+                onClick={() => setActiveCategory(cat.category_name)}
                 className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  activeCategory === cat.name
+                  activeCategory === cat.category_name
                     ? "bg-[#1e2d3d] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                <span>{cat.icon}</span>
-                <span>{cat.name}</span>
+                <span>{CATEGORY_ICONS[cat.category_name] ?? '🏷️'}</span>
+                <span>{cat.category_name}</span>
               </button>
             ))}
           </div>
@@ -381,10 +428,9 @@ export default function HomePage() {
 
       {/* Products section */}
       <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4">
-        {/* Status filter + results count */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <p className="text-gray-400 text-sm">
-            {filtered.length} {filtered.length === 1 ? "product" : "products"} found
+            {loadingProducts ? 'Loading…' : `${filtered.length} ${filtered.length === 1 ? "product" : "products"} found`}
           </p>
           <div className="flex gap-2">
             {["All", "Available", "Pre-order"].map(s => (
@@ -403,8 +449,21 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Grid */}
-        {filtered.length > 0 ? (
+        {loadingProducts ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden animate-pulse">
+                <div className="w-full h-36 sm:h-44 bg-gray-100" />
+                <div className="p-3 space-y-2">
+                  <div className="h-3 bg-gray-100 rounded-full w-1/2" />
+                  <div className="h-4 bg-gray-100 rounded-full w-3/4" />
+                  <div className="h-4 bg-gray-100 rounded-full w-1/3" />
+                  <div className="h-8 bg-gray-100 rounded-xl" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
             {filtered.map(p => <ProductCard key={p.id} product={p} onSelect={setSelectedProduct} />)}
           </div>

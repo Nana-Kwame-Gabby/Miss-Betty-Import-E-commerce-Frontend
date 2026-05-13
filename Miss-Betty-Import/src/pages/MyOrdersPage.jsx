@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { mockOrders, colourMap } from "../data/mockData";
+import { colourMap } from "../data/mockData";
 import { useUser } from "../context/UserContext";
+import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Eastern", "Central",
@@ -16,22 +18,52 @@ const statusStyles = {
   Cancelled: "bg-red-100 text-red-600",
 };
 
+function groupByOrderId(rows) {
+  const map = {};
+  for (const row of rows) {
+    if (!map[row.order_id]) map[row.order_id] = [];
+    map[row.order_id].push(row);
+  }
+  return Object.entries(map).map(([order_id, rows]) => ({
+    order_id,
+    date: rows[0].created_at,
+    status: rows[0].status ?? 'Pending',
+    delivery: { region: rows[0].delivery_region, town: rows[0].delivery_town },
+    canEditDelivery: rows[0].can_edit_delivery ?? false,
+    items: rows.map(r => ({
+      name: r.product_name_snapshot ?? `Product #${r.product_id}`,
+      size: r.size,
+      colour: r.colour,
+      qty: r.quantity,
+      unit_price: Number(r.unit_price),
+    })),
+    total: rows.reduce((s, r) => s + Number(r.unit_price ?? 0) * Number(r.quantity ?? 1), 0),
+  }));
+}
+
 function DeliveryUpdateModal({ order, onClose, onSave }) {
   const { user } = useUser();
   const [region, setRegion] = useState(order.delivery?.region || "");
   const [town, setTown] = useState(order.delivery?.town || "");
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  function handleSave() {
+  async function handleSave() {
     const e = {};
     if (!region) e.region = "Please select a region.";
     if (!town.trim()) e.town = "Town / city is required.";
     if (Object.keys(e).length) return setErrors(e);
+
+    setSaving(true);
+    await supabase.from('orders')
+      .update({ delivery_region: region, delivery_town: town })
+      .eq('order_id', order.order_id);
+    setSaving(false);
     onSave(order.order_id, { region, town });
     onClose();
   }
@@ -52,7 +84,6 @@ function DeliveryUpdateModal({ order, onClose, onSave }) {
         className="bg-white rounded-2xl w-full max-w-sm shadow-xl"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
           <div>
             <h2 className="font-bold text-[#1e2d3d] text-lg">Update Delivery</h2>
@@ -71,7 +102,6 @@ function DeliveryUpdateModal({ order, onClose, onSave }) {
         </div>
 
         <div className="px-5 py-4 flex flex-col gap-3">
-          {/* Read-only contact info */}
           <div>
             <label className="block text-xs font-semibold text-[#1e2d3d] uppercase tracking-wide mb-1.5">Full Name</label>
             <input readOnly value={user.fullName} className={readOnlyClass} />
@@ -85,7 +115,6 @@ function DeliveryUpdateModal({ order, onClose, onSave }) {
             <input readOnly value={user.phone} className={readOnlyClass} />
           </div>
 
-          {/* Editable delivery fields */}
           <div>
             <label className="block text-xs font-semibold text-[#1e2d3d] uppercase tracking-wide mb-1.5">Region</label>
             <select
@@ -110,7 +139,6 @@ function DeliveryUpdateModal({ order, onClose, onSave }) {
             {errors.town && <p className="text-red-500 text-xs mt-1">{errors.town}</p>}
           </div>
 
-          {/* Buttons */}
           <div className="flex gap-3 mt-1">
             <button
               onClick={onClose}
@@ -120,9 +148,10 @@ function DeliveryUpdateModal({ order, onClose, onSave }) {
             </button>
             <button
               onClick={handleSave}
-              className="flex-1 bg-[#F2AA25] text-white font-bold py-2.5 rounded-2xl text-sm hover:opacity-90 transition-opacity"
+              disabled={saving}
+              className="flex-1 bg-[#F2AA25] text-white font-bold py-2.5 rounded-2xl text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
             >
-              Save Changes
+              {saving ? 'Saving…' : 'Save Changes'}
             </button>
           </div>
         </div>
@@ -132,11 +161,45 @@ function DeliveryUpdateModal({ order, onClose, onSave }) {
 }
 
 export default function MyOrdersPage() {
-  const [orders, setOrders] = useState(mockOrders);
+  const { session } = useAuth();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [editingOrder, setEditingOrder] = useState(null);
 
+  useEffect(() => {
+    async function loadOrders() {
+      const { data: cust } = await supabase
+        .from('customers')
+        .select('customer_id')
+        .eq('auth_id', session.user.id)
+        .single();
+
+      if (!cust) { setLoading(false); return; }
+
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_id', cust.customer_id)
+        .order('created_at', { ascending: false });
+
+      setOrders(groupByOrderId(data ?? []));
+      setLoading(false);
+    }
+    loadOrders();
+  }, [session]);
+
   function handleDeliverySave(orderId, delivery) {
-    setOrders(prev => prev.map(o => o.order_id === orderId ? { ...o, delivery } : o));
+    setOrders(prev => prev.map(o =>
+      o.order_id === orderId ? { ...o, delivery } : o
+    ));
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   if (orders.length === 0) {
@@ -171,7 +234,7 @@ export default function MyOrdersPage() {
               <tr key={order.order_id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
                 <td className="px-3 py-3 font-semibold text-[#F2AA25] whitespace-nowrap">{order.order_id}</td>
                 <td className="px-3 py-3 text-gray-500 whitespace-nowrap">
-                  {new Date(order.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  {order.date ? new Date(order.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : '—'}
                 </td>
                 <td className="px-3 py-3 text-gray-600">
                   {order.items.map((item, idx) => (
@@ -180,7 +243,7 @@ export default function MyOrdersPage() {
                 </td>
                 <td className="px-3 py-3 text-gray-600">
                   {order.items.map((item, idx) => (
-                    <span key={idx} className="block">{item.size}</span>
+                    <span key={idx} className="block">{item.size ?? '—'}</span>
                   ))}
                 </td>
                 <td className="px-3 py-3">
@@ -190,7 +253,7 @@ export default function MyOrdersPage() {
                         className="w-3 h-3 rounded-full flex-shrink-0 border border-gray-200"
                         style={{ backgroundColor: colourMap[item.colour] || "#ccc" }}
                       />
-                      <span className="text-gray-600">{item.colour}</span>
+                      <span className="text-gray-600">{item.colour ?? '—'}</span>
                     </span>
                   ))}
                 </td>
@@ -229,7 +292,7 @@ export default function MyOrdersPage() {
               </span>
             </div>
             <p className="text-sm text-gray-400 mb-2">
-              {new Date(order.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              {order.date ? new Date(order.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : '—'}
             </p>
             <div className="text-sm text-gray-600 mb-3 flex flex-col gap-1">
               {order.items.map((item, idx) => (
@@ -238,7 +301,7 @@ export default function MyOrdersPage() {
                     className="w-3 h-3 rounded-full flex-shrink-0 border border-gray-200"
                     style={{ backgroundColor: colourMap[item.colour] || "#ccc" }}
                   />
-                  <span>{item.name} — {item.size}, {item.colour} ×{item.qty}</span>
+                  <span>{item.name} — {item.size ?? '—'}, {item.colour ?? '—'} ×{item.qty}</span>
                 </div>
               ))}
             </div>
