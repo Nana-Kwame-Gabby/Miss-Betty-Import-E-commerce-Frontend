@@ -29,6 +29,64 @@ function mapProduct(p) {
   };
 }
 
+async function downloadImage(e, url, name) {
+  e.stopPropagation();
+  try {
+    const res  = await fetch(url);
+    const blob = await res.blob();
+    const tmp  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = tmp;
+    a.download = name || 'product-image';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(tmp);
+  } catch {
+    window.open(url, '_blank');
+  }
+}
+
+function ImageLightbox({ src, alt, onClose }) {
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <button
+        onClick={e => downloadImage(e, src, alt)}
+        className="absolute top-4 left-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+        title="Download image"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </button>
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <img
+        src={src}
+        alt={alt}
+        className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
 function ProductDetailModal({ product, onClose }) {
   const { addToCart } = useCart();
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? null);
@@ -183,7 +241,7 @@ function ProductDetailModal({ product, onClose }) {
   );
 }
 
-function ProductCard({ product, onSelect }) {
+function ProductCard({ product, onSelect, onViewImage }) {
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -220,6 +278,31 @@ function ProductCard({ product, onSelect }) {
         >
           {product.product_status}
         </span>
+        {product.product_image_url && (
+          <>
+            <button
+              onClick={e => { e.stopPropagation(); onViewImage(product.product_image_url, product.product_name); }}
+              className="absolute bottom-2 left-2 bg-black/50 hover:bg-black/70 text-white rounded-lg p-1.5 transition-colors"
+              title="View full image"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+                <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+              </svg>
+            </button>
+            <button
+              onClick={e => downloadImage(e, product.product_image_url, product.product_name)}
+              className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-lg p-1.5 transition-colors"
+              title="Download image"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </button>
+          </>
+        )}
       </div>
       <div className="p-2.5 sm:p-3 flex flex-col flex-1">
         <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full w-fit mb-1 truncate max-w-full">
@@ -274,6 +357,7 @@ export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [lightboxImage, setLightboxImage] = useState(null);
   const [products, setProducts] = useState([]);
   const [dbCategories, setDbCategories] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -377,7 +461,7 @@ export default function HomePage() {
 
             <div className="flex items-center gap-2 flex-shrink-0">
               <Link
-                to="/"
+                to="/login"
                 className="text-sm font-semibold text-[#1e2d3d] border border-gray-300 px-3 py-2 rounded-xl hover:border-[#F2AA25] hover:text-[#F2AA25] transition-colors hidden xs:block sm:block"
               >
                 Login
@@ -465,7 +549,7 @@ export default function HomePage() {
           </div>
         ) : filtered.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-            {filtered.map(p => <ProductCard key={p.id} product={p} onSelect={setSelectedProduct} />)}
+            {filtered.map(p => <ProductCard key={p.id} product={p} onSelect={setSelectedProduct} onViewImage={(src, alt) => setLightboxImage({ src, alt })} />)}
           </div>
         ) : (
           <div className="text-center py-20">
@@ -484,6 +568,10 @@ export default function HomePage() {
 
       {selectedProduct && (
         <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+      )}
+
+      {lightboxImage && (
+        <ImageLightbox src={lightboxImage.src} alt={lightboxImage.alt} onClose={() => setLightboxImage(null)} />
       )}
 
       {/* Reviews */}

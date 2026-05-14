@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
-const STATUS_OPTIONS = ["Pending", "Processing", "Delivered", "Cancelled"];
-
-const STATUS_COLORS = {
-  Pending:    "bg-amber-100 text-amber-700",
-  Processing: "bg-blue-100 text-blue-700",
-  Delivered:  "bg-green-100 text-green-700",
-  Cancelled:  "bg-red-100 text-red-700",
+const PROCUREMENT_OPTIONS = ["Ordered", "Not Ordered"];
+const PROCUREMENT_COLORS = {
+  "Ordered":     "bg-green-100 text-green-700",
+  "Not Ordered": "bg-gray-100 text-gray-500",
 };
 
 const FILTERS = ["All", "Available", "Pre-order"];
@@ -25,9 +22,9 @@ function groupByProduct(rows) {
         product_id: pid,
         product_name: row.products?.product_name ?? `Product #${pid}`,
         product_status_name: row.products?.product_status?.status_name ?? null,
+        procurement_status: row.products?.procurement_status ?? 'Not Ordered',
         sizeColourMap: {},
         total_quantity: 0,
-        order_status: row.status ?? "Pending",
       };
     }
 
@@ -71,7 +68,7 @@ export default function AdminOrdersPage() {
     setLoading(true);
     const { data } = await supabase
       .from('orders')
-      .select('*, products(product_name, product_status(status_name)), customers(customer_name, telephone)')
+      .select('*, products(product_name, procurement_status, product_status(status_name)), customers(customer_name, telephone)')
       .order('created_at', { ascending: false });
 
     const { productRows: pr, deliveryRows: dr } = groupByProduct(data ?? []);
@@ -80,13 +77,11 @@ export default function AdminOrdersPage() {
     setLoading(false);
   }
 
-  async function handleStatusChange(productId, newStatus) {
+  async function handleProcurementChange(productId, newStatus) {
     setUpdatingId(productId);
-    await supabase.from('orders')
-      .update({ status: newStatus, can_edit_delivery: newStatus === 'Pending' })
-      .eq('product_id', productId);
+    await supabase.from('products').update({ procurement_status: newStatus }).eq('product_id', productId);
     setProductRows(prev => prev.map(r =>
-      r.product_id === productId ? { ...r, order_status: newStatus } : r
+      r.product_id === productId ? { ...r, procurement_status: newStatus } : r
     ));
     setUpdatingId(null);
   }
@@ -143,7 +138,7 @@ export default function AdminOrdersPage() {
                       <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Product Name</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Size / Colour</th>
                       <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Qty</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Procurement</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -163,16 +158,16 @@ export default function AdminOrdersPage() {
                         <td className="px-4 py-3 text-center font-bold text-[#1e2d3d]">{row.total_quantity}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[row.order_status] ?? STATUS_COLORS.Pending}`}>
-                              {row.order_status}
+                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${PROCUREMENT_COLORS[row.procurement_status] ?? PROCUREMENT_COLORS["Not Ordered"]}`}>
+                              {row.procurement_status}
                             </span>
                             <select
-                              value={row.order_status}
+                              value={row.procurement_status}
                               disabled={updatingId === row.product_id}
-                              onChange={e => handleStatusChange(row.product_id, e.target.value)}
+                              onChange={e => handleProcurementChange(row.product_id, e.target.value)}
                               className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-[#F2AA25] disabled:opacity-60 cursor-pointer"
                             >
-                              {STATUS_OPTIONS.map(s => (
+                              {PROCUREMENT_OPTIONS.map(s => (
                                 <option key={s} value={s}>{s}</option>
                               ))}
                             </select>

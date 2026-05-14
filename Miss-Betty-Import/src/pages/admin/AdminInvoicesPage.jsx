@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
+const STATUS_OPTIONS = ["Pending", "Processing", "Delivered", "Cancelled"];
+const STATUS_COLORS = {
+  Pending:    "bg-amber-100 text-amber-700",
+  Processing: "bg-blue-100 text-blue-700",
+  Delivered:  "bg-green-100 text-green-700",
+  Cancelled:  "bg-red-100 text-red-700",
+};
+
 function groupByInvoiceId(rows) {
   const map = {};
   for (const row of rows) {
@@ -13,6 +21,7 @@ function groupByInvoiceId(rows) {
     date: items[0].date,
     items,
     total: items.reduce((s, r) => s + Number(r.total ?? 0), 0),
+    order_status: "Pending",
   }));
 }
 
@@ -21,7 +30,6 @@ function InvoiceModal({ invoice, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 print:bg-white print:inset-auto print:fixed print:top-0 print:left-0">
       <div id="invoice-print-area" className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto print:rounded-none print:shadow-none print:max-h-none print:overflow-visible">
-        {/* Print hide: close button */}
         <div className="flex justify-end px-6 pt-5 print:hidden">
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -113,15 +121,45 @@ export default function AdminInvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState("");
+  const [updatingId, setUpdatingId] = useState(null);
 
   useEffect(() => {
     async function loadInvoices() {
-      const { data } = await supabase.from('invoices').select('*').order('date', { ascending: false });
-      setInvoices(groupByInvoiceId(data ?? []));
+      const [{ data: rawData }, { data: orderRows }] = await Promise.all([
+        supabase.from('invoices').select('*').order('date', { ascending: false }),
+        supabase.from('orders').select('order_id, status').order('order_id'),
+      ]);
+
+      const grouped = groupByInvoiceId(rawData ?? []);
+
+      // Build status map: first status per order_id
+      const statusMap = {};
+      (orderRows ?? []).forEach(r => {
+        if (!statusMap[r.order_id]) statusMap[r.order_id] = r.status;
+      });
+
+      setInvoices(grouped.map(inv => ({
+        ...inv,
+        order_status: statusMap[inv.invoice_id] ?? 'Pending',
+      })));
       setLoading(false);
     }
     loadInvoices();
   }, []);
+
+  async function handleStatusChange(invoiceId, newStatus) {
+    setUpdatingId(invoiceId);
+    const patch = {
+      status: newStatus,
+      can_edit_delivery: newStatus === 'Pending',
+      ...(newStatus === 'Delivered' ? { delivered_at: new Date().toISOString() } : {}),
+    };
+    await supabase.from('orders').update(patch).eq('order_id', invoiceId);
+    setInvoices(prev => prev.map(inv =>
+      inv.invoice_id === invoiceId ? { ...inv, order_status: newStatus } : inv
+    ));
+    setUpdatingId(null);
+  }
 
   const filtered = invoices.filter(inv =>
     inv.invoice_id.toLowerCase().includes(query.toLowerCase()) ||
@@ -131,7 +169,7 @@ export default function AdminInvoicesPage() {
   return (
     <div>
       <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Invoices</h1>
-      <p className="text-sm text-gray-400 mb-4">All customer invoices</p>
+      <p className="text-sm text-gray-400 mb-4">All customer invoices — update order status here</p>
 
       {/* Search bar */}
       <div className="relative mb-5 max-w-sm">
@@ -176,6 +214,7 @@ export default function AdminInvoicesPage() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Date</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Items</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Total</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -189,6 +228,21 @@ export default function AdminInvoicesPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-400 hidden md:table-cell">{inv.items.length} item{inv.items.length !== 1 ? 's' : ''}</td>
                   <td className="px-4 py-3 text-right font-bold text-[#F2AA25]">GHS {inv.total.toLocaleString()}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[inv.order_status] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {inv.order_status}
+                      </span>
+                      <select
+                        value={inv.order_status}
+                        disabled={updatingId === inv.invoice_id}
+                        onChange={e => handleStatusChange(inv.invoice_id, e.target.value)}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-[#F2AA25] disabled:opacity-60 cursor-pointer"
+                      >
+                        {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => setSelected(inv)}

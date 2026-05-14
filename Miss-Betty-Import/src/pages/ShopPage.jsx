@@ -31,6 +31,24 @@ function mapProduct(p) {
   };
 }
 
+async function downloadImage(e, url, name) {
+  e.stopPropagation();
+  try {
+    const res  = await fetch(url);
+    const blob = await res.blob();
+    const tmp  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = tmp;
+    a.download = name || 'product-image';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(tmp);
+  } catch {
+    window.open(url, '_blank');
+  }
+}
+
 function ImageLightbox({ src, alt, onClose }) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -42,6 +60,17 @@ function ImageLightbox({ src, alt, onClose }) {
       className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4"
       onClick={onClose}
     >
+      <button
+        onClick={e => downloadImage(e, src, alt)}
+        className="absolute top-4 left-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+        title="Download image"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </button>
       <button
         onClick={onClose}
         className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
@@ -327,16 +356,29 @@ function ProductCard({ product, onSelect, onViewImage }) {
           {product.product_status}
         </span>
         {product.product_image_url && (
-          <button
-            onClick={e => { e.stopPropagation(); onViewImage(product.product_image_url, product.product_name); }}
-            className="absolute bottom-2 left-2 bg-black/50 hover:bg-black/70 text-white rounded-lg p-1.5 transition-colors"
-            title="View full image"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
-              <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
-            </svg>
-          </button>
+          <>
+            <button
+              onClick={e => { e.stopPropagation(); onViewImage(product.product_image_url, product.product_name); }}
+              className="absolute bottom-2 left-2 bg-black/50 hover:bg-black/70 text-white rounded-lg p-1.5 transition-colors"
+              title="View full image"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+                <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+              </svg>
+            </button>
+            <button
+              onClick={e => downloadImage(e, product.product_image_url, product.product_name)}
+              className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-lg p-1.5 transition-colors"
+              title="Download image"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </button>
+          </>
         )}
       </div>
       <div className="p-2.5 sm:p-3 flex flex-col flex-1">

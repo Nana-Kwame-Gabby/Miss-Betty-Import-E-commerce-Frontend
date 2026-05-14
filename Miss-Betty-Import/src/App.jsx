@@ -33,10 +33,17 @@ function LoadingSpinner() {
   );
 }
 
+function PublicOnlyRoute() {
+  const { session, loading, isAdmin } = useAuth();
+  if (loading) return <LoadingSpinner />;
+  if (session) return <Navigate to={isAdmin ? "/admin" : "/shop"} replace />;
+  return <Outlet />;
+}
+
 function ProtectedLayout() {
   const { session, loading, isAdmin } = useAuth();
   if (loading) return <LoadingSpinner />;
-  if (!session) return <Navigate to="/" replace />;
+  if (!session) return <Navigate to="/login" replace />;
   if (isAdmin) return <Navigate to="/admin" replace />;
   return <Outlet />;
 }
@@ -44,7 +51,7 @@ function ProtectedLayout() {
 function AdminGuard() {
   const { session, loading, isAdmin } = useAuth();
   if (loading) return <LoadingSpinner />;
-  if (!session) return <Navigate to="/" replace />;
+  if (!session) return <Navigate to="/login" replace />;
   if (!isAdmin) return <Navigate to="/shop" replace />;
   return <Outlet />;
 }
@@ -56,11 +63,17 @@ function App() {
         <CartProvider>
           <Router>
             <Routes>
-              {/* Public — auth pages */}
-              <Route path="/" element={<LoginPage />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              {/* Fully public */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/home" element={<Navigate to="/" replace />} />
+
+              {/* Public-only — redirect to /shop if already logged in */}
+              <Route element={<PublicOnlyRoute />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+              </Route>
 
               {/* Admin — role-gated */}
               <Route element={<AdminGuard />}>
@@ -74,7 +87,6 @@ function App() {
 
               {/* Protected — all customer pages */}
               <Route element={<ProtectedLayout />}>
-                <Route path="/home" element={<HomePage />} />
                 <Route path="/shop" element={<ShopPage />} />
 
                 <Route element={<Layout />}>

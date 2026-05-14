@@ -12,10 +12,11 @@ const ghanaRegions = [
 ];
 
 const statusStyles = {
-  Delivered: "bg-green-100 text-green-700",
+  Delivered:  "bg-green-100 text-green-700",
   Processing: "bg-blue-100 text-blue-700",
-  Pending: "bg-amber-100 text-amber-700",
-  Cancelled: "bg-red-100 text-red-600",
+  Pending:    "bg-amber-100 text-amber-700",
+  Cancelled:  "bg-red-100 text-red-600",
+  Received:   "bg-purple-100 text-purple-700",
 };
 
 function groupByOrderId(rows) {
@@ -30,8 +31,9 @@ function groupByOrderId(rows) {
     status: rows[0].status ?? 'Pending',
     delivery: { region: rows[0].delivery_region, town: rows[0].delivery_town },
     canEditDelivery: rows[0].can_edit_delivery ?? false,
+    delivered_at: rows[0].delivered_at ?? null,
     items: rows.map(r => ({
-      name: r.product_name_snapshot ?? `Product #${r.product_id}`,
+      name: r.product_name_snapshot ?? r.products?.product_name ?? `Product #${r.product_id}`,
       size: r.size,
       colour: r.colour,
       qty: r.quantity,
@@ -178,15 +180,37 @@ export default function MyOrdersPage() {
 
       const { data } = await supabase
         .from('orders')
-        .select('*')
+        .select('*, products(product_name)')
         .eq('customer_id', cust.customer_id)
         .order('created_at', { ascending: false });
 
-      setOrders(groupByOrderId(data ?? []));
+      const grouped = groupByOrderId(data ?? []);
+
+      // Auto-confirm orders delivered more than 72 hours ago
+      const now = Date.now();
+      const overdueIds = grouped
+        .filter(o =>
+          o.status === 'Delivered' &&
+          o.delivered_at &&
+          now - new Date(o.delivered_at).getTime() > 72 * 60 * 60 * 1000
+        )
+        .map(o => o.order_id);
+
+      if (overdueIds.length > 0) {
+        await supabase.from('orders').update({ status: 'Received' }).in('order_id', overdueIds);
+        setOrders(grouped.map(o => overdueIds.includes(o.order_id) ? { ...o, status: 'Received' } : o));
+      } else {
+        setOrders(grouped);
+      }
       setLoading(false);
     }
     loadOrders();
   }, [session]);
+
+  async function handleConfirmReceipt(orderId) {
+    await supabase.from('orders').update({ status: 'Received' }).eq('order_id', orderId);
+    setOrders(prev => prev.map(o => o.order_id === orderId ? { ...o, status: 'Received' } : o));
+  }
 
   function handleDeliverySave(orderId, delivery) {
     setOrders(prev => prev.map(o =>
@@ -266,14 +290,24 @@ export default function MyOrdersPage() {
                   </span>
                 </td>
                 <td className="px-3 py-3">
-                  {order.canEditDelivery && (
-                    <button
-                      onClick={() => setEditingOrder(order)}
-                      className="text-xs font-semibold text-[#F2AA25] border border-[#F2AA25] px-3 py-1.5 rounded-xl hover:bg-amber-50 transition-colors whitespace-nowrap"
-                    >
-                      Edit Delivery
-                    </button>
-                  )}
+                  <div className="flex flex-col gap-1.5 items-start">
+                    {order.canEditDelivery && (
+                      <button
+                        onClick={() => setEditingOrder(order)}
+                        className="text-xs font-semibold text-[#F2AA25] border border-[#F2AA25] px-3 py-1.5 rounded-xl hover:bg-amber-50 transition-colors whitespace-nowrap"
+                      >
+                        Edit Delivery
+                      </button>
+                    )}
+                    {order.status === 'Delivered' && (
+                      <button
+                        onClick={() => handleConfirmReceipt(order.order_id)}
+                        className="text-xs font-semibold text-green-600 border border-green-500 px-3 py-1.5 rounded-xl hover:bg-green-50 transition-colors whitespace-nowrap"
+                      >
+                        Confirm Receipt
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -315,6 +349,14 @@ export default function MyOrdersPage() {
                 className="mt-3 w-full text-sm font-semibold text-[#F2AA25] border border-[#F2AA25] py-2 rounded-xl hover:bg-amber-50 transition-colors"
               >
                 Edit Delivery Info
+              </button>
+            )}
+            {order.status === 'Delivered' && (
+              <button
+                onClick={() => handleConfirmReceipt(order.order_id)}
+                className="mt-2 w-full text-sm font-semibold text-green-600 border border-green-500 py-2 rounded-xl hover:bg-green-50 transition-colors"
+              >
+                Confirm Receipt
               </button>
             )}
           </div>
