@@ -36,7 +36,6 @@ function groupByProduct(rows) {
     entry.sizeColourMap[sz][cl] = (entry.sizeColourMap[sz][cl] ?? 0) + qty;
     entry.total_quantity += qty;
 
-    // Delivery dedup by customer_name + delivery_town
     const dedupeKey = `${row.customers?.customer_name ?? ""}::${row.delivery_town ?? ""}`;
     if (!deliverySet.has(dedupeKey)) {
       deliverySet.add(dedupeKey);
@@ -50,16 +49,17 @@ function groupByProduct(rows) {
     }
   }
 
-  const productRows = Object.values(productMap);
-
-  return { productRows, deliveryRows };
+  return { productRows: Object.values(productMap), deliveryRows };
 }
 
 export default function AdminOrdersPage() {
   const [productRows, setProductRows] = useState([]);
   const [deliveryRows, setDeliveryRows] = useState([]);
+  const [rawRows, setRawRows] = useState([]);
+  const [feeInputs, setFeeInputs] = useState({});
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [savingId, setSavingId] = useState(null);
   const [filter, setFilter] = useState("All");
 
   useEffect(() => { loadOrders(); }, []);
@@ -71,9 +71,14 @@ export default function AdminOrdersPage() {
       .select('*, products(product_name, procurement_status, product_status(status_name)), customers(customer_name, telephone)')
       .order('created_at', { ascending: false });
 
-    const { productRows: pr, deliveryRows: dr } = groupByProduct(data ?? []);
+    const rows = data ?? [];
+    const { productRows: pr, deliveryRows: dr } = groupByProduct(rows);
     setProductRows(pr);
     setDeliveryRows(dr);
+    setRawRows(rows);
+    const inputs = {};
+    rows.forEach(r => { inputs[r.id] = r.shipping_fee != null && r.shipping_fee !== 0 ? String(r.shipping_fee) : ''; });
+    setFeeInputs(inputs);
     setLoading(false);
   }
 
@@ -84,6 +89,15 @@ export default function AdminOrdersPage() {
       r.product_id === productId ? { ...r, procurement_status: newStatus } : r
     ));
     setUpdatingId(null);
+  }
+
+  async function handleFeeBlur(id, value) {
+    const parsed = value === '' ? 0 : parseFloat(value);
+    if (isNaN(parsed)) return;
+    setSavingId(id);
+    await supabase.from('orders').update({ shipping_fee: parsed }).eq('id', id);
+    setRawRows(prev => prev.map(r => r.id === id ? { ...r, shipping_fee: parsed } : r));
+    setSavingId(null);
   }
 
   const filteredProducts = filter === "All"
@@ -108,7 +122,6 @@ export default function AdminOrdersPage() {
                 Product Orders ({filteredProducts.length})
               </h2>
 
-              {/* Filter pills */}
               <div className="flex gap-2">
                 {FILTERS.map(f => (
                   <button
@@ -182,7 +195,7 @@ export default function AdminOrdersPage() {
           </div>
 
           {/* ── Section 2: Delivery Details ─────────────────────────────── */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
             <div className="px-5 py-4 border-b border-gray-100">
               <h2 className="text-sm font-bold text-[#1e2d3d]">
                 Delivery Details ({deliveryRows.length})
@@ -209,6 +222,66 @@ export default function AdminOrdersPage() {
                         <td className="px-4 py-3 text-gray-500">{row.telephone}</td>
                         <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{row.delivery_town}</td>
                         <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{row.delivery_region}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* ── Section 3: Shipping Fees ─────────────────────────────── */}
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h2 className="text-sm font-bold text-[#1e2d3d]">
+                Shipping Fees ({rawRows.length})
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">Enter the shipping fee per item. Changes save on blur or Enter.</p>
+            </div>
+
+            {rawRows.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 text-sm">No orders yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50">
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Order ID</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Product</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Size</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Colour</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Qty</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Shipping Fee (GHS)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rawRows.map(row => (
+                      <tr key={row.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                        <td className="px-5 py-3 font-semibold text-[#F2AA25] text-xs whitespace-nowrap">{row.order_id}</td>
+                        <td className="px-4 py-3 text-[#1e2d3d]">{row.customers?.customer_name ?? '—'}</td>
+                        <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{row.products?.product_name ?? `Product #${row.product_id}`}</td>
+                        <td className="px-4 py-3 text-center text-gray-500 hidden sm:table-cell">{row.size ?? '—'}</td>
+                        <td className="px-4 py-3 text-center text-gray-500 hidden sm:table-cell">{row.colour ?? '—'}</td>
+                        <td className="px-4 py-3 text-center font-semibold text-[#1e2d3d]">{row.quantity}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={feeInputs[row.id] ?? ''}
+                              onChange={e => setFeeInputs(prev => ({ ...prev, [row.id]: e.target.value }))}
+                              onBlur={e => handleFeeBlur(row.id, e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+                              placeholder="0.00"
+                              className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-[#F2AA25] transition-colors"
+                            />
+                            {savingId === row.id && (
+                              <div className="w-3.5 h-3.5 border-2 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

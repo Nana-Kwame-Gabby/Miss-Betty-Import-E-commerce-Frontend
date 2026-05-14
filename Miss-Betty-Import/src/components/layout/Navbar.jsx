@@ -50,6 +50,13 @@ function AccountDropdown() {
           >
             <span>📦</span> Orders
           </Link>
+          <Link
+            to="/shipping-fees"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+          >
+            <span>🚚</span> Shipping Fee
+          </Link>
           {isAdmin && (
             <Link
               to="/admin"
@@ -100,6 +107,7 @@ export default function Navbar() {
           <nav className="hidden md:flex items-center gap-8">
             <NavLink to="/shop" className={navClass}>Shop</NavLink>
             <NavLink to="/my-orders" className={navClass}>My Orders</NavLink>
+            <NavLink to="/shipping-fees" className={navClass}>Shipping Fee</NavLink>
           </nav>
 
           {/* Right */}
@@ -146,6 +154,7 @@ export default function Navbar() {
           <div className="md:hidden border-t border-gray-100 py-4 flex flex-col gap-4 px-2">
             <NavLink to="/shop" className={navClass} onClick={() => setMenuOpen(false)}>Shop</NavLink>
             <NavLink to="/my-orders" className={navClass} onClick={() => setMenuOpen(false)}>My Orders</NavLink>
+            <NavLink to="/shipping-fees" className={navClass} onClick={() => setMenuOpen(false)}>Shipping Fee</NavLink>
             <Link to="/my-orders" className="flex items-center gap-2 text-[#1e2d3d] font-medium" onClick={() => setMenuOpen(false)}>📦 Orders</Link>
             <button onClick={async () => { setMenuOpen(false); await signOut(); navigate("/"); }} className="flex items-center gap-2 text-red-500 font-medium text-left">🚪 Sign out</button>
           </div>

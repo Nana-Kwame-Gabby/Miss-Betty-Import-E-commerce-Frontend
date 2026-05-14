@@ -18,6 +18,7 @@ import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import MyOrdersPage from "./pages/MyOrdersPage";
+import ShippingFeePage from "./pages/ShippingFeePage";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProductsPage from "./pages/admin/AdminProductsPage";
@@ -95,6 +96,7 @@ function App() {
                   <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
                   <Route path="/my-orders" element={<MyOrdersPage />} />
+                  <Route path="/shipping-fees" element={<ShippingFeePage />} />
                 </Route>
               </Route>
             </Routes>
