@@ -24,6 +24,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProductsPage from "./pages/admin/AdminProductsPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminInvoicesPage from "./pages/admin/AdminInvoicesPage";
+import AdminShippingFeesPage from "./pages/admin/AdminShippingFeesPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 
 function LoadingSpinner() {
@@ -83,6 +84,7 @@ function App() {
                   <Route path="/admin/products" element={<AdminProductsPage />} />
                   <Route path="/admin/orders" element={<AdminOrdersPage />} />
                   <Route path="/admin/invoices" element={<AdminInvoicesPage />} />
+                  <Route path="/admin/shipping-fees" element={<AdminShippingFeesPage />} />
                 </Route>
               </Route>
 

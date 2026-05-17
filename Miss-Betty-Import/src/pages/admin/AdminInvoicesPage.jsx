@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import * as XLSX from 'xlsx';
 
 const STATUS_OPTIONS = ["Pending", "Processing", "Delivered", "Cancelled"];
 const STATUS_COLORS = {
@@ -161,6 +162,23 @@ export default function AdminInvoicesPage() {
     setUpdatingId(null);
   }
 
+  function handleDownloadExcel() {
+    const rows = invoices.flatMap(inv =>
+      inv.items.map(item => ({
+        Customer:            inv.customer_name ?? '—',
+        Product:             item.product_name ?? '—',
+        Size:                item.size ?? '—',
+        Colour:              item.colour ?? '—',
+        'Unit Price (GHS)':  Number(item.unit_price),
+        'Total Price (GHS)': Number(item.total),
+      }))
+    );
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
+    XLSX.writeFile(wb, 'Miss-Betty-Invoices.xlsx');
+  }
+
   const filtered = invoices.filter(inv =>
     inv.invoice_id.toLowerCase().includes(query.toLowerCase()) ||
     (inv.customer_name ?? "").toLowerCase().includes(query.toLowerCase())
@@ -171,25 +189,37 @@ export default function AdminInvoicesPage() {
       <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Invoices</h1>
       <p className="text-sm text-gray-400 mb-4">All customer invoices — update order status here</p>
 
-      {/* Search bar */}
-      <div className="relative mb-5 max-w-sm">
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search by customer name or Invoice ID…"
-          className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm outline-none focus:border-[#F2AA25] transition-colors"
-        />
-        {query && (
-          <button
-            onClick={() => setQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        )}
+      {/* Search bar + Download */}
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        <div className="relative max-w-sm flex-1">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search by customer name or Invoice ID…"
+            className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm outline-none focus:border-[#F2AA25] transition-colors"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
+        </div>
+        <button
+          onClick={handleDownloadExcel}
+          disabled={loading || invoices.length === 0}
+          className="flex items-center gap-2 bg-[#1e2d3d] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download Excel
+        </button>
       </div>
 
       {loading ? (
