@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import * as XLSX from 'xlsx';
 
 const PROCUREMENT_OPTIONS = ["Ordered", "Not Ordered"];
 const PROCUREMENT_COLORS = {
@@ -88,6 +89,22 @@ export default function AdminOrdersPage() {
     ? productRows
     : productRows.filter(r => r.product_status_name === filter);
 
+  function handleDownloadExcel() {
+    const rows = filteredProducts.flatMap(row =>
+      Object.entries(row.sizeColourMap).flatMap(([size, colourMap]) =>
+        Object.entries(colourMap).map(([colour, qty]) => ({
+          'Product Name':  row.product_name,
+          'Size / Colour': `${size} / ${colour}`,
+          'Quantity':      qty,
+        }))
+      )
+    );
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Product Orders');
+    XLSX.writeFile(wb, 'Miss-Betty-Product-Orders.xlsx');
+  }
+
   return (
     <div>
       <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Orders</h1>
@@ -105,7 +122,7 @@ export default function AdminOrdersPage() {
               <h2 className="text-sm font-bold text-[#1e2d3d]">
                 Product Orders ({filteredProducts.length})
               </h2>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 {FILTERS.map(f => (
                   <button
                     key={f}
@@ -119,6 +136,17 @@ export default function AdminOrdersPage() {
                     {f}
                   </button>
                 ))}
+                <span className="w-px h-5 bg-gray-200 mx-1" />
+                <button
+                  onClick={handleDownloadExcel}
+                  disabled={filteredProducts.length === 0}
+                  className="flex items-center gap-1.5 bg-[#1e2d3d] text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Download Excel
+                </button>
               </div>
             </div>
 
