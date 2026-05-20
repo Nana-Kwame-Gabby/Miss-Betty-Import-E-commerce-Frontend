@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useUser } from "../context/UserContext";
 import { useAuth } from "../context/AuthContext";
@@ -16,9 +16,27 @@ export default function CheckoutPage() {
   const { user } = useUser();
   const { session } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const buyNowData = location.state?.buyNow ?? null;
+
+  const checkoutItems = buyNowData
+    ? [{
+        ...buyNowData.product,
+        quantity: buyNowData.quantity,
+        size:     buyNowData.size,
+        colour:   buyNowData.colour,
+        cartKey:  `buynow-${buyNowData.product.id}`,
+      }]
+    : cartItems;
+
+  const checkoutSubtotal = buyNowData
+    ? buyNowData.product.unit_price * buyNowData.quantity
+    : subtotal;
 
   const [form, setForm] = useState({
-    fullName: user.fullName, email: user.email, phone: user.phone, region: "", town: "",
+    fullName: user.fullName, email: user.email, phone: user.phone,
+    region: user.deliveryRegion, town: user.deliveryTown,
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -58,7 +76,7 @@ export default function CheckoutPage() {
       const orderId = `ORD-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000) + 1000}`;
 
       // 3. Insert one orders row per cart item
-      const orderRows = cartItems.map(item => ({
+      const orderRows = checkoutItems.map(item => ({
         order_id: orderId,
         customer_id: cust.customer_id,
         product_id: item.id,
@@ -76,7 +94,7 @@ export default function CheckoutPage() {
       if (ordersError) throw new Error(ordersError.message);
 
       // 4. Insert invoice rows
-      const invoiceRows = cartItems.map(item => ({
+      const invoiceRows = checkoutItems.map(item => ({
         invoice_id: orderId,
         customer_name: form.fullName,
         product_name: item.product_name,
@@ -91,15 +109,15 @@ export default function CheckoutPage() {
       if (invoicesError) throw new Error(invoicesError.message);
 
       // 5. Clear cart + navigate
-      clearCart();
-      navigate('/order-confirmation', { state: { form, items: cartItems, subtotal, orderId } });
+      if (!buyNowData) clearCart();
+      navigate('/order-confirmation', { state: { form, items: checkoutItems, subtotal: checkoutSubtotal, orderId } });
     } catch (err) {
       setSubmitError(err.message);
       setSubmitting(false);
     }
   }
 
-  if (cartItems.length === 0) {
+  if (checkoutItems.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
         <p className="text-5xl mb-4">🛒</p>
@@ -145,7 +163,7 @@ export default function CheckoutPage() {
 
               <div className="sm:col-span-2">
                 <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
-                  ℹ️ Pre-filled from your account. To update, use <strong>My Account</strong> in the Account menu.
+                  ℹ️ Pre-filled from your account. To update, use <strong>Delivery Details</strong> in the Account menu.
                 </p>
               </div>
 
@@ -192,7 +210,7 @@ export default function CheckoutPage() {
           <div className="bg-white rounded-2xl shadow-sm p-4 sticky top-16">
             <h2 className="font-bold text-[#1e2d3d] text-base mb-3">Order Summary</h2>
             <div className="flex flex-col gap-2.5 mb-3">
-              {cartItems.map(item => (
+              {checkoutItems.map(item => (
                 <div key={item.cartKey} className="flex items-start gap-3">
                   {item.product_image_url ? (
                     <img src={item.product_image_url} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl flex-shrink-0" />
@@ -210,7 +228,7 @@ export default function CheckoutPage() {
             <div className="border-t border-gray-100 pt-3">
               <div className="flex justify-between text-sm text-gray-500 mb-2">
                 <span>Subtotal</span>
-                <span>GHS {subtotal.toLocaleString()}</span>
+                <span>GHS {checkoutSubtotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm text-gray-500 mb-4">
                 <span>Delivery</span>
@@ -218,7 +236,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between font-bold text-[#1e2d3d] text-base">
                 <span>Total</span>
-                <span className="text-[#F2AA25]">GHS {subtotal.toLocaleString()}</span>
+                <span className="text-[#F2AA25]">GHS {checkoutSubtotal.toLocaleString()}</span>
               </div>
             </div>
           </div>

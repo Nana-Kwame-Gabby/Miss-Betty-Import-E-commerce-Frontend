@@ -4,7 +4,8 @@ import { supabase } from "../../lib/supabase";
 const EMPTY_FORM = {
   product_name: "",
   category_id: "",
-  unit_price: "",
+  cost_price: "",
+  profit: "",
   status_id: "",
   description: "",
   sizes: "",
@@ -59,8 +60,8 @@ export default function AdminProductsPage() {
     setError("");
     setSuccess("");
 
-    if (!form.product_name.trim() || !form.category_id || !form.unit_price || !form.status_id) {
-      setError("Product name, category, price, and status are required.");
+    if (!form.product_name.trim() || !form.category_id || !form.cost_price || !form.status_id) {
+      setError("Product name, category, cost price, and status are required.");
       return;
     }
 
@@ -85,10 +86,16 @@ export default function AdminProductsPage() {
       imageUrl = publicUrl;
     }
 
+    const cost_price = Number(form.cost_price);
+    const profit     = Number(form.profit || 0);
+    const unit_price = cost_price + profit;
+
     const { error: insertError } = await supabase.from('products').insert({
       product_name: form.product_name.trim(),
       category_id: Number(form.category_id),
-      unit_price: Number(form.unit_price),
+      cost_price,
+      profit,
+      unit_price,
       product_status_id: Number(form.status_id),
       description: form.description.trim() || null,
       product_image_url: imageUrl,
@@ -160,11 +167,27 @@ export default function AdminProductsPage() {
             </select>
           </div>
 
-          {/* Price */}
+          {/* Cost Price */}
           <div>
-            <label className={labelClass}>Unit Price (GHS) *</label>
-            <input name="unit_price" type="number" min="0" step="0.01" value={form.unit_price} onChange={handleChange} placeholder="0.00" className={inputClass} />
+            <label className={labelClass}>Cost Price (GHS) *</label>
+            <input name="cost_price" type="number" min="0" step="0.01" value={form.cost_price} onChange={handleChange} placeholder="0.00" className={inputClass} />
           </div>
+
+          {/* Profit */}
+          <div>
+            <label className={labelClass}>Profit (GHS) *</label>
+            <input name="profit" type="number" min="0" step="0.01" value={form.profit} onChange={handleChange} placeholder="0.00" className={inputClass} />
+          </div>
+
+          {/* Final price preview */}
+          {(form.cost_price || form.profit) && (
+            <div className="sm:col-span-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-4 py-2.5">
+              Final Price (shown to customers):{" "}
+              <span className="font-bold text-[#1e2d3d]">
+                GHS {(Number(form.cost_price || 0) + Number(form.profit || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          )}
 
           {/* Image Upload */}
           <div>
@@ -265,7 +288,9 @@ export default function AdminProductsPage() {
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Product</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Category</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Price</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Final Price</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Cost Price</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Profit</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Status</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -287,6 +312,8 @@ export default function AdminProductsPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{p.category?.category_name ?? '—'}</td>
                     <td className="px-4 py-3 font-semibold text-[#F2AA25]">GHS {Number(p.unit_price).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">GHS {Number(p.cost_price ?? 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">GHS {Number(p.profit ?? 0).toLocaleString()}</td>
                     <td className="px-4 py-3 hidden md:table-cell">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         p.product_status?.status_name === 'Available'

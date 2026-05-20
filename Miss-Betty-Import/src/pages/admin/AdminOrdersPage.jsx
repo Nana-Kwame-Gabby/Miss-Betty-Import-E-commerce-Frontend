@@ -59,6 +59,8 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [filter, setFilter] = useState("All");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { loadOrders(); }, []);
 
@@ -88,6 +90,19 @@ export default function AdminOrdersPage() {
   const filteredProducts = filter === "All"
     ? productRows
     : productRows.filter(r => r.product_status_name === filter);
+
+  async function handleDeleteAll() {
+    setDeleting(true);
+    const { error } = await supabase.from('orders').delete().gte('id', 1);
+    if (!error) {
+      setProductRows([]);
+      setDeliveryRows([]);
+      setConfirmDelete(false);
+    } else {
+      alert('Delete failed. Please try again.');
+    }
+    setDeleting(false);
+  }
 
   function handleDownloadExcel() {
     const rows = filteredProducts.flatMap(row =>
@@ -146,6 +161,18 @@ export default function AdminOrdersPage() {
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
                   Download Excel
+                </button>
+                <span className="w-px h-5 bg-gray-200 mx-1" />
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={productRows.length === 0}
+                  className="flex items-center gap-1.5 bg-red-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                    <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                  </svg>
+                  Delete All
                 </button>
               </div>
             </div>
@@ -241,6 +268,31 @@ export default function AdminOrdersPage() {
             )}
           </div>
         </>
+      )}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+            <h3 className="text-base font-bold text-[#1e2d3d] mb-2">Delete All Orders?</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              This will permanently delete all order records. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="text-sm font-semibold px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={deleting}
+                className="text-sm font-semibold px-4 py-2 rounded-xl bg-red-500 text-white hover:opacity-90 disabled:opacity-60"
+              >
+                {deleting ? 'Deleting…' : 'Delete All'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

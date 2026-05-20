@@ -123,6 +123,8 @@ export default function AdminInvoicesPage() {
   const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function loadInvoices() {
@@ -152,7 +154,7 @@ export default function AdminInvoicesPage() {
     setUpdatingId(invoiceId);
     const patch = {
       status: newStatus,
-      can_edit_delivery: newStatus === 'Pending',
+      can_edit_delivery: newStatus !== 'Delivered' && newStatus !== 'Received',
       ...(newStatus === 'Delivered' ? { delivered_at: new Date().toISOString() } : {}),
     };
     await supabase.from('orders').update(patch).eq('order_id', invoiceId);
@@ -160,6 +162,19 @@ export default function AdminInvoicesPage() {
       inv.invoice_id === invoiceId ? { ...inv, order_status: newStatus } : inv
     ));
     setUpdatingId(null);
+  }
+
+  async function handleDeleteAll() {
+    setDeleting(true);
+    const { error } = await supabase.from('invoices').delete().gte('id', 1);
+    if (!error) {
+      setInvoices([]);
+      setSelected(null);
+      setConfirmDelete(false);
+    } else {
+      alert('Delete failed. Please try again.');
+    }
+    setDeleting(false);
   }
 
   function handleDownloadExcel() {
@@ -219,6 +234,17 @@ export default function AdminInvoicesPage() {
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
           Download Excel
+        </button>
+        <button
+          onClick={() => setConfirmDelete(true)}
+          disabled={loading || invoices.length === 0}
+          className="flex items-center gap-2 bg-red-500 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+          </svg>
+          Delete All
         </button>
       </div>
 
@@ -289,6 +315,32 @@ export default function AdminInvoicesPage() {
       )}
 
       <InvoiceModal invoice={selected} onClose={() => setSelected(null)} />
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+            <h3 className="text-base font-bold text-[#1e2d3d] mb-2">Delete All Invoices?</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              This will permanently delete all invoice records. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="text-sm font-semibold px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={deleting}
+                className="text-sm font-semibold px-4 py-2 rounded-xl bg-red-500 text-white hover:opacity-90 disabled:opacity-60"
+              >
+                {deleting ? 'Deleting…' : 'Delete All'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

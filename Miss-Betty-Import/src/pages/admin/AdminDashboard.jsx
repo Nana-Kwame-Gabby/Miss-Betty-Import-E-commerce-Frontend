@@ -20,11 +20,13 @@ function StatCard({ title, value, icon, color, loading }) {
 }
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ products: 0, orders: 0, customers: 0, revenue: 0, shippingCollected: 0 });
+  const [stats, setStats] = useState({ products: 0, orders: 0, customers: 0, revenue: 0, shippingCollected: 0, totalCostPrice: 0, totalProfit: 0 });
   const [paymentRows, setPaymentRows] = useState([]);
   const [custTotals, setCustTotals] = useState({});
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function loadStats() {
@@ -44,7 +46,7 @@ export default function AdminDashboard() {
         supabase.from('shipping_fee_payments')
           .select('customer_id, amount_paid, paid_at, customers(customer_name)')
           .order('paid_at', { ascending: false }),
-        supabase.from('orders').select('customer_id, product_id, size, quantity'),
+        supabase.from('orders').select('customer_id, product_id, size, quantity, products(cost_price, profit)'),
         supabase.from('product_size_shipping_fees').select('product_id, size, shipping_fee'),
       ]);
 
@@ -56,9 +58,14 @@ export default function AdminDashboard() {
         feeMap[`${f.product_id}::${f.size}`] = Number(f.shipping_fee ?? 0);
       });
       const totalByCustomer = {};
+      let totalCostPrice = 0;
+      let totalProfit    = 0;
       (allOrderData ?? []).forEach(o => {
-        const fee = feeMap[`${o.product_id}::${o.size ?? ''}`] ?? 0;
-        totalByCustomer[o.customer_id] = (totalByCustomer[o.customer_id] ?? 0) + fee * Number(o.quantity ?? 1);
+        const qty  = Number(o.quantity ?? 1);
+        const fee  = feeMap[`${o.product_id}::${o.size ?? ''}`] ?? 0;
+        totalByCustomer[o.customer_id] = (totalByCustomer[o.customer_id] ?? 0) + fee * qty;
+        totalCostPrice += Number(o.products?.cost_price ?? 0) * qty;
+        totalProfit    += Number(o.products?.profit     ?? 0) * qty;
       });
 
       // Compute running balance per customer (sorted chronologically, then re-sorted newest-first)
@@ -79,13 +86,26 @@ export default function AdminDashboard() {
       });
       enriched.sort((a, b) => new Date(b.paid_at) - new Date(a.paid_at));
 
-      setStats({ products: products ?? 0, orders: orders ?? 0, customers: customers ?? 0, revenue, shippingCollected });
+      setStats({ products: products ?? 0, orders: orders ?? 0, customers: customers ?? 0, revenue, shippingCollected, totalCostPrice, totalProfit });
       setPaymentRows(enriched);
       setCustTotals(totalByCustomer);
       setLoading(false);
     }
     loadStats();
   }, []);
+
+  async function handleDeleteAll() {
+    setDeleting(true);
+    const { error } = await supabase.from('shipping_fee_payments').delete().gte('id', 1);
+    if (!error) {
+      setPaymentRows([]);
+      setStats(prev => ({ ...prev, shippingCollected: 0 }));
+      setConfirmDelete(false);
+    } else {
+      alert('Delete failed. Please try again.');
+    }
+    setDeleting(false);
+  }
 
   const filteredPayments = paymentRows.filter(r =>
     (r.customers?.customer_name ?? "").toLowerCase().includes(query.toLowerCase())
@@ -154,6 +174,29 @@ export default function AdminDashboard() {
             </svg>
           }
         />
+        <StatCard
+          title="Total Cost Price"
+          value={`GHS ${stats.totalCostPrice.toLocaleString()}`}
+          loading={loading}
+          color="bg-orange-50"
+          icon={
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2 3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 01-8 0"/>
+            </svg>
+          }
+        />
+        <StatCard
+          title="Total Profit"
+          value={`GHS ${stats.totalProfit.toLocaleString()}`}
+          loading={loading}
+          color="bg-emerald-50"
+          icon={
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+            </svg>
+          }
+        />
       </div>
 
       <div className="bg-white rounded-2xl p-5 shadow-sm mb-8">
@@ -200,6 +243,18 @@ export default function AdminDashboard() {
               </button>
             )}
           </div>
+
+          <button
+            onClick={() => setConfirmDelete(true)}
+            disabled={paymentRows.length === 0}
+            className="flex items-center gap-1.5 bg-red-500 text-white text-xs font-semibold px-3 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+            </svg>
+            Delete All
+          </button>
         </div>
 
         {loading ? (
@@ -252,6 +307,32 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+            <h3 className="text-base font-bold text-[#1e2d3d] mb-2">Delete All Payments?</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              This will permanently delete all shipping fee payment records. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="text-sm font-semibold px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={deleting}
+                className="text-sm font-semibold px-4 py-2 rounded-xl bg-red-500 text-white hover:opacity-90 disabled:opacity-60"
+              >
+                {deleting ? 'Deleting…' : 'Delete All'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

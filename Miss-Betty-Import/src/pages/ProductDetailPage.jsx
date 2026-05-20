@@ -76,6 +76,17 @@ export default function ProductDetailPage() {
     setTimeout(() => setAdded(false), 2500);
   }
 
+  function handleBuyNow() {
+    if (!selectedSize && product.sizes.length > 0) return setError("Please select a size.");
+    if (!selectedColour && product.colours.length > 0) return setError("Please select a colour.");
+    setError("");
+    navigate("/checkout", {
+      state: {
+        buyNow: { product, quantity, size: selectedSize, colour: selectedColour },
+      },
+    });
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
       {/* Breadcrumb */}
@@ -202,7 +213,7 @@ export default function ProductDetailPage() {
               {added ? "✓ Added to Cart!" : "Add to Cart"}
             </button>
             <button
-              onClick={() => { handleAddToCart(); navigate("/cart"); }}
+              onClick={handleBuyNow}
               className="flex-1 font-bold py-3 rounded-2xl border-2 border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white transition-colors"
             >
               Buy Now

@@ -5,6 +5,7 @@ import { colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import MyAccountModal from "../components/MyAccountModal";
+import DeliveryDetailsModal from "../components/DeliveryDetailsModal";
 import { supabase } from "../lib/supabase";
 
 const CATEGORY_ICONS = {
@@ -92,6 +93,7 @@ function ImageLightbox({ src, alt, onClose }) {
 function AccountDropdown() {
   const [open, setOpen] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [showDelivery, setShowDelivery] = useState(false);
   const { signOut, isAdmin } = useAuth();
   const navigate = useNavigate();
   const ref = useRef(null);
@@ -127,6 +129,12 @@ function AccountDropdown() {
           >
             <span>👤</span> My account
           </button>
+          <button
+            onClick={() => { setOpen(false); setShowDelivery(true); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
+          >
+            <span>📍</span> Delivery Details
+          </button>
           <Link
             to="/my-orders"
             onClick={() => setOpen(false)}
@@ -153,13 +161,15 @@ function AccountDropdown() {
         </div>
       )}
 
-      {showAccount && <MyAccountModal onClose={() => setShowAccount(false)} />}
+      {showAccount  && <MyAccountModal      onClose={() => setShowAccount(false)}  />}
+      {showDelivery && <DeliveryDetailsModal onClose={() => setShowDelivery(false)} />}
     </div>
   );
 }
 
-function ProductDetailModal({ product, onClose }) {
+function ProductDetailModal({ product, onClose, buyNow = false }) {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? null);
   const [selectedColour, setSelectedColour] = useState(product.colours[0] ?? null);
   const [qty, setQty] = useState(1);
@@ -174,6 +184,14 @@ function ProductDetailModal({ product, onClose }) {
     addToCart(product, qty, selectedSize, selectedColour);
     setAdded(true);
     setTimeout(() => { setAdded(false); onClose(); }, 1500);
+  }
+
+  function handleBuyNow() {
+    navigate("/checkout", {
+      state: {
+        buyNow: { product, quantity: qty, size: selectedSize, colour: selectedColour },
+      },
+    });
   }
 
   return (
@@ -303,14 +321,23 @@ function ProductDetailModal({ product, onClose }) {
                 +
               </button>
             </div>
-            <button
-              onClick={handleAdd}
-              className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-colors ${
-                added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
-              }`}
-            >
-              {added ? "✓ Added to cart!" : "Add to Cart"}
-            </button>
+            {buyNow ? (
+              <button
+                onClick={handleBuyNow}
+                className="flex-1 font-semibold py-2 rounded-xl text-sm bg-[#F2AA25] text-white hover:opacity-90 transition-opacity"
+              >
+                Proceed to Checkout
+              </button>
+            ) : (
+              <button
+                onClick={handleAdd}
+                className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-colors ${
+                  added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
+                }`}
+              >
+                {added ? "✓ Added to cart!" : "Add to Cart"}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -318,7 +345,7 @@ function ProductDetailModal({ product, onClose }) {
   );
 }
 
-function ProductCard({ product, onSelect, onViewImage }) {
+function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -327,6 +354,11 @@ function ProductCard({ product, onSelect, onViewImage }) {
     addToCart(product, 1, product.sizes[0] ?? null, product.colours[0] ?? null);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+  }
+
+  function handleBuyNow(e) {
+    e.stopPropagation();
+    onBuyNow(product);
   }
 
   return (
@@ -391,14 +423,22 @@ function ProductCard({ product, onSelect, onViewImage }) {
         <p className="text-[#F2AA25] font-bold text-sm sm:text-base mb-2">
           GHS {product.unit_price.toLocaleString()}
         </p>
-        <button
-          onClick={handleAdd}
-          className={`w-full font-semibold py-1.5 rounded-xl text-sm transition-colors ${
-            added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
-          }`}
-        >
-          {added ? "✓ Added!" : "Add to Cart"}
-        </button>
+        <div className="flex gap-1.5">
+          <button
+            onClick={handleAdd}
+            className={`flex-1 font-semibold py-1.5 rounded-xl text-xs transition-colors ${
+              added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
+            }`}
+          >
+            {added ? "✓ Added!" : "Add to Cart"}
+          </button>
+          <button
+            onClick={handleBuyNow}
+            className="flex-1 font-semibold py-1.5 rounded-xl text-xs border-2 border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white transition-colors"
+          >
+            Buy Now
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -410,6 +450,7 @@ export default function ShopPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [buyNowProduct, setBuyNowProduct] = useState(null);
   const [products, setProducts] = useState([]);
   const [dbCategories, setDbCategories] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -594,7 +635,15 @@ export default function ShopPage() {
           </div>
         ) : filtered.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-            {filtered.map(p => <ProductCard key={p.id} product={p} onSelect={setSelectedProduct} onViewImage={(src, alt) => setLightboxImage({ src, alt })} />)}
+            {filtered.map(p => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                onSelect={setSelectedProduct}
+                onViewImage={(src, alt) => setLightboxImage({ src, alt })}
+                onBuyNow={setBuyNowProduct}
+              />
+            ))}
           </div>
         ) : (
           <div className="text-center py-20">
@@ -613,6 +662,9 @@ export default function ShopPage() {
 
       {selectedProduct && (
         <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+      )}
+      {buyNowProduct && (
+        <ProductDetailModal product={buyNowProduct} onClose={() => setBuyNowProduct(null)} buyNow />
       )}
 
       {lightboxImage && (
