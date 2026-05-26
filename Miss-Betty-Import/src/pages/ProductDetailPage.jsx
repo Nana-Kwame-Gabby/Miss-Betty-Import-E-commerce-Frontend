@@ -3,13 +3,16 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabase";
+import MediaCarousel from "../components/MediaCarousel";
 
 function mapProduct(p) {
   return {
     id: p.product_id,
     category: p.category?.category_name ?? 'Others',
     product_name: p.product_name,
-    product_image_url: p.product_image_url ?? '',
+    product_image_url:   p.product_image_url   ?? '',
+    product_image_url_2: p.product_image_url_2 ?? '',
+    product_video_url:   p.product_video_url   ?? '',
     unit_price: Number(p.unit_price),
     description: p.description ?? '',
     sizes: p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : [],
@@ -99,19 +102,17 @@ export default function ProductDetailPage() {
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Image */}
-        <div className="rounded-2xl overflow-hidden shadow-sm bg-white">
-          {product.product_image_url ? (
-            <img
-              src={product.product_image_url}
-              alt={product.product_name}
-              className="w-full h-56 sm:h-72 object-cover"
-            />
-          ) : (
-            <div className="w-full h-56 sm:h-72 bg-gray-100 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </div>
-          )}
+        {/* Media carousel */}
+        <div className="rounded-2xl overflow-hidden shadow-sm">
+          <MediaCarousel
+            heightClass="h-56 sm:h-72"
+            name={product.product_name}
+            media={[
+              { type: "image", url: product.product_image_url },
+              { type: "image", url: product.product_image_url_2 },
+              { type: "tiktok", url: product.product_video_url },
+            ]}
+          />
         </div>
 
         {/* Details */}

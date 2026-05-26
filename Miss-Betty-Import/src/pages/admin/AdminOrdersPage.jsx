@@ -93,8 +93,11 @@ export default function AdminOrdersPage() {
 
   async function handleDeleteAll() {
     setDeleting(true);
-    const { error } = await supabase.from('orders').delete().gte('id', 1);
-    if (!error) {
+    const [{ error: ordersErr }, { error: invoicesErr }] = await Promise.all([
+      supabase.from('orders').delete().gte('id', 1),
+      supabase.from('invoices').delete().neq('invoice_id', ''),
+    ]);
+    if (!ordersErr && !invoicesErr) {
       setProductRows([]);
       setDeliveryRows([]);
       setConfirmDelete(false);

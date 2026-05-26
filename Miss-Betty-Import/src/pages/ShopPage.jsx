@@ -6,6 +6,7 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import MyAccountModal from "../components/MyAccountModal";
 import DeliveryDetailsModal from "../components/DeliveryDetailsModal";
+import MediaCarousel from "../components/MediaCarousel";
 import { supabase } from "../lib/supabase";
 
 const CATEGORY_ICONS = {
@@ -23,7 +24,9 @@ function mapProduct(p) {
     id: p.product_id,
     category: p.category?.category_name ?? 'Others',
     product_name: p.product_name,
-    product_image_url: p.product_image_url ?? '',
+    product_image_url:   p.product_image_url   ?? '',
+    product_image_url_2: p.product_image_url_2 ?? '',
+    product_video_url:   p.product_video_url   ?? '',
     unit_price: Number(p.unit_price),
     description: p.description ?? '',
     sizes: p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : [],
@@ -218,21 +221,19 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
           </button>
         </div>
 
-        {/* Image */}
+        {/* Media carousel */}
         <div className="relative">
-          {product.product_image_url ? (
-            <img
-              src={product.product_image_url}
-              alt={product.product_name}
-              className="w-full h-48 sm:h-64 object-cover"
-            />
-          ) : (
-            <div className="w-full h-48 sm:h-64 bg-gray-100 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </div>
-          )}
+          <MediaCarousel
+            heightClass="h-48 sm:h-64"
+            name={product.product_name}
+            media={[
+              { type: "image", url: product.product_image_url },
+              { type: "image", url: product.product_image_url_2 },
+              { type: "tiktok", url: product.product_video_url },
+            ]}
+          />
           <span
-            className={`absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full ${
+            className={`absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full z-10 ${
               product.product_status === "Available"
                 ? "bg-green-100 text-green-700"
                 : "bg-amber-100 text-amber-700"
