@@ -4,6 +4,7 @@ import { colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabase";
 import MediaCarousel from "../components/MediaCarousel";
+import ReviewsSection from "../components/ReviewsSection";
 
 function mapProduct(p) {
   return {
@@ -222,6 +223,9 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Reviews */}
+      <ReviewsSection productId={Number(id)} />
     </div>
   );
 }

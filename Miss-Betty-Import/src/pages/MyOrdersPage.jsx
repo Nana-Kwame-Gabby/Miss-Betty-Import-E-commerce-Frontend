@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { colourMap } from "../data/mockData";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
+import ReviewModal from "../components/ReviewModal";
 
 const statusStyles = {
   Delivered:  "bg-green-100 text-green-700",
@@ -25,10 +26,12 @@ function groupByOrderId(rows) {
     delivery: { region: rows[0].delivery_region, town: rows[0].delivery_town },
     delivered_at: rows[0].delivered_at ?? null,
     items: rows.map(r => ({
-      name: r.product_name_snapshot ?? r.products?.product_name ?? `Product #${r.product_id}`,
-      size: r.size,
-      colour: r.colour,
-      qty: r.quantity,
+      id:         r.id,
+      product_id: r.product_id,
+      name:       r.product_name_snapshot ?? r.products?.product_name ?? `Product #${r.product_id}`,
+      size:       r.size,
+      colour:     r.colour,
+      qty:        r.quantity,
       unit_price: Number(r.unit_price),
     })),
     total: rows.reduce((s, r) => s + Number(r.unit_price ?? 0) * Number(r.quantity ?? 1), 0),
@@ -37,8 +40,10 @@ function groupByOrderId(rows) {
 
 export default function MyOrdersPage() {
   const { session } = useAuth();
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [orders,       setOrders]       = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [reviewedSet,  setReviewedSet]  = useState(new Set());
 
   useEffect(() => {
     async function loadOrders() {
@@ -50,11 +55,21 @@ export default function MyOrdersPage() {
 
       if (!cust) { setLoading(false); return; }
 
-      const { data } = await supabase
-        .from('orders')
-        .select('*, products(product_name)')
-        .eq('customer_id', cust.customer_id)
-        .order('created_at', { ascending: false });
+      const [{ data }, { data: existingReviews }] = await Promise.all([
+        supabase
+          .from('orders')
+          .select('*, products(product_name)')
+          .eq('customer_id', cust.customer_id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('reviews')
+          .select('product_id, order_id')
+          .eq('customer_id', cust.customer_id),
+      ]);
+
+      setReviewedSet(new Set(
+        (existingReviews ?? []).map(r => `${r.product_id}::${r.order_id}`)
+      ));
 
       const grouped = groupByOrderId(data ?? []);
 
@@ -82,6 +97,21 @@ export default function MyOrdersPage() {
   async function handleConfirmReceipt(orderId) {
     await supabase.from('orders').update({ status: 'Received' }).eq('order_id', orderId);
     setOrders(prev => prev.map(o => o.order_id === orderId ? { ...o, status: 'Received' } : o));
+  }
+
+  function openReview(item, orderId) {
+    setReviewTarget({
+      product_id:   item.product_id,
+      product_name: item.name,
+      order_id:     orderId,
+    });
+  }
+
+  function handleReviewSubmitted() {
+    setReviewedSet(prev => new Set([
+      ...prev,
+      `${reviewTarget.product_id}::${reviewTarget.order_id}`,
+    ]));
   }
 
   if (loading) {
@@ -114,8 +144,8 @@ export default function MyOrdersPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              {["Order ID", "Date", "Items", "Size", "Colour", "Total", "Status", ""].map(h => (
-                <th key={h} className="text-left px-3 py-3 font-semibold text-[#1e2d3d] whitespace-nowrap">{h}</th>
+              {["Order ID", "Date", "Items", "Size", "Colour", "Total", "Status", "", ""].map((h, i) => (
+                <th key={i} className="text-left px-3 py-3 font-semibold text-[#1e2d3d] whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
@@ -165,6 +195,28 @@ export default function MyOrdersPage() {
                     </button>
                   )}
                 </td>
+                {/* Write a Review — one button per item in Received orders */}
+                <td className="px-3 py-3">
+                  {order.status === 'Received' && (
+                    <div className="flex flex-col gap-1">
+                      {order.items.map((item, idx) => {
+                        const key = `${item.product_id}::${order.order_id}`;
+                        if (!item.product_id) return null;
+                        return reviewedSet.has(key) ? (
+                          <span key={idx} className="text-xs text-gray-400 font-medium whitespace-nowrap">Reviewed ✓</span>
+                        ) : (
+                          <button
+                            key={idx}
+                            onClick={() => openReview(item, order.order_id)}
+                            className="text-xs font-semibold text-[#F2AA25] border border-[#F2AA25] px-3 py-1.5 rounded-xl hover:bg-amber-50 transition-colors whitespace-nowrap"
+                          >
+                            Review
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -207,6 +259,25 @@ export default function MyOrdersPage() {
                 Confirm Receipt
               </button>
             )}
+            {order.status === 'Received' && (
+              <div className="mt-2 flex flex-col gap-2">
+                {order.items.map((item, idx) => {
+                  const key = `${item.product_id}::${order.order_id}`;
+                  if (!item.product_id) return null;
+                  return reviewedSet.has(key) ? (
+                    <span key={idx} className="text-xs text-gray-400 font-medium text-center">Reviewed ✓</span>
+                  ) : (
+                    <button
+                      key={idx}
+                      onClick={() => openReview(item, order.order_id)}
+                      className="text-sm font-semibold text-[#F2AA25] border border-[#F2AA25] py-2 rounded-xl hover:bg-amber-50 transition-colors"
+                    >
+                      Review — {item.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -216,6 +287,13 @@ export default function MyOrdersPage() {
           ← Continue Shopping
         </Link>
       </div>
+
+      <ReviewModal
+        isOpen={!!reviewTarget}
+        onClose={() => setReviewTarget(null)}
+        product={reviewTarget}
+        onSubmitted={handleReviewSubmitted}
+      />
     </div>
   );
 }

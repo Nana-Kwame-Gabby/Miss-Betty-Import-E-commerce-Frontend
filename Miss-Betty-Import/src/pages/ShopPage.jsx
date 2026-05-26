@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import MyAccountModal from "../components/MyAccountModal";
 import DeliveryDetailsModal from "../components/DeliveryDetailsModal";
 import MediaCarousel from "../components/MediaCarousel";
+import ReviewsSection from "../components/ReviewsSection";
 import { supabase } from "../lib/supabase";
 
 const CATEGORY_ICONS = {
@@ -340,6 +341,11 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
               </button>
             )}
           </div>
+        </div>
+
+        {/* Reviews */}
+        <div className="px-4 pb-4">
+          <ReviewsSection productId={product.id} />
         </div>
       </div>
     </div>
