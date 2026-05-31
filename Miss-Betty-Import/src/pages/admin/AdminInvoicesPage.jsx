@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import * as XLSX from 'xlsx';
 
-const STATUS_OPTIONS = ["Pending", "Processing", "Delivered", "Cancelled"];
+const STATUS_OPTIONS = ["Ordered", "Processing", "Delivered", "Cancelled"];
 const STATUS_COLORS = {
+  Ordered:    "bg-teal-100 text-teal-700",
   Pending:    "bg-amber-100 text-amber-700",
   Processing: "bg-blue-100 text-blue-700",
   Delivered:  "bg-green-100 text-green-700",

@@ -1,9 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
-import { mockReviews, colourMap } from "../data/mockData";
+import { colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
+import MediaCarousel from "../components/MediaCarousel";
+import ReviewsSection from "../components/ReviewsSection";
+import AccountDropdown from "../components/AccountDropdown";
 
 const CATEGORY_ICONS = {
   'Mother care items': '👶',
@@ -20,7 +24,9 @@ function mapProduct(p) {
     id: p.product_id,
     category: p.category?.category_name ?? 'Others',
     product_name: p.product_name,
-    product_image_url: p.product_image_url ?? '',
+    product_image_url:   p.product_image_url   ?? '',
+    product_image_url_2: p.product_image_url_2 ?? '',
+    product_video_url:   p.product_video_url   ?? '',
     unit_price: Number(p.unit_price),
     description: p.description ?? '',
     sizes: p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : [],
@@ -87,8 +93,10 @@ function ImageLightbox({ src, alt, onClose }) {
   );
 }
 
-function ProductDetailModal({ product, onClose }) {
+function ProductDetailModal({ product, onClose, buyNow = false }) {
   const { addToCart } = useCart();
+  const { session } = useAuth();
+  const navigate = useNavigate();
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? null);
   const [selectedColour, setSelectedColour] = useState(product.colours[0] ?? null);
   const [qty, setQty] = useState(1);
@@ -105,6 +113,15 @@ function ProductDetailModal({ product, onClose }) {
     setTimeout(() => { setAdded(false); onClose(); }, 1500);
   }
 
+  function handleBuyNow() {
+    if (!session) { navigate("/login"); return; }
+    navigate("/checkout", {
+      state: {
+        buyNow: { product, quantity: qty, size: selectedSize, colour: selectedColour },
+      },
+    });
+  }
+
   return (
     <div
       className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center sm:p-4"
@@ -114,6 +131,7 @@ function ProductDetailModal({ product, onClose }) {
         className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
+        {/* Top bar */}
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
             {product.category}
@@ -128,20 +146,19 @@ function ProductDetailModal({ product, onClose }) {
           </button>
         </div>
 
+        {/* Media carousel */}
         <div className="relative">
-          {product.product_image_url ? (
-            <img
-              src={product.product_image_url}
-              alt={product.product_name}
-              className="w-full h-48 sm:h-64 object-cover"
-            />
-          ) : (
-            <div className="w-full h-48 sm:h-64 bg-gray-100 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </div>
-          )}
+          <MediaCarousel
+            heightClass="h-48 sm:h-64"
+            name={product.product_name}
+            media={[
+              { type: "image", url: product.product_image_url },
+              { type: "image", url: product.product_image_url_2 },
+              { type: "tiktok", url: product.product_video_url },
+            ]}
+          />
           <span
-            className={`absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full ${
+            className={`absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full z-10 ${
               product.product_status === "Available"
                 ? "bg-green-100 text-green-700"
                 : "bg-amber-100 text-amber-700"
@@ -151,6 +168,7 @@ function ProductDetailModal({ product, onClose }) {
           </span>
         </div>
 
+        {/* Details */}
         <div className="px-4 py-3">
           <h2 className="font-bold text-[#1e2d3d] text-lg mb-1 leading-snug">
             {product.product_name}
@@ -164,6 +182,7 @@ function ProductDetailModal({ product, onClose }) {
             </p>
           )}
 
+          {/* Size */}
           {product.sizes.length > 0 && (
             <div className="mb-3">
               <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Size</p>
@@ -185,6 +204,7 @@ function ProductDetailModal({ product, onClose }) {
             </div>
           )}
 
+          {/* Colour */}
           {product.colours.length > 0 && (
             <div className="mb-3">
               <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
@@ -208,6 +228,7 @@ function ProductDetailModal({ product, onClose }) {
             </div>
           )}
 
+          {/* Quantity + action buttons */}
           <div className="flex items-center gap-3 pb-2">
             <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
               <button
@@ -226,22 +247,36 @@ function ProductDetailModal({ product, onClose }) {
                 +
               </button>
             </div>
-            <button
-              onClick={handleAdd}
-              className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-colors ${
-                added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
-              }`}
-            >
-              {added ? "✓ Added to cart!" : "Add to Cart"}
-            </button>
+            {buyNow ? (
+              <button
+                onClick={handleBuyNow}
+                className="flex-1 font-semibold py-2 rounded-xl text-sm bg-[#F2AA25] text-white hover:opacity-90 transition-opacity"
+              >
+                Proceed to Checkout
+              </button>
+            ) : (
+              <button
+                onClick={handleAdd}
+                className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-colors ${
+                  added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
+                }`}
+              >
+                {added ? "✓ Added to cart!" : "Add to Cart"}
+              </button>
+            )}
           </div>
+        </div>
+
+        {/* Reviews */}
+        <div className="px-4 pb-4">
+          <ReviewsSection productId={product.id} />
         </div>
       </div>
     </div>
   );
 }
 
-function ProductCard({ product, onSelect, onViewImage }) {
+function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -250,6 +285,11 @@ function ProductCard({ product, onSelect, onViewImage }) {
     addToCart(product, 1, product.sizes[0] ?? null, product.colours[0] ?? null);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+  }
+
+  function handleBuyNow(e) {
+    e.stopPropagation();
+    onBuyNow(product);
   }
 
   return (
@@ -314,49 +354,35 @@ function ProductCard({ product, onSelect, onViewImage }) {
         <p className="text-[#F2AA25] font-bold text-sm sm:text-base mb-2">
           GHS {product.unit_price.toLocaleString()}
         </p>
-        <button
-          onClick={handleAdd}
-          className={`w-full font-semibold py-1.5 rounded-xl text-sm transition-colors ${
-            added
-              ? "bg-green-500 text-white"
-              : "bg-[#F2AA25] text-white hover:opacity-90"
-          }`}
-        >
-          {added ? "✓ Added!" : "Add to Cart"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ReviewCard({ review }) {
-  return (
-    <div className="bg-white rounded-2xl shadow-sm p-4 flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <div
-          className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-          style={{ backgroundColor: review.avatarColor }}
-        >
-          {review.initials}
-        </div>
-        <div>
-          <p className="font-semibold text-[#1e2d3d] text-sm">{review.name}</p>
-          <p className="text-[#F2AA25] text-base leading-none mt-0.5">
-            {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
-          </p>
+        <div className="flex gap-1.5">
+          <button
+            onClick={handleAdd}
+            className={`flex-1 font-semibold py-1.5 rounded-xl text-xs transition-colors ${
+              added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
+            }`}
+          >
+            {added ? "✓ Added!" : "Add to Cart"}
+          </button>
+          <button
+            onClick={handleBuyNow}
+            className="flex-1 font-semibold py-1.5 rounded-xl text-xs border-2 border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white transition-colors"
+          >
+            Buy Now
+          </button>
         </div>
       </div>
-      <p className="text-gray-500 text-sm leading-relaxed">"{review.text}"</p>
     </div>
   );
 }
 
 export default function HomePage() {
   const { totalItems } = useCart();
+  const { session } = useAuth();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [buyNowProduct, setBuyNowProduct] = useState(null);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [products, setProducts] = useState([]);
   const [dbCategories, setDbCategories] = useState([]);
@@ -417,9 +443,9 @@ export default function HomePage() {
         <div className="marquee-track">
           {[1, 2].map(i => (
             <span key={i} className="text-white font-semibold text-sm whitespace-nowrap px-8">
-              Welcome to Miss Betty Import. Login or Sign Up to place your order
+              Browse our latest imported products — quality items delivered to your door
               &nbsp;&nbsp;&nbsp;✦&nbsp;&nbsp;&nbsp;
-              Welcome to Miss Betty Import. Login or Sign Up to place your order
+              Browse our latest imported products — quality items delivered to your door
               &nbsp;&nbsp;&nbsp;✦&nbsp;&nbsp;&nbsp;
             </span>
           ))}
@@ -459,21 +485,25 @@ export default function HomePage() {
               )}
             </Link>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Link
-                to="/login"
-                className="text-sm font-semibold text-[#1e2d3d] border border-gray-300 px-3 py-2 rounded-xl hover:border-[#F2AA25] hover:text-[#F2AA25] transition-colors hidden xs:block sm:block"
-              >
-                Login
-              </Link>
-              <Link
-                to="/signup"
-                className="text-sm font-bold text-white px-3 py-2 rounded-xl hover:opacity-90 transition-opacity whitespace-nowrap"
-                style={{ backgroundColor: "#F2AA25" }}
-              >
-                Sign Up
-              </Link>
-            </div>
+            {session ? (
+              <AccountDropdown />
+            ) : (
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Link
+                  to="/login"
+                  className="text-sm font-semibold text-[#1e2d3d] border border-gray-300 px-3 py-2 rounded-xl hover:border-[#F2AA25] hover:text-[#F2AA25] transition-colors hidden xs:block sm:block"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/signup"
+                  className="text-sm font-bold text-white px-3 py-2 rounded-xl hover:opacity-90 transition-opacity whitespace-nowrap"
+                  style={{ backgroundColor: "#F2AA25" }}
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -549,7 +579,15 @@ export default function HomePage() {
           </div>
         ) : filtered.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-            {filtered.map(p => <ProductCard key={p.id} product={p} onSelect={setSelectedProduct} onViewImage={(src, alt) => setLightboxImage({ src, alt })} />)}
+            {filtered.map(p => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                onSelect={setSelectedProduct}
+                onViewImage={(src, alt) => setLightboxImage({ src, alt })}
+                onBuyNow={setBuyNowProduct}
+              />
+            ))}
           </div>
         ) : (
           <div className="text-center py-20">
@@ -569,22 +607,13 @@ export default function HomePage() {
       {selectedProduct && (
         <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       )}
+      {buyNowProduct && (
+        <ProductDetailModal product={buyNowProduct} onClose={() => setBuyNowProduct(null)} buyNow />
+      )}
 
       {lightboxImage && (
         <ImageLightbox src={lightboxImage.src} alt={lightboxImage.alt} onClose={() => setLightboxImage(null)} />
       )}
-
-      {/* Reviews */}
-      <section className="bg-white py-8 px-3 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-xl sm:text-2xl font-bold text-[#1e2d3d] text-center mb-8">
-            What Our Customers Say
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-            {mockReviews.map(r => <ReviewCard key={r.id} review={r} />)}
-          </div>
-        </div>
-      </section>
 
       {/* Footer */}
       <footer className="bg-[#1e2d3d] text-white px-4 py-7">
@@ -604,10 +633,7 @@ export default function HomePage() {
               <span>💬</span> Chat with us
             </a>
             <span className="text-gray-600 hidden sm:inline">|</span>
-            <a
-              href="/terms"
-              className="text-gray-300 hover:text-[#F2AA25] transition-colors"
-            >
+            <a href="/terms" className="text-gray-300 hover:text-[#F2AA25] transition-colors">
               Terms and conditions
             </a>
           </div>

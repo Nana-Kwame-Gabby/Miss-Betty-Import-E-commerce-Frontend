@@ -75,42 +75,44 @@ export default function CheckoutPage() {
       // 2. Generate order_id
       const orderId = `ORD-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000) + 1000}`;
 
-      // 3. Insert one orders row per cart item
-      const orderRows = checkoutItems.map(item => ({
-        order_id: orderId,
-        customer_id: cust.customer_id,
-        product_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        size: item.size || null,
-        colour: item.colour || null,
-        status: 'Pending',
-        delivery_region: form.region,
-        delivery_town: form.town,
-        can_edit_delivery: true,
+      // 3. Call Hubtel via edge function
+      const returnUrl       = `${window.location.origin}/order-confirmation?orderId=${orderId}&status=success`;
+      const cancellationUrl = `${window.location.origin}/order-confirmation?orderId=${orderId}&status=cancelled`;
+
+      const { data: fnData } = await supabase.functions.invoke('initiate-payment', {
+        body: {
+          orderId,
+          amount: checkoutSubtotal,
+          description: `Miss Betty Import — ${orderId}`,
+          returnUrl,
+          cancellationUrl,
+        },
+      });
+
+      if (fnData?.error || !fnData?.checkoutUrl) {
+        throw new Error(fnData?.error || "Failed to start payment. Please try again.");
+      }
+
+      // 4. Save pending order data for the confirmation page to use after redirect
+      sessionStorage.setItem(`pending_order_${orderId}`, JSON.stringify({
+        customerId: cust.customer_id,
+        orderId,
+        form,
+        items: checkoutItems.map(item => ({
+          id:                item.id,
+          product_name:      item.product_name,
+          product_image_url: item.product_image_url || "",
+          unit_price:        item.unit_price,
+          quantity:          item.quantity,
+          size:              item.size || null,
+          colour:            item.colour || null,
+          cartKey:           item.cartKey,
+        })),
       }));
 
-      const { error: ordersError } = await supabase.from('orders').insert(orderRows);
-      if (ordersError) throw new Error(ordersError.message);
-
-      // 4. Insert invoice rows
-      const invoiceRows = checkoutItems.map(item => ({
-        invoice_id: orderId,
-        customer_name: form.fullName,
-        product_name: item.product_name,
-        size: item.size || null,
-        colour: item.colour || null,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        total: item.unit_price * item.quantity,
-      }));
-
-      const { error: invoicesError } = await supabase.from('invoices').insert(invoiceRows);
-      if (invoicesError) throw new Error(invoicesError.message);
-
-      // 5. Clear cart + navigate
+      // 5. Clear cart and redirect to Hubtel
       if (!buyNowData) clearCart();
-      navigate('/order-confirmation', { state: { form, items: checkoutItems, subtotal: checkoutSubtotal, orderId } });
+      window.location.href = fnData.checkoutUrl;
     } catch (err) {
       setSubmitError(err.message);
       setSubmitting(false);
@@ -199,9 +201,9 @@ export default function CheckoutPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                 </svg>
-                Placing Order...
+                Redirecting to Hubtel…
               </>
-            ) : "Place Order"}
+            ) : "Pay with Hubtel"}
           </button>
         </form>
 
