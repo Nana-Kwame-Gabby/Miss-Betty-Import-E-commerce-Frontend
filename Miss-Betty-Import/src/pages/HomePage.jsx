@@ -4,6 +4,7 @@ import logo from "../assets/logo.png";
 import { colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { useAppSettings } from "../context/AppSettingsContext";
 import { supabase } from "../lib/supabase";
 import MediaCarousel from "../components/MediaCarousel";
 import ReviewsSection from "../components/ReviewsSection";
@@ -96,6 +97,7 @@ function ImageLightbox({ src, alt, onClose }) {
 function ProductDetailModal({ product, onClose, buyNow = false }) {
   const { addToCart } = useCart();
   const { session } = useAuth();
+  const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? null);
   const [selectedColour, setSelectedColour] = useState(product.colours[0] ?? null);
@@ -115,6 +117,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
 
   function handleBuyNow() {
     if (!session) { navigate("/login"); return; }
+    if (ordersClosed) return;
     navigate("/checkout", {
       state: {
         buyNow: { product, quantity: qty, size: selectedSize, colour: selectedColour },
@@ -250,9 +253,12 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
             {buyNow ? (
               <button
                 onClick={handleBuyNow}
-                className="flex-1 font-semibold py-2 rounded-xl text-sm bg-[#F2AA25] text-white hover:opacity-90 transition-opacity"
+                disabled={ordersClosed}
+                className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-opacity ${
+                  ordersClosed ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-[#F2AA25] text-white hover:opacity-90"
+                }`}
               >
-                Proceed to Checkout
+                {ordersClosed ? "Orders Closed" : "Proceed to Checkout"}
               </button>
             ) : (
               <button
@@ -276,7 +282,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   );
 }
 
-function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
+function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed }) {
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -302,10 +308,10 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
           <img
             src={product.product_image_url}
             alt={product.product_name}
-            className="w-full h-36 sm:h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-28 sm:h-40 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-36 sm:h-44 bg-gray-100 flex items-center justify-center">
+          <div className="w-full h-28 sm:h-40 bg-gray-100 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           </div>
         )}
@@ -344,7 +350,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
           </>
         )}
       </div>
-      <div className="p-2.5 sm:p-3 flex flex-col flex-1">
+      <div className="p-2 sm:p-3 flex flex-col flex-1">
         <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full w-fit mb-1 truncate max-w-full">
           {product.category}
         </span>
@@ -357,7 +363,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
         <div className="flex gap-1.5">
           <button
             onClick={handleAdd}
-            className={`flex-1 font-semibold py-1.5 rounded-xl text-xs transition-colors ${
+            className={`flex-1 font-medium py-1 rounded-xl text-[11px] transition-colors ${
               added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
             }`}
           >
@@ -365,7 +371,12 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
           </button>
           <button
             onClick={handleBuyNow}
-            className="flex-1 font-semibold py-1.5 rounded-xl text-xs border-2 border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white transition-colors"
+            disabled={ordersClosed}
+            className={`flex-1 font-medium py-1 rounded-xl text-[11px] border-2 transition-colors ${
+              ordersClosed
+                ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                : "border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white"
+            }`}
           >
             Buy Now
           </button>
@@ -378,6 +389,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
 export default function HomePage() {
   const { totalItems } = useCart();
   const { session } = useAuth();
+  const { ordersClosed } = useAppSettings();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -567,7 +579,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden animate-pulse">
-                <div className="w-full h-36 sm:h-44 bg-gray-100" />
+                <div className="w-full h-28 sm:h-40 bg-gray-100" />
                 <div className="p-3 space-y-2">
                   <div className="h-3 bg-gray-100 rounded-full w-1/2" />
                   <div className="h-4 bg-gray-100 rounded-full w-3/4" />
@@ -585,7 +597,8 @@ export default function HomePage() {
                 product={p}
                 onSelect={setSelectedProduct}
                 onViewImage={(src, alt) => setLightboxImage({ src, alt })}
-                onBuyNow={setBuyNowProduct}
+                onBuyNow={ordersClosed ? () => {} : setBuyNowProduct}
+                ordersClosed={ordersClosed}
               />
             ))}
           </div>

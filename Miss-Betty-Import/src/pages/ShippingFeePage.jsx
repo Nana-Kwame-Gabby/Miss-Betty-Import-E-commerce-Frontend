@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { colourMap } from "../data/mockData";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 
-function PayModal({ grandTotal, totalPaid, remaining, custId, onClose, onPaid }) {
+function PayModal({ grandTotal, totalPaid, remaining, custId, onClose }) {
   const [amount, setAmount] = useState(String(remaining));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -18,14 +18,30 @@ function PayModal({ grandTotal, totalPaid, remaining, custId, onClose, onPaid })
     const parsed = parseFloat(amount);
     if (isNaN(parsed) || parsed <= 0) return setError("Enter a valid amount.");
     if (parsed > remaining) return setError(`Amount cannot exceed GHS ${remaining.toLocaleString()}.`);
+
     setSaving(true);
-    const { error: err } = await supabase
-      .from('shipping_fee_payments')
-      .insert({ customer_id: custId, amount_paid: parsed });
-    setSaving(false);
-    if (err) return setError("Payment failed. Please try again.");
-    onPaid(parsed);
-    onClose();
+
+    const shpRef        = `SHP-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000) + 1000}`;
+    const returnUrl     = `${window.location.origin}/shipping-fees?shpRef=${shpRef}&status=success`;
+    const cancelUrl     = `${window.location.origin}/shipping-fees?shpRef=${shpRef}&status=cancelled`;
+
+    const { data: fnData } = await supabase.functions.invoke("initiate-payment", {
+      body: {
+        orderId:     shpRef,
+        amount:      parsed,
+        description: "Miss Betty Import — Shipping Fee",
+        returnUrl,
+        cancellationUrl: cancelUrl,
+      },
+    });
+
+    if (fnData?.error || !fnData?.checkoutUrl) {
+      setSaving(false);
+      return setError(fnData?.error || "Failed to start payment. Please try again.");
+    }
+
+    sessionStorage.setItem(`pending_shp_${shpRef}`, JSON.stringify({ customerId: custId, amount: parsed }));
+    window.location.href = fnData.checkoutUrl;
   }
 
   const row = (label, value, highlight) => (
@@ -88,9 +104,17 @@ function PayModal({ grandTotal, totalPaid, remaining, custId, onClose, onPaid })
             <button
               onClick={handlePay}
               disabled={saving}
-              className="flex-1 bg-[#F2AA25] text-white font-bold py-2.5 rounded-2xl text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="flex-1 bg-[#F2AA25] text-white font-bold py-2.5 rounded-2xl text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              {saving ? "Processing…" : "Confirm Payment"}
+              {saving ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Redirecting…
+                </>
+              ) : "Pay with Hubtel"}
             </button>
           </div>
         </div>
@@ -101,14 +125,39 @@ function PayModal({ grandTotal, totalPaid, remaining, custId, onClose, onPaid })
 
 export default function ShippingFeePage() {
   const { session } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [rows, setRows] = useState([]);
   const [payments, setPayments] = useState([]);
   const [custId, setCustId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [shpMsg, setShpMsg] = useState(null); // { type: "success" | "cancelled", amount?: number }
+  const redirectHandled = useRef(false);
 
   useEffect(() => {
-    async function loadRows() {
+    async function init() {
+      // Handle Hubtel redirect before loading data
+      const shpRef    = searchParams.get("shpRef");
+      const shpStatus = searchParams.get("status");
+
+      if (shpRef && !redirectHandled.current) {
+        redirectHandled.current = true;
+        const key   = `pending_shp_${shpRef}`;
+        const saved = JSON.parse(sessionStorage.getItem(key) || "null");
+
+        if (shpStatus === "success" && saved) {
+          await supabase.from("shipping_fee_payments")
+            .insert({ customer_id: saved.customerId, amount_paid: saved.amount });
+          sessionStorage.removeItem(key);
+          setShpMsg({ type: "success", amount: saved.amount });
+        } else {
+          sessionStorage.removeItem(key);
+          if (shpStatus === "cancelled") setShpMsg({ type: "cancelled" });
+        }
+        setSearchParams({}, { replace: true });
+      }
+
+      // Load data
       const { data: cust } = await supabase
         .from('customers')
         .select('customer_id')
@@ -142,8 +191,9 @@ export default function ShippingFeePage() {
       setPayments(paymentData ?? []);
       setLoading(false);
     }
-    loadRows();
-  }, [session]);
+
+    init();
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -156,10 +206,10 @@ export default function ShippingFeePage() {
   if (rows.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-        <div className="text-5xl mb-3">🚚</div>
-        <h2 className="text-xl font-bold text-[#1e2d3d] mb-2">No shipping info yet</h2>
-        <p className="text-gray-400 mb-8">Shipping fees will appear here once your orders are processed.</p>
-        <Link to="/shop" className="inline-block bg-[#F2AA25] text-white font-bold px-8 py-3 rounded-2xl hover:opacity-90">
+        <div className="text-4xl sm:text-5xl mb-3">🚚</div>
+        <h2 className="text-lg sm:text-xl font-bold text-[#1e2d3d] mb-2">No shipping info yet</h2>
+        <p className="text-gray-400 text-sm mb-6">Shipping fees will appear here once your orders are processed.</p>
+        <Link to="/shop" className="inline-block bg-[#F2AA25] text-white font-bold px-6 py-2.5 rounded-2xl hover:opacity-90">
           Shop Now
         </Link>
       </div>
@@ -174,15 +224,15 @@ export default function ShippingFeePage() {
   if (fullyPaid) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </div>
-        <h2 className="text-xl font-bold text-[#1e2d3d] mb-2">All Shipping Fees Paid!</h2>
-        <p className="text-gray-400 mb-2">You have paid <span className="font-semibold text-green-600">GHS {totalPaid.toLocaleString()}</span> in shipping fees.</p>
-        <p className="text-gray-400 mb-8">Thank you for your payment.</p>
-        <Link to="/shop" className="inline-block bg-[#F2AA25] text-white font-bold px-8 py-3 rounded-2xl hover:opacity-90">
+        <h2 className="text-lg sm:text-xl font-bold text-[#1e2d3d] mb-2">All Shipping Fees Paid!</h2>
+        <p className="text-gray-400 text-sm mb-2">You have paid <span className="font-semibold text-green-600">GHS {totalPaid.toLocaleString()}</span> in shipping fees.</p>
+        <p className="text-gray-400 text-sm mb-6">Thank you for your payment.</p>
+        <Link to="/shop" className="inline-block bg-[#F2AA25] text-white font-bold px-6 py-2.5 rounded-2xl hover:opacity-90">
           Continue Shopping
         </Link>
       </div>
@@ -190,13 +240,34 @@ export default function ShippingFeePage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
+
+      {/* Hubtel redirect feedback banner */}
+      {shpMsg && (
+        <div className={`flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 mb-3 text-sm font-medium ${
+          shpMsg.type === "success"
+            ? "bg-green-50 border border-green-200 text-green-800"
+            : "bg-yellow-50 border border-yellow-200 text-yellow-800"
+        }`}>
+          <span>
+            {shpMsg.type === "success"
+              ? `✓ Shipping fee payment of GHS ${Number(shpMsg.amount).toLocaleString()} confirmed.`
+              : "Payment was cancelled. No charge was made."}
+          </span>
+          <button onClick={() => setShpMsg(null)} className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
-        <h1 className="text-xl sm:text-2xl font-bold text-[#1e2d3d]">Shipping Fees</h1>
+        <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d]">Shipping Fees</h1>
         {grandTotal > 0 && (
           <button
             onClick={() => setShowPayModal(true)}
-            className="bg-[#F2AA25] text-white font-bold text-sm px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity flex items-center gap-2"
+            className="bg-[#F2AA25] text-white font-bold text-sm px-4 py-2 sm:py-2.5 rounded-xl hover:opacity-90 transition-opacity flex items-center gap-2"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
@@ -205,7 +276,7 @@ export default function ShippingFeePage() {
           </button>
         )}
       </div>
-      <p className="text-sm text-gray-400 mb-5">Shipping fee breakdown for your orders</p>
+      <p className="text-sm text-gray-400 mb-3 sm:mb-5">Shipping fee breakdown for your orders</p>
 
       {/* Desktop table */}
       <div className="hidden sm:block bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -264,13 +335,13 @@ export default function ShippingFeePage() {
       </div>
 
       {/* Mobile cards */}
-      <div className="sm:hidden flex flex-col gap-3">
+      <div className="sm:hidden flex flex-col gap-2">
         {rows.map(row => {
           const fee = Number(row.shipping_fee ?? 0);
           const qty = Number(row.quantity ?? 1);
           const hasFee = fee > 0;
           return (
-            <div key={row.id} className="bg-white rounded-2xl shadow-sm p-4">
+            <div key={row.id} className="bg-white rounded-2xl shadow-sm p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-bold text-[#F2AA25] text-sm">{row.order_id}</span>
                 {hasFee && (
@@ -301,7 +372,7 @@ export default function ShippingFeePage() {
         })}
 
         {grandTotal > 0 && (
-          <div className="bg-[#1e2d3d] rounded-2xl p-4">
+          <div className="bg-[#1e2d3d] rounded-2xl p-3">
             <div className="flex justify-between items-center mb-1">
               <span className="text-white font-semibold text-sm">Grand Total</span>
               <span className="text-[#F2AA25] font-bold text-lg">GHS {grandTotal.toLocaleString()}</span>
@@ -324,7 +395,7 @@ export default function ShippingFeePage() {
         {grandTotal > 0 && (
           <button
             onClick={() => setShowPayModal(true)}
-            className="w-full bg-[#F2AA25] text-white font-bold text-sm py-3.5 rounded-2xl hover:opacity-90 transition-opacity"
+            className="w-full bg-[#F2AA25] text-white font-bold text-sm py-2.5 rounded-2xl hover:opacity-90 transition-opacity"
           >
             Pay Now · GHS {remaining.toLocaleString()} remaining
           </button>
@@ -344,7 +415,6 @@ export default function ShippingFeePage() {
           remaining={remaining}
           custId={custId}
           onClose={() => setShowPayModal(false)}
-          onPaid={amount => setPayments(prev => [...prev, { amount_paid: amount }])}
         />
       )}
     </div>

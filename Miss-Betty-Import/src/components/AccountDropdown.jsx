@@ -39,28 +39,35 @@ export default function AccountDropdown() {
         <div className="absolute right-0 top-full mt-2 bg-white shadow-lg rounded-2xl py-2 w-44 z-50 border border-gray-100">
           <button
             onClick={() => { setOpen(false); setShowAccount(true); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
           >
             <span>👤</span> My account
           </button>
           <button
             onClick={() => { setOpen(false); setShowDelivery(true); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
           >
             <span>📍</span> Delivery Details
           </button>
           <Link
             to="/my-orders"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
           >
             <span>📦</span> Orders
+          </Link>
+          <Link
+            to="/product-requests"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+          >
+            <span>🛍️</span> Request a Product
           </Link>
           {isAdmin && (
             <Link
               to="/admin"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
             >
               <span>⚙️</span> Admin Panel
             </Link>

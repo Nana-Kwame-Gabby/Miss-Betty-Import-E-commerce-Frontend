@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { useAppSettings } from "../../context/AppSettingsContext";
 
 function StatCard({ title, value, icon, color, loading }) {
   return (
@@ -20,6 +21,8 @@ function StatCard({ title, value, icon, color, loading }) {
 }
 
 export default function AdminDashboard() {
+  const { ordersClosed, toggleOrdersClosed } = useAppSettings();
+  const [toggling, setToggling] = useState(false);
   const [stats, setStats] = useState({ products: 0, orders: 0, customers: 0, revenue: 0, shippingCollected: 0, totalCostPrice: 0, totalProfit: 0 });
   const [paymentRows, setPaymentRows] = useState([]);
   const [custTotals, setCustTotals] = useState({});
@@ -27,6 +30,12 @@ export default function AdminDashboard() {
   const [query, setQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  async function handleToggleOrders() {
+    setToggling(true);
+    await toggleOrdersClosed(!ordersClosed);
+    setToggling(false);
+  }
 
   useEffect(() => {
     async function loadStats() {
@@ -114,7 +123,43 @@ export default function AdminDashboard() {
   return (
     <div>
       <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Dashboard</h1>
-      <p className="text-sm text-gray-400 mb-6">Overview of your store</p>
+      <p className="text-sm text-gray-400 mb-4">Overview of your store</p>
+
+      {/* Store Control */}
+      <div className={`rounded-2xl shadow-sm p-4 mb-5 border-2 ${ordersClosed ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${ordersClosed ? "bg-red-500" : "bg-green-500"}`} />
+              <h2 className="font-bold text-[#1e2d3d] text-sm">
+                {ordersClosed ? "Orders Closed" : "Orders Open"}
+              </h2>
+            </div>
+            <p className="text-xs text-gray-500 ml-4.5">
+              {ordersClosed
+                ? "Customers cannot checkout or use Buy Now. Browsing and cart remain active."
+                : "Customers can browse, add to cart, and place orders normally."}
+            </p>
+          </div>
+          <button
+            onClick={handleToggleOrders}
+            disabled={toggling}
+            className={`relative inline-flex h-7 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 disabled:opacity-60 ${
+              ordersClosed ? "bg-red-500" : "bg-green-500"
+            }`}
+            title={ordersClosed ? "Click to open orders" : "Click to close orders"}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+              ordersClosed ? "translate-x-7" : "translate-x-1"
+            }`} />
+          </button>
+        </div>
+        {ordersClosed && (
+          <p className="mt-3 text-xs font-semibold text-red-600 bg-red-100 border border-red-200 rounded-xl px-3 py-2">
+            ⚠️ Orders are currently closed. Toggle off to re-enable purchasing for all customers.
+          </p>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
         <StatCard

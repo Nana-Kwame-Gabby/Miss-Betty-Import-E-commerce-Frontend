@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useUser } from "../context/UserContext";
 import { useAuth } from "../context/AuthContext";
+import { useAppSettings } from "../context/AppSettingsContext";
 import { supabase } from "../lib/supabase";
 
 const ghanaRegions = [
@@ -15,6 +16,7 @@ export default function CheckoutPage() {
   const { cartItems, subtotal, clearCart } = useCart();
   const { user } = useUser();
   const { session } = useAuth();
+  const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -130,21 +132,26 @@ export default function CheckoutPage() {
   }
 
   const inputClass = (field) =>
-    `w-full border rounded-2xl px-4 py-2.5 text-sm outline-none transition-colors ${
+    `w-full border rounded-2xl px-3 py-2 sm:py-2.5 text-sm outline-none transition-colors ${
       errors[field] ? "border-red-400 focus:border-red-400" : "border-gray-300 focus:border-[#F2AA25]"
     }`;
 
   const readOnlyClass =
-    "w-full bg-gray-100 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-500 cursor-default outline-none";
+    "w-full bg-gray-100 border border-gray-200 rounded-2xl px-3 py-2 sm:py-2.5 text-sm text-gray-500 cursor-default outline-none";
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-      <h1 className="text-xl sm:text-2xl font-bold text-[#1e2d3d] mb-5">Checkout</h1>
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
+      {ordersClosed && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl px-3 py-2.5 mb-3 text-sm text-red-700 font-medium flex items-center gap-2">
+          <span>🚫</span> Orders are temporarily closed. Please try again later.
+        </div>
+      )}
+      <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-3 sm:mb-5">Checkout</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 sm:gap-5">
         {/* Form */}
-        <form onSubmit={handleSubmit} className="lg:col-span-3 flex flex-col gap-5">
-          <div className="bg-white rounded-2xl shadow-sm p-4">
+        <form onSubmit={handleSubmit} className="lg:col-span-3 flex flex-col gap-3 sm:gap-5">
+          <div className="bg-white rounded-2xl shadow-sm p-3 sm:p-4">
             <h2 className="font-bold text-[#1e2d3d] text-base mb-3">Delivery Information</h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -192,8 +199,8 @@ export default function CheckoutPage() {
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full bg-[#F2AA25] text-white font-bold py-3 rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+            disabled={submitting || ordersClosed}
+            className="w-full bg-[#F2AA25] text-white font-bold py-2.5 sm:py-3 rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {submitting ? (
               <>
@@ -209,9 +216,9 @@ export default function CheckoutPage() {
 
         {/* Summary */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-sm p-4 sticky top-16">
+          <div className="bg-white rounded-2xl shadow-sm p-3 sticky top-12">
             <h2 className="font-bold text-[#1e2d3d] text-base mb-3">Order Summary</h2>
-            <div className="flex flex-col gap-2.5 mb-3">
+            <div className="flex flex-col gap-2 mb-2.5">
               {checkoutItems.map(item => (
                 <div key={item.cartKey} className="flex items-start gap-3">
                   {item.product_image_url ? (

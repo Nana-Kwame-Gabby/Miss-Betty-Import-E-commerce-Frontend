@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-
 import { CartProvider } from "./context/CartContext";
 import { UserProvider } from "./context/UserContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AppSettingsProvider } from "./context/AppSettingsContext";
 
 import LoginPage from "./components/LoginPage";
 import SignUp from "./components/SignUp";
@@ -25,7 +26,9 @@ import AdminProductsPage from "./pages/admin/AdminProductsPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminInvoicesPage from "./pages/admin/AdminInvoicesPage";
 import AdminShippingFeesPage from "./pages/admin/AdminShippingFeesPage";
+import AdminProductRequestsPage from "./pages/admin/AdminProductRequestsPage";
 import AdminLayout from "./pages/admin/AdminLayout";
+import ProductRequestPage from "./pages/ProductRequestPage";
 
 function LoadingSpinner() {
   return (
@@ -62,6 +65,7 @@ function App() {
   return (
     <AuthProvider>
       <UserProvider>
+        <AppSettingsProvider>
         <CartProvider>
           <Router>
             <Routes>
@@ -85,6 +89,7 @@ function App() {
                   <Route path="/admin/orders" element={<AdminOrdersPage />} />
                   <Route path="/admin/invoices" element={<AdminInvoicesPage />} />
                   <Route path="/admin/shipping-fees" element={<AdminShippingFeesPage />} />
+                  <Route path="/admin/product-requests" element={<AdminProductRequestsPage />} />
                 </Route>
               </Route>
 
@@ -99,11 +104,13 @@ function App() {
                   <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
                   <Route path="/my-orders" element={<MyOrdersPage />} />
                   <Route path="/shipping-fees" element={<ShippingFeePage />} />
+                  <Route path="/product-requests" element={<ProductRequestPage />} />
                 </Route>
               </Route>
             </Routes>
           </Router>
         </CartProvider>
+        </AppSettingsProvider>
       </UserProvider>
     </AuthProvider>
   );

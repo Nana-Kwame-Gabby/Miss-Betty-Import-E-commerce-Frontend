@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
+import { useAppSettings } from "../context/AppSettingsContext";
 import { supabase } from "../lib/supabase";
 import MediaCarousel from "../components/MediaCarousel";
 import ReviewsSection from "../components/ReviewsSection";
@@ -26,6 +27,7 @@ export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { ordersClosed } = useAppSettings();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -81,6 +83,7 @@ export default function ProductDetailPage() {
   }
 
   function handleBuyNow() {
+    if (ordersClosed) return;
     if (!selectedSize && product.sizes.length > 0) return setError("Please select a size.");
     if (!selectedColour && product.colours.length > 0) return setError("Please select a colour.");
     setError("");
@@ -92,9 +95,9 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+      <nav className="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-3 sm:mb-5">
         <Link to="/home" className="hover:text-[#F2AA25]">Home</Link>
         <span>/</span>
         <Link to="/shop" className="hover:text-[#F2AA25]">Shop</Link>
@@ -102,11 +105,11 @@ export default function ProductDetailPage() {
         <span className="text-[#1e2d3d] font-medium">{product.product_name}</span>
       </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
         {/* Media carousel */}
         <div className="rounded-2xl overflow-hidden shadow-sm">
           <MediaCarousel
-            heightClass="h-56 sm:h-72"
+            heightClass="h-48 sm:h-72"
             name={product.product_name}
             media={[
               { type: "image", url: product.product_image_url },
@@ -119,9 +122,9 @@ export default function ProductDetailPage() {
         {/* Details */}
         <div className="flex flex-col">
           <span className="text-sm text-gray-400 font-medium uppercase tracking-wide mb-1">{product.category}</span>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#1e2d3d] mb-2">{product.product_name}</h1>
+          <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-1.5">{product.product_name}</h1>
 
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <span className="text-[#F2AA25] font-bold text-2xl">GHS {product.unit_price.toLocaleString()}</span>
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
               product.product_status === "Available"
@@ -175,7 +178,7 @@ export default function ProductDetailPage() {
                       key={colour}
                       onClick={() => setSelectedColour(colour)}
                       title={colour}
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-all ${
                         isSelected ? "border-[#F2AA25] scale-110" : "border-gray-200 hover:border-gray-400"
                       }`}
                       style={{ background: bg }}
@@ -208,7 +211,7 @@ export default function ProductDetailPage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={handleAddToCart}
-              className={`flex-1 font-bold py-3 rounded-2xl text-white transition-all ${
+              className={`flex-1 font-semibold py-2 sm:py-2.5 text-sm rounded-2xl text-white transition-all ${
                 added ? "bg-green-500" : "bg-[#F2AA25] hover:opacity-90"
               }`}
             >
@@ -216,7 +219,12 @@ export default function ProductDetailPage() {
             </button>
             <button
               onClick={handleBuyNow}
-              className="flex-1 font-bold py-3 rounded-2xl border-2 border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white transition-colors"
+              disabled={ordersClosed}
+              className={`flex-1 font-semibold py-2 sm:py-2.5 text-sm rounded-2xl border-2 transition-colors ${
+                ordersClosed
+                  ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                  : "border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white"
+              }`}
             >
               Buy Now
             </button>
