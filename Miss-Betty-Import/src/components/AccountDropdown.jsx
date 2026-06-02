@@ -63,6 +63,13 @@ export default function AccountDropdown() {
           >
             <span>🛍️</span> Request a Product
           </Link>
+          <Link
+            to="/contact"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+          >
+            <span>📞</span> Contact Us
+          </Link>
           {isAdmin && (
             <Link
               to="/admin"

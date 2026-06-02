@@ -7,6 +7,9 @@ export default function CartPage() {
   const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
 
+  const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
+  const hasBlockedPreorders = ordersClosed && cartItems.some(i => isPreorder(i.product_status));
+
   if (cartItems.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-12 text-center">
@@ -101,19 +104,19 @@ export default function CartPage() {
               <p className="text-xs text-gray-400 mt-1">Delivery fee calculated at checkout</p>
             </div>
             <button
-              onClick={() => !ordersClosed && navigate("/checkout")}
-              disabled={ordersClosed}
+              onClick={() => !hasBlockedPreorders && navigate("/checkout")}
+              disabled={hasBlockedPreorders}
               className={`w-full font-bold py-2.5 sm:py-3 rounded-2xl transition-opacity ${
-                ordersClosed
+                hasBlockedPreorders
                   ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                   : "bg-[#F2AA25] text-white hover:opacity-90"
               }`}
             >
-              {ordersClosed ? "Orders Closed" : "Proceed to Checkout"}
+              {hasBlockedPreorders ? "Pre-orders Closed" : "Proceed to Checkout"}
             </button>
-            {ordersClosed && (
+            {hasBlockedPreorders && (
               <p className="text-xs text-red-500 text-center mt-1.5">
-                Ordering is temporarily unavailable. Your cart is saved.
+                Your cart contains pre-order items which are currently unavailable. Remove them to proceed.
               </p>
             )}
             <Link

@@ -72,6 +72,13 @@ function AccountDropdown() {
           >
             <span>🛍️</span> Request a Product
           </Link>
+          <Link
+            to="/contact"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+          >
+            <span>📞</span> Contact Us
+          </Link>
           {isAdmin && (
             <Link
               to="/admin"
@@ -172,6 +179,7 @@ export default function Navbar() {
             <NavLink to="/my-orders" className={navClass} onClick={() => setMenuOpen(false)}>My Orders</NavLink>
             <NavLink to="/shipping-fees" className={navClass} onClick={() => setMenuOpen(false)}>Shipping Fee</NavLink>
             <NavLink to="/product-requests" className={navClass} onClick={() => setMenuOpen(false)}>Request a Product</NavLink>
+            <NavLink to="/contact" className={navClass} onClick={() => setMenuOpen(false)}>Contact Us</NavLink>
             <Link to="/my-orders" className="flex items-center gap-2 text-[#1e2d3d] font-medium" onClick={() => setMenuOpen(false)}>📦 Orders</Link>
             <button onClick={async () => { setMenuOpen(false); await signOut(); navigate("/"); }} className="flex items-center gap-2 text-red-500 font-medium text-left">🚪 Sign out</button>
           </div>

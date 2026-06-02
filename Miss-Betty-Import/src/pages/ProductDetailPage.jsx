@@ -20,6 +20,7 @@ function mapProduct(p) {
     sizes: p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : [],
     colours: p.colour ? p.colour.split(',').map(c => c.trim()).filter(Boolean) : [],
     product_status: p.product_status?.status_name ?? 'Available',
+    estimated_shipping_fee: p.estimated_shipping_fee ?? null,
   };
 }
 
@@ -30,6 +31,7 @@ export default function ProductDetailPage() {
   const { ordersClosed } = useAppSettings();
 
   const [product, setProduct] = useState(null);
+  const isPreorder = product ? product.product_status.toLowerCase().includes("pre") : false;
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedColour, setSelectedColour] = useState(null);
@@ -83,7 +85,7 @@ export default function ProductDetailPage() {
   }
 
   function handleBuyNow() {
-    if (ordersClosed) return;
+    if (ordersClosed && isPreorder) return;
     if (!selectedSize && product.sizes.length > 0) return setError("Please select a size.");
     if (!selectedColour && product.colours.length > 0) return setError("Please select a colour.");
     setError("");
@@ -136,7 +138,14 @@ export default function ProductDetailPage() {
           </div>
 
           {product.description && (
-            <p className="text-gray-500 text-sm leading-relaxed mb-4">{product.description}</p>
+            <p className="text-gray-500 text-sm leading-relaxed mb-3">{product.description}</p>
+          )}
+
+          {product.estimated_shipping_fee != null && product.estimated_shipping_fee > 0 && (
+            <p className="text-sm text-gray-500 mb-3 flex items-center gap-1.5">
+              <span>🚚</span>
+              Est. shipping: <span className="font-semibold text-[#1e2d3d] ml-0.5">GHS {Number(product.estimated_shipping_fee).toLocaleString()}</span>
+            </p>
           )}
 
           {/* Size selector */}
@@ -219,14 +228,14 @@ export default function ProductDetailPage() {
             </button>
             <button
               onClick={handleBuyNow}
-              disabled={ordersClosed}
+              disabled={ordersClosed && isPreorder}
               className={`flex-1 font-semibold py-2 sm:py-2.5 text-sm rounded-2xl border-2 transition-colors ${
-                ordersClosed
+                ordersClosed && isPreorder
                   ? "border-gray-200 text-gray-400 cursor-not-allowed"
                   : "border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white"
               }`}
             >
-              Buy Now
+              {ordersClosed && isPreorder ? "Pre-orders Closed" : "Buy Now"}
             </button>
           </div>
         </div>

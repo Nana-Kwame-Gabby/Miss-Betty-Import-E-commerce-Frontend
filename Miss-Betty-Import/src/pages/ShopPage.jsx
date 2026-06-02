@@ -33,6 +33,7 @@ function mapProduct(p) {
     sizes: p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : [],
     colours: p.colour ? p.colour.split(',').map(c => c.trim()).filter(Boolean) : [],
     product_status: p.product_status?.status_name ?? 'Available',
+    estimated_shipping_fee: p.estimated_shipping_fee ?? null,
   };
 }
 
@@ -94,10 +95,13 @@ function ImageLightbox({ src, alt, onClose }) {
   );
 }
 
+const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
+
 function ProductDetailModal({ product, onClose, buyNow = false }) {
   const { addToCart } = useCart();
   const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
+  const blockedByPreorder = ordersClosed && isPreorder(product.product_status);
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? null);
   const [selectedColour, setSelectedColour] = useState(product.colours[0] ?? null);
   const [qty, setQty] = useState(1);
@@ -115,7 +119,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   }
 
   function handleBuyNow() {
-    if (ordersClosed) return;
+    if (blockedByPreorder) return;
     navigate("/checkout", {
       state: {
         buyNow: { product, quantity: qty, size: selectedSize, colour: selectedColour },
@@ -180,6 +184,13 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
           {product.description && (
             <p className="text-gray-500 text-sm leading-relaxed mb-3">
               {product.description}
+            </p>
+          )}
+
+          {product.estimated_shipping_fee != null && product.estimated_shipping_fee > 0 && (
+            <p className="text-sm text-gray-500 mb-3 flex items-center gap-1.5">
+              <span>🚚</span>
+              Est. shipping: <span className="font-semibold text-[#1e2d3d] ml-0.5">GHS {Number(product.estimated_shipping_fee).toLocaleString()}</span>
             </p>
           )}
 
@@ -251,12 +262,12 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
             {buyNow ? (
               <button
                 onClick={handleBuyNow}
-                disabled={ordersClosed}
+                disabled={blockedByPreorder}
                 className={`flex-1 font-medium py-1.5 rounded-xl text-xs transition-opacity ${
-                  ordersClosed ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-[#F2AA25] text-white hover:opacity-90"
+                  blockedByPreorder ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-[#F2AA25] text-white hover:opacity-90"
                 }`}
               >
-                {ordersClosed ? "Orders Closed" : "Proceed to Checkout"}
+                {blockedByPreorder ? "Pre-orders Closed" : "Proceed to Checkout"}
               </button>
             ) : (
               <button
@@ -284,6 +295,9 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
 
+  const isPreorder = typeof product?.product_status === "string" && product.product_status.toLowerCase().includes("pre");
+  const blockedByOrders = ordersClosed && isPreorder;
+
   function handleAdd(e) {
     e.stopPropagation();
     addToCart(product, 1, product.sizes[0] ?? null, product.colours[0] ?? null);
@@ -293,6 +307,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
 
   function handleBuyNow(e) {
     e.stopPropagation();
+    if (blockedByOrders) return;
     onBuyNow(product);
   }
 
@@ -369,14 +384,14 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
           </button>
           <button
             onClick={handleBuyNow}
-            disabled={ordersClosed}
+            disabled={blockedByOrders}
             className={`flex-1 font-medium py-1 rounded-xl text-[11px] border-2 transition-colors ${
-              ordersClosed
+              blockedByOrders
                 ? "border-gray-200 text-gray-400 cursor-not-allowed"
                 : "border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white"
             }`}
           >
-            Buy Now
+            {blockedByOrders ? "Pre-orders Closed" : "Buy Now"}
           </button>
         </div>
       </div>
@@ -582,7 +597,7 @@ export default function ShopPage() {
                 product={p}
                 onSelect={setSelectedProduct}
                 onViewImage={(src, alt) => setLightboxImage({ src, alt })}
-                onBuyNow={ordersClosed ? () => {} : setBuyNowProduct}
+                onBuyNow={setBuyNowProduct}
                 ordersClosed={ordersClosed}
               />
             ))}
@@ -623,7 +638,7 @@ export default function ShopPage() {
           </p>
           <div className="flex justify-center items-center gap-4 sm:gap-8 flex-wrap mb-4 text-sm">
             <a
-              href="https://wa.me/233200000000"
+              href="https://wa.me/233202697541"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-[#F2AA25] font-semibold hover:underline"

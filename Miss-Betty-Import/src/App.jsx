@@ -13,6 +13,7 @@ import ResetPasswordPage from "./components/ResetPasswordPage";
 import Layout from "./components/layout/Layout";
 
 import HomePage from "./pages/HomePage";
+import ContactPage from "./pages/ContactPage";
 import ShopPage from "./pages/ShopPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import CartPage from "./pages/CartPage";
@@ -72,6 +73,7 @@ function App() {
               {/* Fully public */}
               <Route path="/" element={<HomePage />} />
               <Route path="/home" element={<Navigate to="/" replace />} />
+              <Route path="/contact" element={<ContactPage />} />
 
               {/* Public-only — redirect to /shop if already logged in */}
               <Route element={<PublicOnlyRoute />}>

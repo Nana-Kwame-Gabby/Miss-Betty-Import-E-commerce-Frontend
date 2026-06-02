@@ -36,6 +36,9 @@ export default function CheckoutPage() {
     ? buyNowData.product.unit_price * buyNowData.quantity
     : subtotal;
 
+  const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
+  const hasBlockedPreorders = ordersClosed && checkoutItems.some(i => isPreorder(i.product_status));
+
   const [form, setForm] = useState({
     fullName: user.fullName, email: user.email, phone: user.phone,
     region: user.deliveryRegion, town: user.deliveryTown,
@@ -141,9 +144,9 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
-      {ordersClosed && (
+      {hasBlockedPreorders && (
         <div className="bg-red-50 border border-red-200 rounded-2xl px-3 py-2.5 mb-3 text-sm text-red-700 font-medium flex items-center gap-2">
-          <span>🚫</span> Orders are temporarily closed. Please try again later.
+          <span>🚫</span> Pre-orders are temporarily closed. Remove pre-order items to continue.
         </div>
       )}
       <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-3 sm:mb-5">Checkout</h1>
@@ -199,7 +202,7 @@ export default function CheckoutPage() {
 
           <button
             type="submit"
-            disabled={submitting || ordersClosed}
+            disabled={submitting || hasBlockedPreorders}
             className="w-full bg-[#F2AA25] text-white font-bold py-2.5 sm:py-3 rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {submitting ? (

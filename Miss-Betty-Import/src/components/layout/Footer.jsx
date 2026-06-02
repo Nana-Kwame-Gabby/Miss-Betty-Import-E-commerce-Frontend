@@ -9,12 +9,19 @@ export default function Footer() {
         </p>
         <div className="flex justify-center items-center gap-4 sm:gap-8 flex-wrap mb-4 text-sm">
           <a
-            href="https://wa.me/233200000000"
+            href="https://wa.me/233202697541"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-[#F2AA25] font-semibold hover:underline"
           >
             <span>💬</span> Chat with us
+          </a>
+          <span className="text-gray-600 hidden sm:inline">|</span>
+          <a
+            href="/contact"
+            className="text-gray-300 hover:text-[#F2AA25] transition-colors"
+          >
+            Contact Us
           </a>
           <span className="text-gray-600 hidden sm:inline">|</span>
           <a
