@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import MyAccountModal from "../components/MyAccountModal";
-import DeliveryDetailsModal from "../components/DeliveryDetailsModal";
+import { useAppSettings } from "../context/AppSettingsContext";
+import AccountDropdown from "../components/AccountDropdown";
 import MediaCarousel from "../components/MediaCarousel";
+import ReviewsSection from "../components/ReviewsSection";
 import { supabase } from "../lib/supabase";
 
 const CATEGORY_ICONS = {
@@ -32,6 +33,7 @@ function mapProduct(p) {
     sizes: p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : [],
     colours: p.colour ? p.colour.split(',').map(c => c.trim()).filter(Boolean) : [],
     product_status: p.product_status?.status_name ?? 'Available',
+    estimated_shipping_fee: p.estimated_shipping_fee ?? null,
   };
 }
 
@@ -93,86 +95,13 @@ function ImageLightbox({ src, alt, onClose }) {
   );
 }
 
-function AccountDropdown() {
-  const [open, setOpen] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
-  const [showDelivery, setShowDelivery] = useState(false);
-  const { signOut, isAdmin } = useAuth();
-  const navigate = useNavigate();
-  const ref = useRef(null);
-
-  useEffect(() => {
-    function handleOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, []);
-
-  return (
-    <div className="relative flex-shrink-0" ref={ref}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 border border-gray-300 rounded-xl px-3 py-2 text-sm font-semibold text-[#1e2d3d] hover:border-[#F2AA25] hover:text-[#F2AA25] transition-colors whitespace-nowrap"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-        </svg>
-        <span className="hidden sm:inline">Account</span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </button>
-
-      {open && (
-        <div className="absolute right-0 top-full mt-2 bg-white shadow-lg rounded-2xl py-2 w-44 z-50 border border-gray-100">
-          <button
-            onClick={() => { setOpen(false); setShowAccount(true); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
-          >
-            <span>👤</span> My account
-          </button>
-          <button
-            onClick={() => { setOpen(false); setShowDelivery(true); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
-          >
-            <span>📍</span> Delivery Details
-          </button>
-          <Link
-            to="/my-orders"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
-          >
-            <span>📦</span> Orders
-          </Link>
-          {isAdmin && (
-            <Link
-              to="/admin"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
-            >
-              <span>⚙️</span> Admin Panel
-            </Link>
-          )}
-          <div className="border-t border-gray-100 my-1" />
-          <button
-            onClick={async () => { setOpen(false); await signOut(); navigate("/"); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors text-left"
-          >
-            <span>🚪</span> Sign out
-          </button>
-        </div>
-      )}
-
-      {showAccount  && <MyAccountModal      onClose={() => setShowAccount(false)}  />}
-      {showDelivery && <DeliveryDetailsModal onClose={() => setShowDelivery(false)} />}
-    </div>
-  );
-}
+const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
 
 function ProductDetailModal({ product, onClose, buyNow = false }) {
   const { addToCart } = useCart();
+  const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
+  const blockedByPreorder = ordersClosed && isPreorder(product.product_status);
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? null);
   const [selectedColour, setSelectedColour] = useState(product.colours[0] ?? null);
   const [qty, setQty] = useState(1);
@@ -190,6 +119,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   }
 
   function handleBuyNow() {
+    if (blockedByPreorder) return;
     navigate("/checkout", {
       state: {
         buyNow: { product, quantity: qty, size: selectedSize, colour: selectedColour },
@@ -244,7 +174,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
         </div>
 
         {/* Details */}
-        <div className="px-4 py-3">
+        <div className="px-3 py-2.5">
           <h2 className="font-bold text-[#1e2d3d] text-lg mb-1 leading-snug">
             {product.product_name}
           </h2>
@@ -254,6 +184,13 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
           {product.description && (
             <p className="text-gray-500 text-sm leading-relaxed mb-3">
               {product.description}
+            </p>
+          )}
+
+          {product.estimated_shipping_fee != null && product.estimated_shipping_fee > 0 && (
+            <p className="text-sm text-gray-500 mb-3 flex items-center gap-1.5">
+              <span>🚚</span>
+              Est. shipping: <span className="font-semibold text-[#1e2d3d] ml-0.5">GHS {Number(product.estimated_shipping_fee).toLocaleString()}</span>
             </p>
           )}
 
@@ -325,14 +262,17 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
             {buyNow ? (
               <button
                 onClick={handleBuyNow}
-                className="flex-1 font-semibold py-2 rounded-xl text-sm bg-[#F2AA25] text-white hover:opacity-90 transition-opacity"
+                disabled={blockedByPreorder}
+                className={`flex-1 font-medium py-1.5 rounded-xl text-xs transition-opacity ${
+                  blockedByPreorder ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-[#F2AA25] text-white hover:opacity-90"
+                }`}
               >
-                Proceed to Checkout
+                {blockedByPreorder ? "Pre-orders Closed" : "Proceed to Checkout"}
               </button>
             ) : (
               <button
                 onClick={handleAdd}
-                className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-colors ${
+                className={`flex-1 font-medium py-1.5 rounded-xl text-xs transition-colors ${
                   added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
                 }`}
               >
@@ -341,14 +281,22 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
             )}
           </div>
         </div>
+
+        {/* Reviews */}
+        <div className="px-4 pb-4">
+          <ReviewsSection productId={product.id} />
+        </div>
       </div>
     </div>
   );
 }
 
-function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
+function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed }) {
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
+
+  const isPreorder = typeof product?.product_status === "string" && product.product_status.toLowerCase().includes("pre");
+  const blockedByOrders = ordersClosed && isPreorder;
 
   function handleAdd(e) {
     e.stopPropagation();
@@ -359,6 +307,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
 
   function handleBuyNow(e) {
     e.stopPropagation();
+    if (blockedByOrders) return;
     onBuyNow(product);
   }
 
@@ -372,10 +321,10 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
           <img
             src={product.product_image_url}
             alt={product.product_name}
-            className="w-full h-36 sm:h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-28 sm:h-40 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-36 sm:h-44 bg-gray-100 flex items-center justify-center">
+          <div className="w-full h-28 sm:h-40 bg-gray-100 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           </div>
         )}
@@ -414,7 +363,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
           </>
         )}
       </div>
-      <div className="p-2.5 sm:p-3 flex flex-col flex-1">
+      <div className="p-2 sm:p-3 flex flex-col flex-1">
         <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full w-fit mb-1 truncate max-w-full">
           {product.category}
         </span>
@@ -427,7 +376,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
         <div className="flex gap-1.5">
           <button
             onClick={handleAdd}
-            className={`flex-1 font-semibold py-1.5 rounded-xl text-xs transition-colors ${
+            className={`flex-1 font-medium py-1 rounded-xl text-[11px] transition-colors ${
               added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
             }`}
           >
@@ -435,9 +384,14 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
           </button>
           <button
             onClick={handleBuyNow}
-            className="flex-1 font-semibold py-1.5 rounded-xl text-xs border-2 border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white transition-colors"
+            disabled={blockedByOrders}
+            className={`flex-1 font-medium py-1 rounded-xl text-[11px] border-2 transition-colors ${
+              blockedByOrders
+                ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                : "border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white"
+            }`}
           >
-            Buy Now
+            {blockedByOrders ? "Pre-orders Closed" : "Buy Now"}
           </button>
         </div>
       </div>
@@ -447,6 +401,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow }) {
 
 export default function ShopPage() {
   const { totalItems } = useCart();
+  const { ordersClosed } = useAppSettings();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -565,7 +520,7 @@ export default function ShopPage() {
 
       {/* Category pills */}
       <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-1.5">
           <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
             <button
               onClick={() => setActiveCategory("All")}
@@ -643,12 +598,13 @@ export default function ShopPage() {
                 onSelect={setSelectedProduct}
                 onViewImage={(src, alt) => setLightboxImage({ src, alt })}
                 onBuyNow={setBuyNowProduct}
+                ordersClosed={ordersClosed}
               />
             ))}
           </div>
         ) : (
-          <div className="text-center py-20">
-            <p className="text-5xl mb-4">🔍</p>
+          <div className="text-center py-14">
+            <p className="text-4xl sm:text-5xl mb-3">🔍</p>
             <p className="font-semibold text-[#1e2d3d] text-lg">No products found</p>
             <p className="text-gray-400 text-sm mt-1">Try a different search term or filter.</p>
             <button
@@ -682,7 +638,7 @@ export default function ShopPage() {
           </p>
           <div className="flex justify-center items-center gap-4 sm:gap-8 flex-wrap mb-4 text-sm">
             <a
-              href="https://wa.me/233200000000"
+              href="https://wa.me/233202697541"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-[#F2AA25] font-semibold hover:underline"

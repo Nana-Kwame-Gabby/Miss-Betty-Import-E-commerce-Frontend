@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { useAppSettings } from "../../context/AppSettingsContext";
 
 function StatCard({ title, value, icon, color, loading }) {
   return (
@@ -20,6 +21,19 @@ function StatCard({ title, value, icon, color, loading }) {
 }
 
 export default function AdminDashboard() {
+  const { ordersClosed, announcementMessage, toggleOrdersClosed, updateAnnouncementMessage } = useAppSettings();
+  const [toggling, setToggling]         = useState(false);
+  const [localMessage, setLocalMessage] = useState(announcementMessage);
+  const [savingMessage, setSavingMessage] = useState(false);
+
+  // Sync localMessage when context loads
+  useEffect(() => { setLocalMessage(announcementMessage); }, [announcementMessage]);
+
+  async function handleSaveMessage() {
+    setSavingMessage(true);
+    await updateAnnouncementMessage(localMessage);
+    setSavingMessage(false);
+  }
   const [stats, setStats] = useState({ products: 0, orders: 0, customers: 0, revenue: 0, shippingCollected: 0, totalCostPrice: 0, totalProfit: 0 });
   const [paymentRows, setPaymentRows] = useState([]);
   const [custTotals, setCustTotals] = useState({});
@@ -27,6 +41,35 @@ export default function AdminDashboard() {
   const [query, setQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const [statusRef,       setStatusRef]       = useState("");
+  const [statusResult,    setStatusResult]    = useState(null);
+  const [statusError,     setStatusError]     = useState("");
+  const [checkingStatus,  setCheckingStatus]  = useState(false);
+
+  async function handleCheckStatus() {
+    if (!statusRef.trim()) return;
+    setCheckingStatus(true);
+    setStatusResult(null);
+    setStatusError("");
+    try {
+      const { data, error } = await supabase.functions.invoke("check-payment-status", {
+        body: { clientReference: statusRef.trim() },
+      });
+      if (error) setStatusError(error.message ?? "Failed to call payment service");
+      else if (data?.error) setStatusError(data.error);
+      else setStatusResult(data);
+    } catch (err) {
+      setStatusError(err.message ?? "Unexpected error");
+    }
+    setCheckingStatus(false);
+  }
+
+  async function handleToggleOrders() {
+    setToggling(true);
+    await toggleOrdersClosed(!ordersClosed);
+    setToggling(false);
+  }
 
   useEffect(() => {
     async function loadStats() {
@@ -114,7 +157,163 @@ export default function AdminDashboard() {
   return (
     <div>
       <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Dashboard</h1>
-      <p className="text-sm text-gray-400 mb-6">Overview of your store</p>
+      <p className="text-sm text-gray-400 mb-4">Overview of your store</p>
+
+      {/* Pre-Order Control */}
+      <div className={`rounded-2xl shadow-sm p-4 mb-5 border-2 ${ordersClosed ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${ordersClosed ? "bg-red-500" : "bg-green-500"}`} />
+              <h2 className="font-bold text-[#1e2d3d] text-sm">
+                {ordersClosed ? "Pre-Orders Closed" : "Pre-Orders Open"}
+              </h2>
+            </div>
+            <p className="text-xs text-gray-500 ml-4.5">
+              {ordersClosed
+                ? "Customers cannot purchase pre-order items. Available products are unaffected."
+                : "Customers can purchase both available and pre-order products normally."}
+            </p>
+          </div>
+          <button
+            onClick={handleToggleOrders}
+            disabled={toggling}
+            className={`relative inline-flex h-7 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 disabled:opacity-60 ${
+              ordersClosed ? "bg-red-500" : "bg-green-500"
+            }`}
+            title={ordersClosed ? "Click to re-open pre-orders" : "Click to close pre-orders"}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+              ordersClosed ? "translate-x-7" : "translate-x-1"
+            }`} />
+          </button>
+        </div>
+        {ordersClosed && (
+          <p className="mt-3 text-xs font-semibold text-red-600 bg-red-100 border border-red-200 rounded-xl px-3 py-2">
+            ⚠️ Pre-orders are closed. Available products can still be purchased. Toggle off to re-enable pre-orders.
+          </p>
+        )}
+
+        {/* Announcement message */}
+        <div className="mt-3 border-t border-black/10 pt-3">
+          <label className="text-xs font-semibold text-[#1e2d3d] mb-1.5 block">
+            Customer Announcement <span className="text-gray-400 font-normal">(shown as banner when pre-orders are closed)</span>
+          </label>
+          <textarea
+            value={localMessage}
+            onChange={e => setLocalMessage(e.target.value)}
+            rows={2}
+            placeholder="e.g. Pre-orders are paused for the holiday season. We'll reopen on 27 Dec."
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#F2AA25] resize-none transition-colors"
+          />
+          <button
+            onClick={handleSaveMessage}
+            disabled={savingMessage}
+            className="mt-2 bg-[#1e2d3d] text-white text-xs font-semibold px-4 py-1.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {savingMessage ? "Saving…" : "Save Message"}
+          </button>
+        </div>
+      </div>
+
+      {/* Transaction Status Check */}
+      <div className="bg-white rounded-2xl shadow-sm p-4 mb-5 border border-gray-100">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </div>
+          <div>
+            <h2 className="font-bold text-[#1e2d3d] text-sm">Transaction Status Check</h2>
+            <p className="text-xs text-gray-400">Look up a Hubtel payment status by order ID</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={statusRef}
+            onChange={e => { setStatusRef(e.target.value); setStatusResult(null); setStatusError(""); }}
+            onKeyDown={e => e.key === "Enter" && handleCheckStatus()}
+            placeholder="e.g. ORD-2026-1234"
+            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#3b82f6] transition-colors"
+          />
+          <button
+            onClick={handleCheckStatus}
+            disabled={checkingStatus || !statusRef.trim()}
+            className="bg-[#1e2d3d] text-white text-xs font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap flex items-center gap-1.5"
+          >
+            {checkingStatus ? (
+              <>
+                <svg className="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                Checking…
+              </>
+            ) : "Check Status"}
+          </button>
+        </div>
+
+        {statusError && (
+          <div className="mt-3 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 text-xs text-red-700 font-medium">
+            🚫 {statusError}
+          </div>
+        )}
+
+        {statusResult && !statusError && (() => {
+          const d = statusResult.data ?? {};
+          const statusColor =
+            d.status === "Paid"     ? "bg-green-100 text-green-700" :
+            d.status === "Unpaid"   ? "bg-amber-100 text-amber-700" :
+            d.status === "Refunded" ? "bg-blue-100 text-blue-700"   :
+            "bg-gray-100 text-gray-500";
+          const rows = [
+            ["Date",                d.date],
+            ["Client Reference",    d.clientReference],
+            ["Transaction ID",      d.transactionId],
+            ["External Txn ID",     d.externalTransactionId],
+            ["Payment Method",      d.paymentMethod],
+            ["Currency",            d.currencycode],
+            ["Amount",              d.amount          != null ? `GHS ${Number(d.amount).toLocaleString()}` : null],
+            ["Charges",             d.charges         != null ? `GHS ${Number(d.charges).toLocaleString()}` : null],
+            ["Amount After Charges",d.amountAfterCharges != null ? `GHS ${Number(d.amountAfterCharges).toLocaleString()}` : null],
+            ["Fulfilled",           d.isFulfilled     != null ? (d.isFulfilled ? "Yes" : "No") : null],
+          ].filter(([, v]) => v != null && v !== "");
+          return (
+            <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl px-3 py-3 text-xs space-y-1.5">
+              {/* Top-level envelope fields */}
+              {statusResult.responseCode && (
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500 font-medium">Response Code</span>
+                  <span className="text-[#1e2d3d] font-semibold text-right">{statusResult.responseCode}</span>
+                </div>
+              )}
+              {statusResult.message && (
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500 font-medium">Message</span>
+                  <span className="text-[#1e2d3d] font-semibold text-right">{statusResult.message}</span>
+                </div>
+              )}
+              {/* Status badge */}
+              {d.status && (
+                <div className="flex justify-between items-center gap-4">
+                  <span className="text-gray-500 font-medium">Status</span>
+                  <span className={`px-2.5 py-0.5 rounded-full font-semibold ${statusColor}`}>{d.status}</span>
+                </div>
+              )}
+              {/* Remaining data fields */}
+              {rows.map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4">
+                  <span className="text-gray-500 font-medium">{label}</span>
+                  <span className="text-[#1e2d3d] font-semibold text-right break-all">{String(value)}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
         <StatCard

@@ -147,7 +147,7 @@ export default function SignUp() {
 
         <p className="font-medium text-[#1e2d3d] text-xs sm:text-sm text-center">
           Already have an account?{" "}
-          <Link to="/" className="font-semibold" style={{ color: "#F2AA25" }}>
+          <Link to="/login" className="font-semibold" style={{ color: "#F2AA25" }}>
             Login
           </Link>
         </p>

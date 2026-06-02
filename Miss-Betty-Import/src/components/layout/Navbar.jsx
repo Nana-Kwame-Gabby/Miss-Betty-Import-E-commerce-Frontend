@@ -26,7 +26,7 @@ function AccountDropdown() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 border border-gray-300 rounded-xl px-3 py-2 text-sm font-semibold text-[#1e2d3d] hover:border-[#F2AA25] hover:text-[#F2AA25] transition-colors"
+        className="flex items-center gap-1.5 border border-gray-300 rounded-xl px-2.5 py-1.5 text-sm font-semibold text-[#1e2d3d] hover:border-[#F2AA25] hover:text-[#F2AA25] transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
@@ -41,35 +41,49 @@ function AccountDropdown() {
         <div className="absolute right-0 top-full mt-2 bg-white shadow-lg rounded-2xl py-2 w-44 z-50 border border-gray-100">
           <button
             onClick={() => { setOpen(false); setShowAccount(true); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
           >
             <span>👤</span> My account
           </button>
           <button
             onClick={() => { setOpen(false); setShowDelivery(true); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
           >
             <span>📍</span> Delivery Details
           </button>
           <Link
             to="/my-orders"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
           >
             <span>📦</span> Orders
           </Link>
           <Link
             to="/shipping-fees"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
           >
             <span>🚚</span> Shipping Fee
+          </Link>
+          <Link
+            to="/product-requests"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+          >
+            <span>🛍️</span> Request a Product
+          </Link>
+          <Link
+            to="/contact"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+          >
+            <span>📞</span> Contact Us
           </Link>
           {isAdmin && (
             <Link
               to="/admin"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
             >
               <span>⚙️</span> Admin Panel
             </Link>
@@ -77,7 +91,7 @@ function AccountDropdown() {
           <div className="border-t border-gray-100 my-1" />
           <button
             onClick={async () => { setOpen(false); await signOut(); navigate("/"); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors text-left"
           >
             <span>🚪</span> Sign out
           </button>
@@ -113,7 +127,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-5">
             <NavLink to="/shop" className={navClass}>Shop</NavLink>
             <NavLink to="/my-orders" className={navClass}>My Orders</NavLink>
             <NavLink to="/shipping-fees" className={navClass}>Shipping Fee</NavLink>
@@ -160,10 +174,12 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-gray-100 py-4 flex flex-col gap-4 px-2">
+          <div className="md:hidden border-t border-gray-100 py-3 flex flex-col gap-3 px-2">
             <NavLink to="/shop" className={navClass} onClick={() => setMenuOpen(false)}>Shop</NavLink>
             <NavLink to="/my-orders" className={navClass} onClick={() => setMenuOpen(false)}>My Orders</NavLink>
             <NavLink to="/shipping-fees" className={navClass} onClick={() => setMenuOpen(false)}>Shipping Fee</NavLink>
+            <NavLink to="/product-requests" className={navClass} onClick={() => setMenuOpen(false)}>Request a Product</NavLink>
+            <NavLink to="/contact" className={navClass} onClick={() => setMenuOpen(false)}>Contact Us</NavLink>
             <Link to="/my-orders" className="flex items-center gap-2 text-[#1e2d3d] font-medium" onClick={() => setMenuOpen(false)}>📦 Orders</Link>
             <button onClick={async () => { setMenuOpen(false); await signOut(); navigate("/"); }} className="flex items-center gap-2 text-red-500 font-medium text-left">🚪 Sign out</button>
           </div>

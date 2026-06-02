@@ -1,16 +1,21 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useAppSettings } from "../context/AppSettingsContext";
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, subtotal } = useCart();
+  const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
+
+  const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
+  const hasBlockedPreorders = ordersClosed && cartItems.some(i => isPreorder(i.product_status));
 
   if (cartItems.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-        <div className="text-5xl mb-3">🛒</div>
-        <h2 className="text-xl font-bold text-[#1e2d3d] mb-2">Your cart is empty</h2>
-        <p className="text-gray-400 mb-8">Looks like you haven't added anything yet.</p>
+      <div className="max-w-7xl mx-auto px-4 py-12 text-center">
+        <div className="text-4xl sm:text-5xl mb-3">🛒</div>
+        <h2 className="text-lg sm:text-xl font-bold text-[#1e2d3d] mb-2">Your cart is empty</h2>
+        <p className="text-gray-400 text-sm mb-6">Looks like you haven't added anything yet.</p>
         <Link
           to="/shop"
           className="inline-block bg-[#F2AA25] text-white font-bold px-6 py-2.5 rounded-2xl hover:opacity-90 transition-opacity"
@@ -22,20 +27,20 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-      <h1 className="text-xl sm:text-2xl font-bold text-[#1e2d3d] mb-5">
-        My Cart <span className="text-gray-400 text-xl font-normal">({cartItems.length} {cartItems.length === 1 ? "item" : "items"})</span>
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
+      <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-3 sm:mb-5">
+        My Cart <span className="text-gray-400 text-base font-normal">({cartItems.length} {cartItems.length === 1 ? "item" : "items"})</span>
       </h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5">
         {/* Items list */}
-        <div className="lg:col-span-2 flex flex-col gap-3">
+        <div className="lg:col-span-2 flex flex-col gap-2 sm:gap-3">
           {cartItems.map(item => (
-            <div key={item.cartKey} className="bg-white rounded-2xl shadow-sm p-3 flex gap-3 items-start">
+            <div key={item.cartKey} className="bg-white rounded-2xl shadow-sm p-2.5 sm:p-3 flex gap-2.5 sm:gap-3 items-start">
               <img
                 src={item.product_image_url}
                 alt={item.product_name}
-                className="w-16 h-20 sm:w-20 sm:h-24 object-cover rounded-xl flex-shrink-0"
+                className="w-14 h-[72px] sm:w-20 sm:h-24 object-cover rounded-xl flex-shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-[#1e2d3d] truncate">{item.product_name}</h3>
@@ -81,7 +86,7 @@ export default function CartPage() {
 
         {/* Summary */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm p-4 sticky top-24">
+          <div className="bg-white rounded-2xl shadow-sm p-3 sm:p-4 sticky top-12">
             <h2 className="font-bold text-[#1e2d3d] text-base mb-3">Order Summary</h2>
             <div className="flex flex-col gap-2 text-sm mb-3">
               {cartItems.map(item => (
@@ -99,11 +104,21 @@ export default function CartPage() {
               <p className="text-xs text-gray-400 mt-1">Delivery fee calculated at checkout</p>
             </div>
             <button
-              onClick={() => navigate("/checkout")}
-              className="w-full bg-[#F2AA25] text-white font-bold py-3 rounded-2xl hover:opacity-90 transition-opacity"
+              onClick={() => !hasBlockedPreorders && navigate("/checkout")}
+              disabled={hasBlockedPreorders}
+              className={`w-full font-bold py-2.5 sm:py-3 rounded-2xl transition-opacity ${
+                hasBlockedPreorders
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  : "bg-[#F2AA25] text-white hover:opacity-90"
+              }`}
             >
-              Proceed to Checkout
+              {hasBlockedPreorders ? "Pre-orders Closed" : "Proceed to Checkout"}
             </button>
+            {hasBlockedPreorders && (
+              <p className="text-xs text-red-500 text-center mt-1.5">
+                Your cart contains pre-order items which are currently unavailable. Remove them to proceed.
+              </p>
+            )}
             <Link
               to="/shop"
               className="block text-center text-sm text-[#1e2d3d] font-medium mt-3 hover:text-[#F2AA25] transition-colors"

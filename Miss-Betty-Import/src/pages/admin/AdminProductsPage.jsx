@@ -10,6 +10,7 @@ const EMPTY_FORM = {
   description: "",
   sizes: "",
   colours: "",
+  estimated_shipping_fee: "",
 };
 
 const Spinner = () => (
@@ -105,6 +106,10 @@ export default function AdminProductsPage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [deletingId, setDeletingId]           = useState(null);
 
+  // Filter/search
+  const [productSearch,  setProductSearch]  = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+
   useEffect(() => { loadAll(); }, []);
 
   async function loadAll() {
@@ -167,6 +172,7 @@ export default function AdminProductsPage() {
         product_video_url:   videoUrl,
         size:   form.sizes.trim()   || null,
         colour: form.colours.trim() || null,
+        estimated_shipping_fee: form.estimated_shipping_fee ? Number(form.estimated_shipping_fee) : null,
       });
 
       if (insertError) throw new Error(insertError.message);
@@ -231,6 +237,7 @@ export default function AdminProductsPage() {
       description:  product.description ?? "",
       sizes:        product.size ?? "",
       colours:      product.colour ?? "",
+      estimated_shipping_fee: String(product.estimated_shipping_fee ?? ""),
     });
     setEditImageFile(null);    setEditImagePreview(null);
     setEditImageFile2(null);   setEditImagePreview2(null);
@@ -282,6 +289,7 @@ export default function AdminProductsPage() {
           product_video_url:   videoUrl,
           size:   editForm.sizes.trim()   || null,
           colour: editForm.colours.trim() || null,
+          estimated_shipping_fee: editForm.estimated_shipping_fee ? Number(editForm.estimated_shipping_fee) : null,
         })
         .eq("product_id", editingProduct.product_id);
 
@@ -296,6 +304,12 @@ export default function AdminProductsPage() {
 
   const inputClass = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#F2AA25]";
   const labelClass = "block text-xs font-semibold text-[#1e2d3d] mb-1";
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch   = p.product_name.toLowerCase().includes(productSearch.toLowerCase());
+    const matchesCategory = !categoryFilter || String(p.category_id) === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div>
@@ -394,6 +408,20 @@ export default function AdminProductsPage() {
             <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="Product description…" className={`${inputClass} resize-none`} />
           </div>
 
+          <div>
+            <label className={labelClass}>Est. Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input
+              name="estimated_shipping_fee"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.estimated_shipping_fee}
+              onChange={handleChange}
+              placeholder="e.g. 30"
+              className={inputClass}
+            />
+          </div>
+
           {error   && <p className="sm:col-span-2 text-red-500 text-xs bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
           {success && <p className="sm:col-span-2 text-green-600 text-xs bg-green-50 border border-green-100 rounded-xl px-3 py-2">{success}</p>}
 
@@ -411,16 +439,64 @@ export default function AdminProductsPage() {
 
       {/* ── Products Table ── */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-bold text-[#1e2d3d]">All Products ({products.length})</h2>
+        <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
+          <h2 className="text-sm font-bold text-[#1e2d3d] flex-1 whitespace-nowrap">
+            Products ({filteredProducts.length}{filteredProducts.length !== products.length ? ` of ${products.length}` : ""})
+          </h2>
+
+          {/* Search */}
+          <div className="relative">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by name…"
+              value={productSearch}
+              onChange={e => setProductSearch(e.target.value)}
+              className="border border-gray-200 rounded-xl pl-8 pr-8 py-2 text-xs outline-none focus:border-[#F2AA25] transition-colors w-44"
+            />
+            {productSearch && (
+              <button
+                onClick={() => setProductSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            )}
+          </div>
+
+          {/* Category filter */}
+          <select
+            value={categoryFilter}
+            onChange={e => setCategoryFilter(e.target.value)}
+            className="border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#F2AA25] transition-colors"
+          >
+            <option value="">All Categories</option>
+            {categories.map(c => (
+              <option key={c.category_id} value={String(c.category_id)}>{c.category_name}</option>
+            ))}
+          </select>
+
+          {/* Clear filters */}
+          {(productSearch || categoryFilter) && (
+            <button
+              onClick={() => { setProductSearch(""); setCategoryFilter(""); }}
+              className="text-xs text-gray-400 hover:text-gray-700 font-semibold transition-colors"
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         {loadingProducts ? (
           <div className="flex items-center justify-center py-12">
             <div className="w-8 h-8 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 text-sm">No products yet. Upload one above.</div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center py-12 text-gray-400 text-sm">
+            {products.length === 0 ? "No products yet. Upload one above." : "No products match your search."}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -437,7 +513,7 @@ export default function AdminProductsPage() {
                 </tr>
               </thead>
               <tbody>
-                {products.map(p => (
+                {filteredProducts.map(p => (
                   <tr key={p.product_id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
@@ -603,6 +679,20 @@ export default function AdminProductsPage() {
                 <div className="sm:col-span-2">
                   <label className={labelClass}>Description</label>
                   <textarea name="description" value={editForm.description} onChange={handleEditChange} rows={3} className={`${inputClass} resize-none`} />
+                </div>
+
+                <div>
+                  <label className={labelClass}>Est. Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <input
+                    name="estimated_shipping_fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editForm.estimated_shipping_fee}
+                    onChange={handleEditChange}
+                    placeholder="e.g. 30"
+                    className={inputClass}
+                  />
                 </div>
 
                 {editError && (

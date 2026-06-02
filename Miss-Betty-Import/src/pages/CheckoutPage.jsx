@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useUser } from "../context/UserContext";
 import { useAuth } from "../context/AuthContext";
+import { useAppSettings } from "../context/AppSettingsContext";
 import { supabase } from "../lib/supabase";
 
 const ghanaRegions = [
@@ -15,6 +16,7 @@ export default function CheckoutPage() {
   const { cartItems, subtotal, clearCart } = useCart();
   const { user } = useUser();
   const { session } = useAuth();
+  const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,6 +35,9 @@ export default function CheckoutPage() {
   const checkoutSubtotal = buyNowData
     ? buyNowData.product.unit_price * buyNowData.quantity
     : subtotal;
+
+  const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
+  const hasBlockedPreorders = ordersClosed && checkoutItems.some(i => isPreorder(i.product_status));
 
   const [form, setForm] = useState({
     fullName: user.fullName, email: user.email, phone: user.phone,
@@ -75,42 +80,44 @@ export default function CheckoutPage() {
       // 2. Generate order_id
       const orderId = `ORD-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000) + 1000}`;
 
-      // 3. Insert one orders row per cart item
-      const orderRows = checkoutItems.map(item => ({
-        order_id: orderId,
-        customer_id: cust.customer_id,
-        product_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        size: item.size || null,
-        colour: item.colour || null,
-        status: 'Pending',
-        delivery_region: form.region,
-        delivery_town: form.town,
-        can_edit_delivery: true,
+      // 3. Call Hubtel via edge function
+      const returnUrl       = `${window.location.origin}/order-confirmation?orderId=${orderId}&status=success`;
+      const cancellationUrl = `${window.location.origin}/order-confirmation?orderId=${orderId}&status=cancelled`;
+
+      const { data: fnData } = await supabase.functions.invoke('initiate-payment', {
+        body: {
+          orderId,
+          amount: checkoutSubtotal,
+          description: `Miss Betty Import — ${orderId}`,
+          returnUrl,
+          cancellationUrl,
+        },
+      });
+
+      if (fnData?.error || !fnData?.checkoutUrl) {
+        throw new Error(fnData?.error || "Failed to start payment. Please try again.");
+      }
+
+      // 4. Save pending order data for the confirmation page to use after redirect
+      sessionStorage.setItem(`pending_order_${orderId}`, JSON.stringify({
+        customerId: cust.customer_id,
+        orderId,
+        form,
+        items: checkoutItems.map(item => ({
+          id:                item.id,
+          product_name:      item.product_name,
+          product_image_url: item.product_image_url || "",
+          unit_price:        item.unit_price,
+          quantity:          item.quantity,
+          size:              item.size || null,
+          colour:            item.colour || null,
+          cartKey:           item.cartKey,
+        })),
       }));
 
-      const { error: ordersError } = await supabase.from('orders').insert(orderRows);
-      if (ordersError) throw new Error(ordersError.message);
-
-      // 4. Insert invoice rows
-      const invoiceRows = checkoutItems.map(item => ({
-        invoice_id: orderId,
-        customer_name: form.fullName,
-        product_name: item.product_name,
-        size: item.size || null,
-        colour: item.colour || null,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        total: item.unit_price * item.quantity,
-      }));
-
-      const { error: invoicesError } = await supabase.from('invoices').insert(invoiceRows);
-      if (invoicesError) throw new Error(invoicesError.message);
-
-      // 5. Clear cart + navigate
+      // 5. Clear cart and redirect to Hubtel
       if (!buyNowData) clearCart();
-      navigate('/order-confirmation', { state: { form, items: checkoutItems, subtotal: checkoutSubtotal, orderId } });
+      window.location.href = fnData.checkoutUrl;
     } catch (err) {
       setSubmitError(err.message);
       setSubmitting(false);
@@ -128,21 +135,26 @@ export default function CheckoutPage() {
   }
 
   const inputClass = (field) =>
-    `w-full border rounded-2xl px-4 py-2.5 text-sm outline-none transition-colors ${
+    `w-full border rounded-2xl px-3 py-2 sm:py-2.5 text-sm outline-none transition-colors ${
       errors[field] ? "border-red-400 focus:border-red-400" : "border-gray-300 focus:border-[#F2AA25]"
     }`;
 
   const readOnlyClass =
-    "w-full bg-gray-100 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-500 cursor-default outline-none";
+    "w-full bg-gray-100 border border-gray-200 rounded-2xl px-3 py-2 sm:py-2.5 text-sm text-gray-500 cursor-default outline-none";
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-      <h1 className="text-xl sm:text-2xl font-bold text-[#1e2d3d] mb-5">Checkout</h1>
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
+      {hasBlockedPreorders && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl px-3 py-2.5 mb-3 text-sm text-red-700 font-medium flex items-center gap-2">
+          <span>🚫</span> Pre-orders are temporarily closed. Remove pre-order items to continue.
+        </div>
+      )}
+      <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-3 sm:mb-5">Checkout</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 sm:gap-5">
         {/* Form */}
-        <form onSubmit={handleSubmit} className="lg:col-span-3 flex flex-col gap-5">
-          <div className="bg-white rounded-2xl shadow-sm p-4">
+        <form onSubmit={handleSubmit} className="lg:col-span-3 flex flex-col gap-3 sm:gap-5">
+          <div className="bg-white rounded-2xl shadow-sm p-3 sm:p-4">
             <h2 className="font-bold text-[#1e2d3d] text-base mb-3">Delivery Information</h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -190,8 +202,8 @@ export default function CheckoutPage() {
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full bg-[#F2AA25] text-white font-bold py-3 rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+            disabled={submitting || hasBlockedPreorders}
+            className="w-full bg-[#F2AA25] text-white font-bold py-2.5 sm:py-3 rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {submitting ? (
               <>
@@ -199,17 +211,17 @@ export default function CheckoutPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                 </svg>
-                Placing Order...
+                Redirecting to Hubtel…
               </>
-            ) : "Place Order"}
+            ) : "Pay with Hubtel"}
           </button>
         </form>
 
         {/* Summary */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-sm p-4 sticky top-16">
+          <div className="bg-white rounded-2xl shadow-sm p-3 sticky top-12">
             <h2 className="font-bold text-[#1e2d3d] text-base mb-3">Order Summary</h2>
-            <div className="flex flex-col gap-2.5 mb-3">
+            <div className="flex flex-col gap-2 mb-2.5">
               {checkoutItems.map(item => (
                 <div key={item.cartKey} className="flex items-start gap-3">
                   {item.product_image_url ? (
