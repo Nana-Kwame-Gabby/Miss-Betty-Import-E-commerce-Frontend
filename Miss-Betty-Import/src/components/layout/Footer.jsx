@@ -30,6 +30,13 @@ export default function Footer() {
           >
             Terms and conditions
           </a>
+          <span className="text-gray-600 hidden sm:inline">|</span>
+          <a
+            href="/privacy-policy"
+            className="text-gray-300 hover:text-[#F2AA25] transition-colors"
+          >
+            Privacy Policy
+          </a>
         </div>
         <p className="text-gray-500 text-xs">
           © {new Date().getFullYear()} Miss Betty Import. All rights reserved.

@@ -14,6 +14,7 @@ import Layout from "./components/layout/Layout";
 
 import HomePage from "./pages/HomePage";
 import ContactPage from "./pages/ContactPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import ShopPage from "./pages/ShopPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import CartPage from "./pages/CartPage";
@@ -74,6 +75,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
 
               {/* Public-only — redirect to /shop if already logged in */}
               <Route element={<PublicOnlyRoute />}>
