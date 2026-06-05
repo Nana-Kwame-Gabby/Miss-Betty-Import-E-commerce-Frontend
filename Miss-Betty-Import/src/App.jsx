@@ -76,7 +76,6 @@ function App() {
               <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-
               {/* Public-only — redirect to /shop if already logged in */}
               <Route element={<PublicOnlyRoute />}>
                 <Route path="/login" element={<LoginPage />} />

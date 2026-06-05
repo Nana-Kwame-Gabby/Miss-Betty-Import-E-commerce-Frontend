@@ -1,11 +1,15 @@
 export const categories = [
-  { id: 1, name: "Mother care items", icon: "🍼" },
-  { id: 2, name: "Beddings", icon: "🛏️" },
-  { id: 3, name: "Dresses, bags & shoes", icon: "👗" },
-  { id: 4, name: "Furniture", icon: "🪑" },
-  { id: 5, name: "Electrical appliances", icon: "⚡" },
-  { id: 6, name: "Kitchenware", icon: "🍳" },
-  { id: 7, name: "Others", icon: "📦" },
+  { id: 1,  name: "Mother care items",               icon: "👶" },
+  { id: 2,  name: "Beddings",                        icon: "🛏️" },
+  { id: 4,  name: "Furniture",                       icon: "🪑" },
+  { id: 5,  name: "Industrial Equipment/Heavy Duty", icon: "🏗️" },
+  { id: 6,  name: "Kitchenware",                     icon: "🍳" },
+  { id: 7,  name: "Others",                          icon: "📦" },
+  { id: 8,  name: "Home Appliances",                 icon: "🏠" },
+  { id: 9,  name: "Home Designs/Decor",              icon: "🖼️" },
+  { id: 10, name: "Men's Fashion",                   icon: "👔" },
+  { id: 11, name: "Ladies Fashion",                  icon: "👜" },
+  { id: 12, name: "Sneakers",                        icon: "👟" },
 ];
 
 export const products = [
