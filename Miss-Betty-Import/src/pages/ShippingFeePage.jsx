@@ -148,6 +148,29 @@ export default function ShippingFeePage() {
         if (shpStatus === "success" && saved) {
           await supabase.from("shipping_fee_payments")
             .insert({ customer_id: saved.customerId, amount_paid: saved.amount });
+
+          // Snapshot current fees into unlocked orders so future admin rate changes don't affect this customer
+          const [{ data: custOrders }, { data: currentFees }] = await Promise.all([
+            supabase.from('orders')
+              .select('order_id, product_id, size')
+              .eq('customer_id', saved.customerId)
+              .is('shipping_fee', null),
+            supabase.from('product_size_shipping_fees').select('product_id, size, shipping_fee'),
+          ]);
+
+          const snapMap = {};
+          (currentFees ?? []).forEach(f => {
+            snapMap[`${f.product_id}::${f.size}`] = Number(f.shipping_fee ?? 0);
+          });
+
+          await Promise.all(
+            (custOrders ?? []).map(o => {
+              const fee = snapMap[`${o.product_id}::${o.size ?? ''}`];
+              if (fee == null) return Promise.resolve();
+              return supabase.from('orders').update({ shipping_fee: fee }).eq('order_id', o.order_id);
+            })
+          );
+
           sessionStorage.removeItem(key);
           setShpMsg({ type: "success", amount: saved.amount });
         } else {
@@ -179,12 +202,14 @@ export default function ShippingFeePage() {
 
       const feeMap = {};
       (feeData ?? []).forEach(r => {
-        feeMap[`${r.product_id}::${r.size}`] = Number(r.shipping_fee ?? 0);
+        feeMap[`${r.product_id}::${r.size ?? ''}`] = Number(r.shipping_fee ?? 0);
       });
 
       const enriched = (orderData ?? []).map(r => ({
         ...r,
-        shipping_fee: feeMap[`${r.product_id}::${r.size ?? ''}`] ?? 0,
+        shipping_fee: r.shipping_fee != null
+          ? Number(r.shipping_fee)
+          : (feeMap[`${r.product_id}::${r.size ?? ''}`] ?? 0),
       }));
 
       setRows(enriched);

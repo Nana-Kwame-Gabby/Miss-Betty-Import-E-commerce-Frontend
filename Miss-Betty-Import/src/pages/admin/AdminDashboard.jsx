@@ -89,7 +89,7 @@ export default function AdminDashboard() {
         supabase.from('shipping_fee_payments')
           .select('customer_id, amount_paid, paid_at, customers(customer_name)')
           .order('paid_at', { ascending: false }),
-        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit'),
+        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit, shipping_fee'),
         supabase.from('product_size_shipping_fees').select('product_id, size, shipping_fee'),
       ]);
 
@@ -105,7 +105,9 @@ export default function AdminDashboard() {
       let totalProfit    = 0;
       (allOrderData ?? []).forEach(o => {
         const qty  = Number(o.quantity ?? 1);
-        const fee  = feeMap[`${o.product_id}::${o.size ?? ''}`] ?? 0;
+        const fee  = o.shipping_fee != null
+          ? Number(o.shipping_fee)
+          : (feeMap[`${o.product_id}::${o.size ?? ''}`] ?? 0);
         totalByCustomer[o.customer_id] = (totalByCustomer[o.customer_id] ?? 0) + fee * qty;
         totalCostPrice += Number(o.cost_price ?? 0) * qty;
         totalProfit    += Number(o.profit     ?? 0) * qty;

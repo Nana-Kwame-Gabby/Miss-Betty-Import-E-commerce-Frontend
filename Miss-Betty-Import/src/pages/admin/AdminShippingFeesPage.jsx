@@ -18,7 +18,7 @@ function buildFeeGroups(rows, existingFees) {
     groupMap[key].total_quantity += Number(row.quantity ?? 1);
   });
   (existingFees ?? []).forEach(r => {
-    const key = `${r.product_id}::${r.size}`;
+    const key = `${r.product_id}::${r.size ?? ''}`;
     if (groupMap[key]) groupMap[key].shipping_fee = Number(r.shipping_fee ?? 0);
   });
   return Object.values(groupMap);

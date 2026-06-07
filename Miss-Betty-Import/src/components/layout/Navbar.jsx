@@ -107,6 +107,8 @@ function AccountDropdown() {
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { totalItems } = useCart();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   const navClass = ({ isActive }) =>
     isActive
