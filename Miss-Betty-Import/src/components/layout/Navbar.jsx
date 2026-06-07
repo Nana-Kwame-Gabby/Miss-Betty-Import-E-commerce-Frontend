@@ -122,7 +122,7 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link to="/shop" className="flex items-center gap-2 flex-shrink-0">
-            <img src={logo} alt="Miss Betty Import" className="h-8 w-auto" />
+            <img src={logo} alt="Miss Betty Import" className="h-12 w-auto" />
             <span className="font-bold text-[#1e2d3d] hidden sm:block text-sm leading-tight">
               Miss Betty<br /><span className="text-[#F2AA25] text-xs font-semibold">Import</span>
             </span>

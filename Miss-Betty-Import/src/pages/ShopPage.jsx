@@ -626,7 +626,7 @@ export default function ShopPage() {
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Logo */}
             <Link to="/shop" className="flex-shrink-0">
-              <img src={logo} alt="Miss Betty Import" className="h-8 sm:h-9 w-auto spin-vertical" />
+              <img src={logo} alt="Miss Betty Import" className="h-12 sm:h-14 w-auto spin-vertical" />
             </Link>
 
             {/* Search */}

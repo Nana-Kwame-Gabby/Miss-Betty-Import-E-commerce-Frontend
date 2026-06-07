@@ -62,7 +62,7 @@ export default function AdminLayout() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 py-5 border-b border-white/10">
-        <img src={logo} alt="Miss Betty Import" className="h-9 w-9 rounded-full object-cover" />
+        <img src={logo} alt="Miss Betty Import" className="h-12 w-12 rounded-full object-cover" />
         <div>
           <p className="text-white font-bold text-sm leading-tight">Miss Betty Import</p>
           <span className="text-[#F2AA25] text-xs font-semibold bg-[#F2AA25]/20 px-2 py-0.5 rounded-full">Admin</span>
@@ -120,7 +120,7 @@ export default function AdminLayout() {
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
-          <img src={logo} alt="Logo" className="h-7 w-7 rounded-full object-cover" />
+          <img src={logo} alt="Logo" className="h-10 w-10 rounded-full object-cover" />
           <p className="text-white font-bold text-sm">Miss Betty Import</p>
           <span className="text-[#F2AA25] text-xs font-semibold bg-[#F2AA25]/20 px-2 py-0.5 rounded-full ml-auto">Admin</span>
         </header>

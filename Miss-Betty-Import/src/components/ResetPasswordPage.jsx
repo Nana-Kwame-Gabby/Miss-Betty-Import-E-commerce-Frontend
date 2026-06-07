@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
         <img
           src={logo}
           alt="Miss Betty Import Logo"
-          className="h-12 sm:h-14 mx-auto spin-vertical mb-2"
+          className="h-16 sm:h-20 mx-auto spin-vertical mb-2"
         />
 
         {success ? (
