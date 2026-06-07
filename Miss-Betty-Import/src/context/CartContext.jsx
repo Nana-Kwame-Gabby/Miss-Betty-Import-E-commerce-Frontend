@@ -58,6 +58,59 @@ export function CartProvider({ children }) {
     );
   }
 
+  function addMultipleToCart(variants) {
+    setCartItems(prev => {
+      let items = [...prev];
+      variants.forEach(({ product, size, colour, qty, price, costPrice, profit }) => {
+        const key = `${product.id}-${size}-${colour}`;
+        const existing = items.find(i => i.cartKey === key);
+        if (existing) {
+          items = items.map(i =>
+            i.cartKey === key ? { ...i, quantity: i.quantity + qty } : i
+          );
+        } else {
+          items = [...items, {
+            ...product, unit_price: price, cost_price: costPrice, profit,
+            quantity: qty, size, colour, cartKey: key,
+          }];
+        }
+      });
+      return items;
+    });
+  }
+
+  function updateVariant(cartKey, newSize, newColour) {
+    setCartItems(prev => {
+      const item = prev.find(i => i.cartKey === cartKey);
+      if (!item) return prev;
+
+      const newKey = `${item.id}-${newSize}-${newColour}`;
+      if (newKey === cartKey) return prev;
+
+      const sizeEntry    = item.sizePricing?.find(sp => sp.size === newSize) ?? null;
+      const newUnitPrice = sizeEntry?.selling_price ?? sizeEntry?.price ?? item.unit_price;
+      const newCostPrice = sizeEntry?.cost_price ?? item.cost_price ?? 0;
+      const newProfit    = sizeEntry?.profit     ?? item.profit     ?? 0;
+
+      const existingAtNewKey = prev.find(i => i.cartKey === newKey);
+      if (existingAtNewKey) {
+        return prev
+          .filter(i => i.cartKey !== cartKey)
+          .map(i => i.cartKey === newKey
+            ? { ...i, quantity: i.quantity + item.quantity }
+            : i
+          );
+      }
+
+      return prev.map(i =>
+        i.cartKey === cartKey
+          ? { ...i, size: newSize, colour: newColour, cartKey: newKey,
+              unit_price: newUnitPrice, cost_price: newCostPrice, profit: newProfit }
+          : i
+      );
+    });
+  }
+
   function clearCart() {
     setCartItems([]);
   }
@@ -66,7 +119,7 @@ export function CartProvider({ children }) {
   const subtotal = cartItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, subtotal }}>
+    <CartContext.Provider value={{ cartItems, addToCart, addMultipleToCart, removeFromCart, updateQuantity, updateVariant, clearCart, totalItems, subtotal }}>
       {children}
     </CartContext.Provider>
   );

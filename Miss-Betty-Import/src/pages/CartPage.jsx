@@ -1,11 +1,41 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAppSettings } from "../context/AppSettingsContext";
+import { colourMap } from "../data/mockData";
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, subtotal } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, updateVariant, addToCart, subtotal } = useCart();
   const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
+
+  const [variantPanels, setVariantPanels] = useState({});
+
+  function openPanel(item) {
+    setVariantPanels(prev => ({
+      ...prev,
+      [item.cartKey]: { open: true, size: item.sizes[0] ?? null, colour: item.colours[0] ?? null, qty: 1 },
+    }));
+  }
+
+  function closePanel(cartKey) {
+    setVariantPanels(prev => ({ ...prev, [cartKey]: { ...prev[cartKey], open: false } }));
+  }
+
+  function updatePanel(cartKey, patch) {
+    setVariantPanels(prev => ({ ...prev, [cartKey]: { ...prev[cartKey], ...patch } }));
+  }
+
+  function handleAddVariant(item) {
+    const panel = variantPanels[item.cartKey];
+    if (!panel) return;
+    const sizeEntry = item.sizePricing?.find(sp => sp.size === panel.size) ?? null;
+    const price     = sizeEntry?.selling_price ?? sizeEntry?.price ?? item.unit_price;
+    const costPrice = sizeEntry?.cost_price ?? item.cost_price ?? 0;
+    const profit    = sizeEntry?.profit     ?? item.profit     ?? 0;
+    addToCart(item, panel.qty, panel.size, panel.colour, price, costPrice, profit);
+    closePanel(item.cartKey);
+  }
 
   const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
   const hasBlockedPreorders = ordersClosed && cartItems.some(i => isPreorder(i.product_status));
@@ -44,10 +74,129 @@ export default function CartPage() {
               />
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-[#1e2d3d] truncate">{item.product_name}</h3>
-                <p className="text-sm text-gray-400 mt-0.5">
-                  {item.size !== "One Size" && <span>Size: <strong>{item.size}</strong> · </span>}
-                  Colour: <strong>{item.colour}</strong>
-                </p>
+                {item.sizes?.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {item.sizes.map(s => {
+                      const priceEntry = item.sizePricing?.find(sp => sp.size === s);
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => updateVariant(item.cartKey, s, item.colour)}
+                          className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors leading-none ${
+                            item.size === s
+                              ? "bg-[#1e2d3d] text-white"
+                              : "border border-gray-300 text-gray-500 hover:border-[#1e2d3d]"
+                          }`}
+                        >
+                          <span className="block">{s}</span>
+                          {priceEntry && (
+                            <span className={`block text-[10px] font-normal ${item.size === s ? "text-white/70" : "text-gray-400"}`}>
+                              GHS {(priceEntry.selling_price ?? priceEntry.price ?? 0).toLocaleString()}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {item.colours?.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5 items-center">
+                    <span className="text-[11px] text-gray-400 font-medium">Colour:</span>
+                    {item.colours.map(c => (
+                      <button
+                        key={c}
+                        onClick={() => updateVariant(item.cartKey, item.size, c)}
+                        title={c}
+                        className={`w-5 h-5 rounded-full transition-all flex-shrink-0 ${
+                          item.colour === c
+                            ? "ring-2 ring-offset-1 ring-[#1e2d3d] scale-110"
+                            : "hover:scale-105"
+                        } ${c === "White" ? "border border-gray-200" : ""}`}
+                        style={{ backgroundColor: colourMap[c] || "#ccc" }}
+                      />
+                    ))}
+                    <span className="text-[11px] text-gray-500">{item.colour}</span>
+                  </div>
+                )}
+                {(item.sizes?.length > 0 || item.colours?.length > 0) && (() => {
+                  const panel = variantPanels[item.cartKey];
+                  return (
+                    <>
+                      <button
+                        onClick={() => panel?.open ? closePanel(item.cartKey) : openPanel(item)}
+                        className="mt-1.5 text-[11px] font-semibold text-[#1e2d3d] hover:text-[#F2AA25] transition-colors"
+                      >
+                        {panel?.open ? "− Cancel" : "+ Add Variant"}
+                      </button>
+
+                      {panel?.open && (
+                        <div className="mt-2 p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                          {item.sizes?.length > 0 && (
+                            <div className="mb-2">
+                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Size</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {item.sizes.map(s => {
+                                  const priceEntry = item.sizePricing?.find(sp => sp.size === s);
+                                  return (
+                                    <button
+                                      key={s}
+                                      onClick={() => updatePanel(item.cartKey, { size: s })}
+                                      className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors leading-none ${
+                                        panel.size === s
+                                          ? "bg-[#1e2d3d] text-white"
+                                          : "border border-gray-300 text-gray-500 hover:border-[#1e2d3d]"
+                                      }`}
+                                    >
+                                      <span className="block">{s}</span>
+                                      {priceEntry && (
+                                        <span className={`block text-[10px] font-normal ${panel.size === s ? "text-white/70" : "text-gray-400"}`}>
+                                          GHS {(priceEntry.selling_price ?? priceEntry.price ?? 0).toLocaleString()}
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {item.colours?.length > 0 && (
+                            <div className="mb-2 flex flex-wrap gap-1.5 items-center">
+                              <span className="text-[10px] text-gray-400 font-medium">Colour:</span>
+                              {item.colours.map(c => (
+                                <button
+                                  key={c}
+                                  onClick={() => updatePanel(item.cartKey, { colour: c })}
+                                  title={c}
+                                  className={`w-5 h-5 rounded-full transition-all flex-shrink-0 ${
+                                    panel.colour === c ? "ring-2 ring-offset-1 ring-[#1e2d3d] scale-110" : "hover:scale-105"
+                                  } ${c === "White" ? "border border-gray-200" : ""}`}
+                                  style={{ backgroundColor: colourMap[c] || "#ccc" }}
+                                />
+                              ))}
+                              {panel.colour && <span className="text-[11px] text-gray-500">{panel.colour}</span>}
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg overflow-hidden">
+                              <button onClick={() => updatePanel(item.cartKey, { qty: Math.max(1, panel.qty - 1) })} className="px-2 py-1 text-[#1e2d3d] hover:text-[#F2AA25] font-bold text-sm">−</button>
+                              <span className="px-2 py-1 text-sm font-semibold text-[#1e2d3d] min-w-[1.5rem] text-center">{panel.qty}</span>
+                              <button onClick={() => updatePanel(item.cartKey, { qty: panel.qty + 1 })} className="px-2 py-1 text-[#1e2d3d] hover:text-[#F2AA25] font-bold text-sm">+</button>
+                            </div>
+                            <button
+                              onClick={() => handleAddVariant(item)}
+                              className="flex-1 bg-[#1e2d3d] text-white text-[11px] font-semibold py-1.5 rounded-lg hover:opacity-90 transition-opacity"
+                            >
+                              Add to Cart
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+
                 <p className="text-[#F2AA25] font-bold mt-1">GHS {item.unit_price.toLocaleString()}</p>
 
                 <div className="flex items-center justify-between mt-3">

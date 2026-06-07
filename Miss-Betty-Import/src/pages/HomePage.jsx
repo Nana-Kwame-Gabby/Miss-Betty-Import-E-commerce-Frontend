@@ -107,43 +107,89 @@ function ImageLightbox({ src, alt, onClose }) {
 }
 
 function ProductDetailModal({ product, onClose, buyNow = false }) {
-  const { addToCart } = useCart();
+  const { addToCart, addMultipleToCart } = useCart();
   const { session } = useAuth();
   const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
-  const [selectedSize, setSelectedSize] = useState(product.sizes[0] ?? null);
-  const [selectedColour, setSelectedColour] = useState(product.colours[0] ?? null);
-  const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
 
-  const _entry = product?.sizePricing && selectedSize
-    ? (product.sizePricing.find(sp => sp.size === selectedSize) ?? null)
+  const hasVariants = product.sizes.length > 0 || product.colours.length > 0;
+
+  const [curSize,         setCurSize]         = useState(product.sizes[0]   ?? null);
+  const [curColour,       setCurColour]       = useState(product.colours[0] ?? null);
+  const [curQty,          setCurQty]          = useState(1);
+  const [pendingVariants, setPendingVariants] = useState([]);
+  const [added,           setAdded]           = useState(false);
+
+  const curEntry     = product?.sizePricing && curSize
+    ? (product.sizePricing.find(sp => sp.size === curSize) ?? null)
     : null;
-  const displayPrice     = _entry?.selling_price ?? _entry?.price ?? product?.unit_price ?? 0;
-  const displayCostPrice = _entry?.cost_price ?? product?.cost_price ?? 0;
-  const displayProfit    = _entry?.profit     ?? product?.profit    ?? 0;
+  const curPrice     = curEntry?.selling_price ?? curEntry?.price ?? product?.unit_price ?? 0;
+  const curCostPrice = curEntry?.cost_price ?? product?.cost_price ?? 0;
+  const curProfit    = curEntry?.profit     ?? product?.profit    ?? 0;
+
+  const totalQty  = pendingVariants.reduce((s, v) => s + v.qty, 0);
+  const totalCost = pendingVariants.reduce((s, v) => s + v.price * v.qty, 0);
+
+  const canAddVariant =
+    (!product.sizes.length   || curSize) &&
+    (!product.colours.length || curColour);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  function handleAdd() {
-    addToCart(product, qty, selectedSize, selectedColour, displayPrice, displayCostPrice, displayProfit);
+  function addVariantToPending() {
+    if (!canAddVariant) return;
+    const vKey = `${curSize ?? 'none'}-${curColour ?? 'none'}`;
+    setPendingVariants(prev => {
+      const existing = prev.find(v => v.variantKey === vKey);
+      if (existing) {
+        return prev.map(v => v.variantKey === vKey ? { ...v, qty: v.qty + curQty } : v);
+      }
+      return [...prev, {
+        variantKey: vKey, size: curSize, colour: curColour,
+        qty: curQty, price: curPrice, costPrice: curCostPrice, profit: curProfit,
+      }];
+    });
+    setCurQty(1);
+  }
+
+  function commitToCart(andThen) {
+    addMultipleToCart(
+      pendingVariants.map(v => ({
+        product, size: v.size, colour: v.colour,
+        qty: v.qty, price: v.price, costPrice: v.costPrice, profit: v.profit,
+      }))
+    );
+    andThen();
+  }
+
+  function handleAddAll() {
+    if (pendingVariants.length === 0) return;
+    commitToCart(() => { setAdded(true); setTimeout(() => { setAdded(false); onClose(); }, 1500); });
+  }
+
+  function handleCheckout() {
+    if (!session) { navigate("/login"); return; }
+    if (ordersClosed || pendingVariants.length === 0) return;
+    commitToCart(() => navigate("/checkout"));
+  }
+
+  function handleSimpleAdd() {
+    addToCart(product, curQty, null, null, product.unit_price, product.cost_price, product.profit);
     setAdded(true);
     setTimeout(() => { setAdded(false); onClose(); }, 1500);
   }
 
-  function handleBuyNow() {
+  function handleSimpleBuyNow() {
     if (!session) { navigate("/login"); return; }
     if (ordersClosed) return;
     navigate("/checkout", {
       state: {
         buyNow: {
-          product, quantity: qty, size: selectedSize, colour: selectedColour,
-          unitPrice:  displayPrice,
-          costPrice:  displayCostPrice,
-          sizeProfit: displayProfit,
+          product, quantity: curQty, size: null, colour: null,
+          unitPrice: product.unit_price, costPrice: product.cost_price, sizeProfit: product.profit,
         },
       },
     });
@@ -200,9 +246,10 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
           <h2 className="font-bold text-[#1e2d3d] text-lg mb-1 leading-snug">
             {product.product_name}
           </h2>
-          <p className="text-[#F2AA25] font-bold text-xl mb-3">
-            GHS {displayPrice.toLocaleString()}
+          <p className="text-[#F2AA25] font-bold text-xl mb-2">
+            GHS {curPrice.toLocaleString()}
           </p>
+
           {product.description && (
             <p className="text-gray-500 text-sm leading-relaxed mb-3">
               {product.description}
@@ -216,100 +263,169 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
             </p>
           )}
 
-          {/* Size */}
-          {product.sizes.length > 0 && (
-            <div className="mb-3">
-              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Size</p>
-              <div className="flex flex-wrap gap-2">
-                {product.sizes.map(s => {
-                  const priceEntry = product.sizePricing?.find(sp => sp.size === s);
-                  return (
-                    <button
-                      key={s}
-                      onClick={() => setSelectedSize(s)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                        selectedSize === s
-                          ? "bg-[#1e2d3d] text-white"
-                          : "border border-gray-300 text-gray-600 hover:border-[#1e2d3d]"
-                      }`}
-                    >
-                      <span className="block">{s}</span>
-                      {priceEntry && (
-                        <span className={`block text-xs font-normal ${selectedSize === s ? "text-white/80" : "text-gray-400"}`}>
-                          GHS {(priceEntry.selling_price ?? priceEntry.price ?? 0).toLocaleString()}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {hasVariants ? (
+            <>
+              {/* Size */}
+              {product.sizes.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Size</p>
+                  <div className="flex flex-wrap gap-2">
+                    {product.sizes.map(s => {
+                      const priceEntry = product.sizePricing?.find(sp => sp.size === s);
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => setCurSize(s)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                            curSize === s
+                              ? "bg-[#1e2d3d] text-white"
+                              : "border border-gray-300 text-gray-600 hover:border-[#1e2d3d]"
+                          }`}
+                        >
+                          <span className="block">{s}</span>
+                          {priceEntry && (
+                            <span className={`block text-[10px] font-normal ${curSize === s ? "text-white/70" : "text-gray-400"}`}>
+                              GHS {(priceEntry.selling_price ?? priceEntry.price ?? 0).toLocaleString()}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
-          {/* Colour */}
-          {product.colours.length > 0 && (
-            <div className="mb-3">
-              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                Colour: <span className="font-normal normal-case text-gray-500">{selectedColour}</span>
-              </p>
-              <div className="flex flex-wrap gap-2.5">
-                {product.colours.map(c => (
+              {/* Colour */}
+              {product.colours.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
+                    Colour: <span className="font-normal normal-case text-gray-500">{curColour}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2.5">
+                    {product.colours.map(c => (
+                      <button
+                        key={c}
+                        onClick={() => setCurColour(c)}
+                        title={c}
+                        className={`w-7 h-7 rounded-full transition-all ${
+                          curColour === c
+                            ? "ring-2 ring-offset-2 ring-[#1e2d3d] scale-110"
+                            : "hover:scale-105"
+                        } ${c === "White" ? "border border-gray-200" : ""}`}
+                        style={{ backgroundColor: colourMap[c] || "#ccc" }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Qty + Add Variant */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+                  <button onClick={() => setCurQty(q => Math.max(1, q - 1))} className="px-3 py-2 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none">−</button>
+                  <span className="px-3 py-2 text-sm font-semibold text-[#1e2d3d] min-w-[2rem] text-center">{curQty}</span>
+                  <button onClick={() => setCurQty(q => q + 1)} className="px-3 py-2 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none">+</button>
+                </div>
+                <button
+                  onClick={addVariantToPending}
+                  disabled={!canAddVariant}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-[#1e2d3d] font-semibold text-xs py-2 rounded-xl transition-colors"
+                >
+                  + Add Variant
+                </button>
+              </div>
+
+              {/* Pending variants list */}
+              {pendingVariants.length > 0 && (
+                <div className="mb-3 border border-gray-100 rounded-xl overflow-hidden">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-3 py-1.5 bg-gray-50 border-b border-gray-100">
+                    Selected Variants
+                  </p>
+                  {pendingVariants.map(v => (
+                    <div key={v.variantKey} className="flex items-center gap-2 px-3 py-2 border-b border-gray-50 last:border-0">
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        {v.size && <span className="text-[10px] font-bold bg-[#1e2d3d] text-white px-1.5 py-0.5 rounded flex-shrink-0">{v.size}</span>}
+                        {v.colour && (
+                          <>
+                            <span className="w-3.5 h-3.5 rounded-full border border-gray-200 flex-shrink-0" style={{ backgroundColor: colourMap[v.colour] || "#ccc" }} />
+                            <span className="text-xs text-gray-500 truncate">{v.colour}</span>
+                          </>
+                        )}
+                        <span className="text-xs text-[#F2AA25] font-semibold ml-auto flex-shrink-0 pl-1">GHS {v.price.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                        <button onClick={() => setPendingVariants(prev => prev.map(x => x.variantKey === v.variantKey ? { ...x, qty: Math.max(1, x.qty - 1) } : x))} className="px-2 py-1 text-gray-500 hover:bg-gray-50 font-bold text-sm">−</button>
+                        <span className="px-2 py-1 text-xs font-semibold text-[#1e2d3d] min-w-[1.5rem] text-center">{v.qty}</span>
+                        <button onClick={() => setPendingVariants(prev => prev.map(x => x.variantKey === v.variantKey ? { ...x, qty: x.qty + 1 } : x))} className="px-2 py-1 text-gray-500 hover:bg-gray-50 font-bold text-sm">+</button>
+                      </div>
+                      <button onClick={() => setPendingVariants(prev => prev.filter(x => x.variantKey !== v.variantKey))} className="text-red-400 hover:text-red-600 ml-0.5 flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex justify-between px-3 py-1.5 bg-gray-50 text-xs font-semibold text-[#1e2d3d]">
+                    <span>{totalQty} item{totalQty !== 1 ? "s" : ""}</span>
+                    <span className="text-[#F2AA25]">Total: GHS {totalCost.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* CTAs */}
+              <div className="pb-2">
+                {buyNow ? (
                   <button
-                    key={c}
-                    onClick={() => setSelectedColour(c)}
-                    title={c}
-                    className={`w-7 h-7 rounded-full transition-all ${
-                      selectedColour === c
-                        ? "ring-2 ring-offset-2 ring-[#1e2d3d] scale-110"
-                        : "hover:scale-105"
-                    } ${c === "White" ? "border border-gray-200" : ""}`}
-                    style={{ backgroundColor: colourMap[c] || "#ccc" }}
-                  />
-                ))}
+                    onClick={handleCheckout}
+                    disabled={ordersClosed || pendingVariants.length === 0}
+                    className={`w-full font-semibold py-2 rounded-xl text-sm transition-opacity ${
+                      ordersClosed
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        : pendingVariants.length === 0
+                        ? "bg-[#F2AA25]/40 text-white cursor-not-allowed"
+                        : "bg-[#F2AA25] text-white hover:opacity-90"
+                    }`}
+                  >
+                    {ordersClosed ? "Orders Closed" : "Proceed to Checkout"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleAddAll}
+                    disabled={pendingVariants.length === 0}
+                    className={`w-full font-semibold py-2 rounded-xl text-sm transition-colors ${
+                      added
+                        ? "bg-green-500 text-white"
+                        : pendingVariants.length === 0
+                        ? "bg-[#F2AA25]/40 text-white cursor-not-allowed"
+                        : "bg-[#F2AA25] text-white hover:opacity-90"
+                    }`}
+                  >
+                    {added
+                      ? "✓ Added to cart!"
+                      : totalQty > 0
+                      ? `Add ${totalQty} item${totalQty !== 1 ? "s" : ""} to Cart`
+                      : "Add to Cart"}
+                  </button>
+                )}
               </div>
+            </>
+          ) : (
+            /* Simple mode — no sizes or colours */
+            <div className="flex items-center gap-3 pb-2">
+              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+                <button onClick={() => setCurQty(q => Math.max(1, q - 1))} className="px-3 py-2 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none">−</button>
+                <span className="px-3 py-2 text-sm font-semibold text-[#1e2d3d] min-w-[2rem] text-center">{curQty}</span>
+                <button onClick={() => setCurQty(q => q + 1)} className="px-3 py-2 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none">+</button>
+              </div>
+              {buyNow ? (
+                <button onClick={handleSimpleBuyNow} disabled={ordersClosed} className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-opacity ${ordersClosed ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-[#F2AA25] text-white hover:opacity-90"}`}>
+                  {ordersClosed ? "Orders Closed" : "Proceed to Checkout"}
+                </button>
+              ) : (
+                <button onClick={handleSimpleAdd} className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-colors ${added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"}`}>
+                  {added ? "✓ Added to cart!" : "Add to Cart"}
+                </button>
+              )}
             </div>
           )}
-
-          {/* Quantity + action buttons */}
-          <div className="flex items-center gap-3 pb-2">
-            <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
-              <button
-                onClick={() => setQty(q => Math.max(1, q - 1))}
-                className="px-3 py-2 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none"
-              >
-                −
-              </button>
-              <span className="px-3 py-2 text-sm font-semibold text-[#1e2d3d] min-w-[2rem] text-center">
-                {qty}
-              </span>
-              <button
-                onClick={() => setQty(q => q + 1)}
-                className="px-3 py-2 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none"
-              >
-                +
-              </button>
-            </div>
-            {buyNow ? (
-              <button
-                onClick={handleBuyNow}
-                disabled={ordersClosed}
-                className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-opacity ${
-                  ordersClosed ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-[#F2AA25] text-white hover:opacity-90"
-                }`}
-              >
-                {ordersClosed ? "Orders Closed" : "Proceed to Checkout"}
-              </button>
-            ) : (
-              <button
-                onClick={handleAdd}
-                className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-colors ${
-                  added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
-                }`}
-              >
-                {added ? "✓ Added to cart!" : "Add to Cart"}
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Reviews */}
