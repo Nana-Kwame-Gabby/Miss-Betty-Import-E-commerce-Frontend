@@ -6,6 +6,7 @@ const EMPTY_FORM = {
   category_id: "",
   cost_price: "",
   profit: "",
+  discount_price: "",
   status_id: "",
   description: "",
   sizes: "",
@@ -92,7 +93,7 @@ export default function AdminProductsPage() {
   const [error, setError]             = useState("");
   const [success, setSuccess]         = useState("");
   const [useSizePricing, setUseSizePricing] = useState(false);
-  const [sizePricingRows, setSizePricingRows] = useState([{ size: "", cost_price: "", profit: "" }]);
+  const [sizePricingRows, setSizePricingRows] = useState([{ size: "", cost_price: "", profit: "", discount_price: "" }]);
 
   // Edit modal
   const [editingProduct, setEditingProduct] = useState(null);
@@ -105,7 +106,7 @@ export default function AdminProductsPage() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError]           = useState("");
   const [editUseSizePricing, setEditUseSizePricing] = useState(false);
-  const [editSizePricingRows, setEditSizePricingRows] = useState([{ size: "", cost_price: "", profit: "" }]);
+  const [editSizePricingRows, setEditSizePricingRows] = useState([{ size: "", cost_price: "", profit: "", discount_price: "" }]);
 
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [deletingId, setDeletingId]           = useState(null);
@@ -170,12 +171,12 @@ export default function AdminProductsPage() {
       const profit     = Number(form.profit || 0);
 
       const size_pricing = useSizePricing && validRows.length > 0
-        ? validRows.map(r => ({
-            size:          r.size.trim(),
-            cost_price:    Number(r.cost_price),
-            profit:        Number(r.profit),
-            selling_price: Number(r.cost_price) + Number(r.profit),
-          }))
+        ? validRows.map(r => {
+            const sp = Number(r.cost_price) + Number(r.profit);
+            const dp = r.discount_price !== "" && Number(r.discount_price) > 0 && Number(r.discount_price) < sp
+              ? Number(r.discount_price) : null;
+            return { size: r.size.trim(), cost_price: Number(r.cost_price), profit: Number(r.profit), selling_price: sp, discount_price: dp };
+          })
         : null;
       const unit_price = size_pricing
         ? Math.min(...size_pricing.map(r => r.selling_price))
@@ -183,6 +184,8 @@ export default function AdminProductsPage() {
       const sizeValue = size_pricing
         ? size_pricing.map(r => r.size).join(',')
         : (form.sizes.trim() || null);
+      const simpleDiscountPrice = !useSizePricing && form.discount_price !== "" && Number(form.discount_price) > 0 && Number(form.discount_price) < unit_price
+        ? Number(form.discount_price) : null;
 
       const { error: insertError } = await supabase.from("products").insert({
         product_name: form.product_name.trim(),
@@ -190,6 +193,7 @@ export default function AdminProductsPage() {
         cost_price,
         profit,
         unit_price,
+        discount_price: simpleDiscountPrice,
         product_status_id: Number(form.status_id),
         description: form.description.trim() || null,
         product_image_url:   imageUrl,
@@ -209,7 +213,7 @@ export default function AdminProductsPage() {
       setImageFile2(null);   setImagePreview2(null);
       setTiktokUrl("");
       setUseSizePricing(false);
-      setSizePricingRows([{ size: "", cost_price: "", profit: "" }]);
+      setSizePricingRows([{ size: "", cost_price: "", profit: "", discount_price: "" }]);
       loadAll();
       setTimeout(() => setSuccess(""), 4000);
     } catch (err) {
@@ -257,14 +261,15 @@ export default function AdminProductsPage() {
   function handleEditOpen(product) {
     setEditingProduct(product);
     setEditForm({
-      product_name: product.product_name ?? "",
-      category_id:  String(product.category_id ?? ""),
-      cost_price:   String(product.cost_price ?? ""),
-      profit:       String(product.profit ?? ""),
-      status_id:    String(product.product_status_id ?? ""),
-      description:  product.description ?? "",
-      sizes:        product.size ?? "",
-      colours:      product.colour ?? "",
+      product_name:   product.product_name ?? "",
+      category_id:    String(product.category_id ?? ""),
+      cost_price:     String(product.cost_price ?? ""),
+      profit:         String(product.profit ?? ""),
+      discount_price: product.discount_price != null ? String(product.discount_price) : "",
+      status_id:      String(product.product_status_id ?? ""),
+      description:    product.description ?? "",
+      sizes:          product.size ?? "",
+      colours:        product.colour ?? "",
       estimated_shipping_fee: String(product.estimated_shipping_fee ?? ""),
     });
     setEditImageFile(null);    setEditImagePreview(null);
@@ -275,13 +280,14 @@ export default function AdminProductsPage() {
     if (sp && sp.length > 0) {
       setEditUseSizePricing(true);
       setEditSizePricingRows(sp.map(r => ({
-        size:       r.size,
-        cost_price: String(r.cost_price ?? ""),
-        profit:     String(r.profit     ?? ""),
+        size:          r.size,
+        cost_price:    String(r.cost_price    ?? ""),
+        profit:        String(r.profit        ?? ""),
+        discount_price: r.discount_price != null ? String(r.discount_price) : "",
       })));
     } else {
       setEditUseSizePricing(false);
-      setEditSizePricingRows([{ size: "", cost_price: "", profit: "" }]);
+      setEditSizePricingRows([{ size: "", cost_price: "", profit: "", discount_price: "" }]);
     }
   }
 
@@ -292,7 +298,7 @@ export default function AdminProductsPage() {
     setEditTiktokUrl("");
     setEditError("");
     setEditUseSizePricing(false);
-    setEditSizePricingRows([{ size: "", cost_price: "", profit: "" }]);
+    setEditSizePricingRows([{ size: "", cost_price: "", profit: "", discount_price: "" }]);
   }
 
   function handleEditChange(e) {
@@ -324,12 +330,12 @@ export default function AdminProductsPage() {
       const profit     = Number(editForm.profit || 0);
 
       const size_pricing = editUseSizePricing && validEditRows.length > 0
-        ? validEditRows.map(r => ({
-            size:          r.size.trim(),
-            cost_price:    Number(r.cost_price),
-            profit:        Number(r.profit),
-            selling_price: Number(r.cost_price) + Number(r.profit),
-          }))
+        ? validEditRows.map(r => {
+            const sp = Number(r.cost_price) + Number(r.profit);
+            const dp = r.discount_price !== "" && Number(r.discount_price) > 0 && Number(r.discount_price) < sp
+              ? Number(r.discount_price) : null;
+            return { size: r.size.trim(), cost_price: Number(r.cost_price), profit: Number(r.profit), selling_price: sp, discount_price: dp };
+          })
         : null;
       const unit_price = size_pricing
         ? Math.min(...size_pricing.map(r => r.selling_price))
@@ -337,6 +343,8 @@ export default function AdminProductsPage() {
       const sizeValue = size_pricing
         ? size_pricing.map(r => r.size).join(',')
         : (editForm.sizes.trim() || null);
+      const simpleDiscountPrice = !editUseSizePricing && editForm.discount_price !== "" && Number(editForm.discount_price) > 0 && Number(editForm.discount_price) < unit_price
+        ? Number(editForm.discount_price) : null;
 
       const { error: updateError } = await supabase.from("products")
         .update({
@@ -345,6 +353,7 @@ export default function AdminProductsPage() {
           cost_price,
           profit,
           unit_price,
+          discount_price: editUseSizePricing ? null : simpleDiscountPrice,
           product_status_id: Number(editForm.status_id),
           description: editForm.description.trim() || null,
           product_image_url:   imageUrl,
@@ -422,6 +431,26 @@ export default function AdminProductsPage() {
               <span className="font-bold text-[#1e2d3d]">
                 GHS {(Number(form.cost_price || 0) + Number(form.profit || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
+              {form.discount_price && Number(form.discount_price) > 0 && Number(form.discount_price) < (Number(form.cost_price || 0) + Number(form.profit || 0)) && (
+                <span className="ml-2 text-red-600 font-bold">→ Discounted: GHS {Number(form.discount_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              )}
+            </div>
+          )}
+
+          {!useSizePricing && (
+            <div>
+              <label className={labelClass}>Discounted Price (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input
+                name="discount_price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.discount_price}
+                onChange={handleChange}
+                placeholder="Leave blank for no discount"
+                className={inputClass}
+              />
+              <p className="text-[10px] text-gray-400 mt-1">Must be less than selling price to apply.</p>
             </div>
           )}
 
@@ -473,17 +502,18 @@ export default function AdminProductsPage() {
 
             {useSizePricing ? (
               <div className="space-y-2">
-                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
+                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
                   <span>Size Name</span>
                   <span>Cost Price (GHS)</span>
                   <span>Profit (GHS)</span>
                   <span>Selling Price</span>
+                  <span>Discount (opt.)</span>
                   <span />
                 </div>
                 {sizePricingRows.map((row, i) => {
                   const selling = (Number(row.cost_price) || 0) + (Number(row.profit) || 0);
                   return (
-                    <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-2 items-center">
+                    <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_auto] gap-2 items-center">
                       <input
                         value={row.size}
                         onChange={e => setSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, size: e.target.value } : r))}
@@ -511,6 +541,15 @@ export default function AdminProductsPage() {
                       <div className="border border-gray-100 bg-gray-50 rounded-xl px-3 py-2 text-xs font-semibold text-[#1e2d3d]">
                         {row.cost_price !== "" || row.profit !== "" ? `GHS ${selling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
                       </div>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={row.discount_price}
+                        onChange={e => setSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, discount_price: e.target.value } : r))}
+                        placeholder="—"
+                        className={`${inputClass} ${row.discount_price && Number(row.discount_price) > 0 && Number(row.discount_price) < selling ? "border-red-400 text-red-600" : ""}`}
+                      />
                       <button
                         type="button"
                         onClick={() => setSizePricingRows(prev => prev.filter((_, j) => j !== i))}
@@ -522,7 +561,7 @@ export default function AdminProductsPage() {
                 })}
                 <button
                   type="button"
-                  onClick={() => setSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "" }])}
+                  onClick={() => setSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "", discount_price: "" }])}
                   className="text-xs font-semibold text-[#F2AA25] hover:text-amber-600 transition-colors mt-1"
                 >+ Add Size</button>
                 {sizePricingRows.some(r => r.size.trim() && r.cost_price !== "" && r.profit !== "") && (
@@ -770,6 +809,26 @@ export default function AdminProductsPage() {
                     <span className="font-bold text-[#1e2d3d]">
                       GHS {(Number(editForm.cost_price || 0) + Number(editForm.profit || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
+                    {editForm.discount_price && Number(editForm.discount_price) > 0 && Number(editForm.discount_price) < (Number(editForm.cost_price || 0) + Number(editForm.profit || 0)) && (
+                      <span className="ml-2 text-red-600 font-bold">→ Discounted: GHS {Number(editForm.discount_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    )}
+                  </div>
+                )}
+
+                {!editUseSizePricing && (
+                  <div>
+                    <label className={labelClass}>Discounted Price (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <input
+                      name="discount_price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editForm.discount_price}
+                      onChange={handleEditChange}
+                      placeholder="Leave blank for no discount"
+                      className={inputClass}
+                    />
+                    <p className="text-[10px] text-gray-400 mt-1">Must be less than selling price to apply.</p>
                   </div>
                 )}
 
@@ -823,17 +882,18 @@ export default function AdminProductsPage() {
 
                   {editUseSizePricing ? (
                     <div className="space-y-2">
-                      <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
+                      <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
                         <span>Size Name</span>
                         <span>Cost Price (GHS)</span>
                         <span>Profit (GHS)</span>
                         <span>Selling Price</span>
+                        <span>Discount (opt.)</span>
                         <span />
                       </div>
                       {editSizePricingRows.map((row, i) => {
                         const selling = (Number(row.cost_price) || 0) + (Number(row.profit) || 0);
                         return (
-                          <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-2 items-center">
+                          <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_auto] gap-2 items-center">
                             <input
                               value={row.size}
                               onChange={e => setEditSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, size: e.target.value } : r))}
@@ -861,6 +921,15 @@ export default function AdminProductsPage() {
                             <div className="border border-gray-100 bg-gray-50 rounded-xl px-3 py-2 text-xs font-semibold text-[#1e2d3d]">
                               {row.cost_price !== "" || row.profit !== "" ? `GHS ${selling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
                             </div>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={row.discount_price}
+                              onChange={e => setEditSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, discount_price: e.target.value } : r))}
+                              placeholder="—"
+                              className={`${inputClass} ${row.discount_price && Number(row.discount_price) > 0 && Number(row.discount_price) < selling ? "border-red-400 text-red-600" : ""}`}
+                            />
                             <button
                               type="button"
                               onClick={() => setEditSizePricingRows(prev => prev.filter((_, j) => j !== i))}
@@ -872,7 +941,7 @@ export default function AdminProductsPage() {
                       })}
                       <button
                         type="button"
-                        onClick={() => setEditSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "" }])}
+                        onClick={() => setEditSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "", discount_price: "" }])}
                         className="text-xs font-semibold text-[#F2AA25] hover:text-amber-600 transition-colors mt-1"
                       >+ Add Size</button>
                       {editSizePricingRows.some(r => r.size.trim() && r.cost_price !== "" && r.profit !== "") && (

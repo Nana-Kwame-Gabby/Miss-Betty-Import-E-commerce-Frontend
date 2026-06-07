@@ -4,12 +4,25 @@ import { colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
 import { useAppSettings } from "../context/AppSettingsContext";
 import { supabase } from "../lib/supabase";
+import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
 import MediaCarousel from "../components/MediaCarousel";
 import ReviewsSection from "../components/ReviewsSection";
 
 function mapProduct(p) {
-  const sizePricing = Array.isArray(p.size_pricing) && p.size_pricing.length > 0
+  const rawSizePricing = Array.isArray(p.size_pricing) && p.size_pricing.length > 0
     ? p.size_pricing : null;
+  const sizePricing = rawSizePricing
+    ? rawSizePricing.map(r => ({
+        ...r,
+        discount_price: r.discount_price != null ? Number(r.discount_price) : null,
+      }))
+    : null;
+  const discountedSizes = (sizePricing ?? []).filter(r => r.discount_price != null);
+  const minDiscountPrice = discountedSizes.length
+    ? Math.min(...discountedSizes.map(r => r.discount_price))
+    : null;
+  const productDiscountPrice = p.discount_price != null ? Number(p.discount_price) : null;
+  const discount_price = sizePricing ? minDiscountPrice : productDiscountPrice;
   return {
     id: p.product_id,
     category: p.category?.category_name ?? 'Others',
@@ -20,6 +33,7 @@ function mapProduct(p) {
     unit_price: Number(p.unit_price),
     cost_price: Number(p.cost_price ?? 0),
     profit:     Number(p.profit ?? 0),
+    discount_price,
     description: p.description ?? '',
     sizePricing,
     sizes: sizePricing
@@ -67,12 +81,15 @@ export default function ProductDetailPage() {
 
   const hasVariants = (product?.sizes?.length ?? 0) > 0 || (product?.colours?.length ?? 0) > 0;
 
-  const curEntry     = product?.sizePricing && curSize
+  const curEntry        = product?.sizePricing && curSize
     ? (product.sizePricing.find(sp => sp.size === curSize) ?? null)
     : null;
-  const curPrice     = curEntry?.selling_price ?? curEntry?.price ?? product?.unit_price ?? 0;
-  const curCostPrice = curEntry?.cost_price ?? product?.cost_price ?? 0;
-  const curProfit    = curEntry?.profit     ?? product?.profit    ?? 0;
+  const curRegularPrice  = curEntry?.selling_price ?? curEntry?.price ?? product?.unit_price ?? 0;
+  const curDiscountPrice = curEntry?.discount_price ?? product?.discount_price ?? null;
+  const curHasDiscount   = curDiscountPrice != null && curDiscountPrice > 0 && curDiscountPrice < curRegularPrice;
+  const curPrice         = curHasDiscount ? curDiscountPrice : curRegularPrice;
+  const curCostPrice     = curEntry?.cost_price ?? product?.cost_price ?? 0;
+  const curProfit        = curEntry?.profit     ?? product?.profit    ?? 0;
 
   const totalQty  = pendingVariants.reduce((s, v) => s + v.qty, 0);
   const totalCost = pendingVariants.reduce((s, v) => s + v.price * v.qty, 0);
@@ -111,6 +128,7 @@ export default function ProductDetailPage() {
       return [...prev, {
         variantKey: vKey, size: curSize, colour: curColour,
         qty: curQty, price: curPrice, costPrice: curCostPrice, profit: curProfit,
+        originalPrice: curHasDiscount ? curRegularPrice : null,
       }];
     });
     setCurQty(1);
@@ -122,6 +140,7 @@ export default function ProductDetailPage() {
       pendingVariants.map(v => ({
         product, size: v.size, colour: v.colour,
         qty: v.qty, price: v.price, costPrice: v.costPrice, profit: v.profit,
+        originalPrice: v.originalPrice ?? null,
       }))
     );
     andThen();
@@ -145,7 +164,8 @@ export default function ProductDetailPage() {
   }
 
   function handleSimpleAdd() {
-    addToCart(product, curQty, null, null, product.unit_price, product.cost_price, product.profit);
+    const simpleOriginal = curHasDiscount ? curRegularPrice : null;
+    addToCart(product, curQty, null, null, curPrice, product.cost_price, product.profit, simpleOriginal);
     setAdded(true);
     setTimeout(() => setAdded(false), 2500);
   }
@@ -156,7 +176,8 @@ export default function ProductDetailPage() {
       state: {
         buyNow: {
           product, quantity: curQty, size: null, colour: null,
-          unitPrice: product.unit_price, costPrice: product.cost_price, sizeProfit: product.profit,
+          unitPrice: curPrice, costPrice: product.cost_price, sizeProfit: product.profit,
+          originalPrice: curHasDiscount ? curRegularPrice : null,
         },
       },
     });
@@ -192,8 +213,14 @@ export default function ProductDetailPage() {
           <span className="text-sm text-gray-400 font-medium uppercase tracking-wide mb-1">{product.category}</span>
           <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-1.5">{product.product_name}</h1>
 
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
             <span className="text-[#F2AA25] font-bold text-2xl">GHS {curPrice.toLocaleString()}</span>
+            {curHasDiscount && (
+              <>
+                <span className="text-gray-400 text-base line-through">GHS {curRegularPrice.toLocaleString()}</span>
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">SALE</span>
+              </>
+            )}
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
               product.product_status === "Available"
                 ? "bg-green-100 text-green-700"
@@ -225,6 +252,9 @@ export default function ProductDetailPage() {
                   <div className="flex flex-wrap gap-2">
                     {product.sizes.map(size => {
                       const priceEntry = product.sizePricing?.find(sp => sp.size === size);
+                      const sizeRegular = priceEntry ? (priceEntry.selling_price ?? priceEntry.price ?? 0) : 0;
+                      const sizeHasDiscount = priceEntry && hasDiscount(priceEntry);
+                      const sizeEffective = priceEntry ? getEffectivePrice(priceEntry) : 0;
                       return (
                         <button
                           key={size}
@@ -237,9 +267,16 @@ export default function ProductDetailPage() {
                         >
                           <span className="block">{size}</span>
                           {priceEntry && (
-                            <span className={`block text-xs font-normal ${curSize === size ? "text-white/80" : "text-gray-400"}`}>
-                              GHS {(priceEntry.selling_price ?? priceEntry.price ?? 0).toLocaleString()}
-                            </span>
+                            sizeHasDiscount ? (
+                              <>
+                                <span className="block text-xs font-semibold">GHS {sizeEffective.toLocaleString()}</span>
+                                <span className={`block text-[10px] font-normal line-through ${curSize === size ? "text-white/60" : "text-gray-300"}`}>GHS {sizeRegular.toLocaleString()}</span>
+                              </>
+                            ) : (
+                              <span className={`block text-xs font-normal ${curSize === size ? "text-white/80" : "text-gray-400"}`}>
+                                GHS {sizeRegular.toLocaleString()}
+                              </span>
+                            )
                           )}
                         </button>
                       );

@@ -13,7 +13,7 @@ const ghanaRegions = [
 ];
 
 export default function CheckoutPage() {
-  const { cartItems, subtotal } = useCart();
+  const { cartItems, subtotal, totalSavings } = useCart();
   const { user } = useUser();
   const { session } = useAuth();
   const { ordersClosed } = useAppSettings();
@@ -25,19 +25,26 @@ export default function CheckoutPage() {
   const checkoutItems = buyNowData
     ? [{
         ...buyNowData.product,
-        unit_price: buyNowData.unitPrice  ?? buyNowData.product.unit_price,
-        cost_price: buyNowData.costPrice  ?? buyNowData.product.cost_price ?? 0,
-        profit:     buyNowData.sizeProfit ?? buyNowData.product.profit     ?? 0,
-        quantity:   buyNowData.quantity,
-        size:       buyNowData.size,
-        colour:     buyNowData.colour,
-        cartKey:    `buynow-${buyNowData.product.id}`,
+        unit_price:     buyNowData.unitPrice  ?? buyNowData.product.unit_price,
+        original_price: buyNowData.originalPrice ?? null,
+        cost_price:     buyNowData.costPrice  ?? buyNowData.product.cost_price ?? 0,
+        profit:         buyNowData.sizeProfit ?? buyNowData.product.profit     ?? 0,
+        quantity:       buyNowData.quantity,
+        size:           buyNowData.size,
+        colour:         buyNowData.colour,
+        cartKey:        `buynow-${buyNowData.product.id}`,
       }]
     : cartItems;
 
   const checkoutSubtotal = buyNowData
     ? (buyNowData.unitPrice ?? buyNowData.product.unit_price) * buyNowData.quantity
     : subtotal;
+
+  const checkoutSavings = buyNowData
+    ? (buyNowData.originalPrice && buyNowData.originalPrice > (buyNowData.unitPrice ?? buyNowData.product.unit_price)
+        ? (buyNowData.originalPrice - (buyNowData.unitPrice ?? buyNowData.product.unit_price)) * buyNowData.quantity
+        : 0)
+    : totalSavings;
 
   const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
   const hasBlockedPreorders = ordersClosed && checkoutItems.some(i => isPreorder(i.product_status));
@@ -111,6 +118,7 @@ export default function CheckoutPage() {
           product_name:      item.product_name,
           product_image_url: item.product_image_url || "",
           unit_price:        item.unit_price,
+          original_price:    item.original_price ?? null,
           cost_price:        item.cost_price  ?? 0,
           profit:            item.profit      ?? 0,
           quantity:          item.quantity,
@@ -246,6 +254,12 @@ export default function CheckoutPage() {
                 <span>Subtotal</span>
                 <span>GHS {checkoutSubtotal.toLocaleString()}</span>
               </div>
+              {checkoutSavings > 0 && (
+                <div className="flex justify-between text-green-600 text-sm font-semibold mb-2">
+                  <span>Discount savings</span>
+                  <span>− GHS {checkoutSavings.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm text-gray-500 mb-4">
                 <span>Delivery</span>
                 <span className="text-green-600 font-medium">To be confirmed</span>

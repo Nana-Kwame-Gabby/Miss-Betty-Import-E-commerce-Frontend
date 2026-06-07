@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAppSettings } from "../context/AppSettingsContext";
 import { colourMap } from "../data/mockData";
+import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, updateVariant, addToCart, subtotal } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, updateVariant, addToCart, subtotal, totalSavings } = useCart();
   const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
 
@@ -29,11 +30,12 @@ export default function CartPage() {
   function handleAddVariant(item) {
     const panel = variantPanels[item.cartKey];
     if (!panel) return;
-    const sizeEntry = item.sizePricing?.find(sp => sp.size === panel.size) ?? null;
-    const price     = sizeEntry?.selling_price ?? sizeEntry?.price ?? item.unit_price;
-    const costPrice = sizeEntry?.cost_price ?? item.cost_price ?? 0;
-    const profit    = sizeEntry?.profit     ?? item.profit     ?? 0;
-    addToCart(item, panel.qty, panel.size, panel.colour, price, costPrice, profit);
+    const sizeEntry    = item.sizePricing?.find(sp => sp.size === panel.size) ?? null;
+    const price        = sizeEntry ? getEffectivePrice(sizeEntry) : item.unit_price;
+    const originalPrice = sizeEntry && hasDiscount(sizeEntry) ? (sizeEntry.selling_price ?? sizeEntry.price) : null;
+    const costPrice    = sizeEntry?.cost_price ?? item.cost_price ?? 0;
+    const profit       = sizeEntry?.profit     ?? item.profit     ?? 0;
+    addToCart(item, panel.qty, panel.size, panel.colour, price, costPrice, profit, originalPrice);
     closePanel(item.cartKey);
   }
 
@@ -69,7 +71,9 @@ export default function CartPage() {
             const panel = variantPanels[item.cartKey];
             const hasVariants = item.sizes?.length > 0 || item.colours?.length > 0;
             const cloneEntry = panel && item.sizePricing?.find(sp => sp.size === panel.size);
-            const clonePrice = cloneEntry?.selling_price ?? cloneEntry?.price ?? item.unit_price;
+            const clonePrice = cloneEntry ? getEffectivePrice(cloneEntry) : item.unit_price;
+            const cloneRegularPrice = cloneEntry ? (cloneEntry.selling_price ?? cloneEntry.price ?? item.unit_price) : item.unit_price;
+            const cloneHasDiscount = cloneEntry && hasDiscount(cloneEntry);
 
             return (
               <Fragment key={item.cartKey}>
@@ -86,6 +90,9 @@ export default function CartPage() {
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {item.sizes.map(s => {
                           const priceEntry = item.sizePricing?.find(sp => sp.size === s);
+                          const sizeRegular = priceEntry ? (priceEntry.selling_price ?? priceEntry.price ?? 0) : 0;
+                          const sizeHasDiscount = priceEntry && hasDiscount(priceEntry);
+                          const sizeEffective = priceEntry ? getEffectivePrice(priceEntry) : 0;
                           return (
                             <button
                               key={s}
@@ -98,9 +105,16 @@ export default function CartPage() {
                             >
                               <span className="block">{s}</span>
                               {priceEntry && (
-                                <span className={`block text-[10px] font-normal ${item.size === s ? "text-white/70" : "text-gray-400"}`}>
-                                  GHS {(priceEntry.selling_price ?? priceEntry.price ?? 0).toLocaleString()}
-                                </span>
+                                sizeHasDiscount ? (
+                                  <>
+                                    <span className="block text-[10px] font-semibold text-[#F2AA25]">GHS {sizeEffective.toLocaleString()}</span>
+                                    <span className={`block text-[9px] font-normal line-through ${item.size === s ? "text-white/50" : "text-gray-300"}`}>GHS {sizeRegular.toLocaleString()}</span>
+                                  </>
+                                ) : (
+                                  <span className={`block text-[10px] font-normal ${item.size === s ? "text-white/70" : "text-gray-400"}`}>
+                                    GHS {sizeRegular.toLocaleString()}
+                                  </span>
+                                )
                               )}
                             </button>
                           );
@@ -134,7 +148,12 @@ export default function CartPage() {
                         {panel?.open ? "− Cancel" : "+ Add Variant"}
                       </button>
                     )}
-                    <p className="text-[#F2AA25] font-bold mt-1">GHS {item.unit_price.toLocaleString()}</p>
+                    <div className="flex items-baseline gap-1.5 mt-1 flex-wrap">
+                      <p className="text-[#F2AA25] font-bold">GHS {item.unit_price.toLocaleString()}</p>
+                      {item.original_price != null && item.original_price > item.unit_price && (
+                        <span className="text-gray-400 text-xs line-through">GHS {item.original_price.toLocaleString()}</span>
+                      )}
+                    </div>
 
                     <div className="flex items-center justify-between mt-3">
                       <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-2 py-1">
@@ -187,6 +206,9 @@ export default function CartPage() {
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
                           {item.sizes.map(s => {
                             const priceEntry = item.sizePricing?.find(sp => sp.size === s);
+                            const sizeRegular = priceEntry ? (priceEntry.selling_price ?? priceEntry.price ?? 0) : 0;
+                            const sizeHasDiscount = priceEntry && hasDiscount(priceEntry);
+                            const sizeEffective = priceEntry ? getEffectivePrice(priceEntry) : 0;
                             return (
                               <button
                                 key={s}
@@ -199,9 +221,16 @@ export default function CartPage() {
                               >
                                 <span className="block">{s}</span>
                                 {priceEntry && (
-                                  <span className={`block text-[10px] font-normal ${panel.size === s ? "text-white/70" : "text-gray-400"}`}>
-                                    GHS {(priceEntry.selling_price ?? priceEntry.price ?? 0).toLocaleString()}
-                                  </span>
+                                  sizeHasDiscount ? (
+                                    <>
+                                      <span className="block text-[10px] font-semibold text-[#F2AA25]">GHS {sizeEffective.toLocaleString()}</span>
+                                      <span className={`block text-[9px] font-normal line-through ${panel.size === s ? "text-white/50" : "text-gray-300"}`}>GHS {sizeRegular.toLocaleString()}</span>
+                                    </>
+                                  ) : (
+                                    <span className={`block text-[10px] font-normal ${panel.size === s ? "text-white/70" : "text-gray-400"}`}>
+                                      GHS {sizeRegular.toLocaleString()}
+                                    </span>
+                                  )
                                 )}
                               </button>
                             );
@@ -227,7 +256,12 @@ export default function CartPage() {
                         </div>
                       )}
 
-                      <p className="text-[#F2AA25] font-bold mt-1">GHS {clonePrice.toLocaleString()}</p>
+                      <div className="flex items-baseline gap-1.5 mt-1 flex-wrap">
+                        <p className="text-[#F2AA25] font-bold">GHS {clonePrice.toLocaleString()}</p>
+                        {cloneHasDiscount && (
+                          <span className="text-gray-400 text-xs line-through">GHS {cloneRegularPrice.toLocaleString()}</span>
+                        )}
+                      </div>
 
                       <div className="flex items-center justify-between mt-3">
                         <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-2 py-1">
@@ -281,6 +315,12 @@ export default function CartPage() {
                 <span>Subtotal</span>
                 <span className="text-[#F2AA25]">GHS {subtotal.toLocaleString()}</span>
               </div>
+              {totalSavings > 0 && (
+                <div className="flex justify-between text-green-600 text-xs font-semibold mt-1">
+                  <span>You save</span>
+                  <span>− GHS {totalSavings.toLocaleString()}</span>
+                </div>
+              )}
               <p className="text-xs text-gray-400 mt-1">Delivery fee calculated at checkout</p>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed mb-3">

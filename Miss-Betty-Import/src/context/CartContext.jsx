@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from "react";
+import { hasDiscount, getEffectivePrice } from "../lib/priceUtils";
 import { useAuth } from "./AuthContext";
 
 const CartContext = createContext();
@@ -32,11 +33,12 @@ export function CartProvider({ children }) {
     localStorage.setItem(storageKey, JSON.stringify(cartItems));
   }, [cartItems, storageKey]);
 
-  function addToCart(product, quantity, size, colour, overridePrice, sizeCostPrice, sizeProfit) {
-    const key       = `${product.id}-${size}-${colour}`;
-    const unitPrice = overridePrice ?? product.unit_price;
-    const costPrice = sizeCostPrice ?? product.cost_price ?? 0;
-    const profit    = sizeProfit    ?? product.profit     ?? 0;
+  function addToCart(product, quantity, size, colour, overridePrice, sizeCostPrice, sizeProfit, sizeOriginalPrice) {
+    const key          = `${product.id}-${size}-${colour}`;
+    const unitPrice    = overridePrice     ?? product.unit_price;
+    const costPrice    = sizeCostPrice     ?? product.cost_price ?? 0;
+    const profit       = sizeProfit        ?? product.profit     ?? 0;
+    const originalPrice = sizeOriginalPrice ?? null;
     setCartItems(prev => {
       const existing = prev.find(item => item.cartKey === key);
       if (existing) {
@@ -44,7 +46,7 @@ export function CartProvider({ children }) {
           item.cartKey === key ? { ...item, quantity: item.quantity + quantity } : item
         );
       }
-      return [...prev, { ...product, unit_price: unitPrice, cost_price: costPrice, profit, quantity, size, colour, cartKey: key }];
+      return [...prev, { ...product, unit_price: unitPrice, cost_price: costPrice, profit, original_price: originalPrice, quantity, size, colour, cartKey: key }];
     });
   }
 
@@ -61,7 +63,7 @@ export function CartProvider({ children }) {
   function addMultipleToCart(variants) {
     setCartItems(prev => {
       let items = [...prev];
-      variants.forEach(({ product, size, colour, qty, price, costPrice, profit }) => {
+      variants.forEach(({ product, size, colour, qty, price, costPrice, profit, originalPrice }) => {
         const key = `${product.id}-${size}-${colour}`;
         const existing = items.find(i => i.cartKey === key);
         if (existing) {
@@ -71,6 +73,7 @@ export function CartProvider({ children }) {
         } else {
           items = [...items, {
             ...product, unit_price: price, cost_price: costPrice, profit,
+            original_price: originalPrice ?? null,
             quantity: qty, size, colour, cartKey: key,
           }];
         }
@@ -87,10 +90,11 @@ export function CartProvider({ children }) {
       const newKey = `${item.id}-${newSize}-${newColour}`;
       if (newKey === cartKey) return prev;
 
-      const sizeEntry    = item.sizePricing?.find(sp => sp.size === newSize) ?? null;
-      const newUnitPrice = sizeEntry?.selling_price ?? sizeEntry?.price ?? item.unit_price;
-      const newCostPrice = sizeEntry?.cost_price ?? item.cost_price ?? 0;
-      const newProfit    = sizeEntry?.profit     ?? item.profit     ?? 0;
+      const sizeEntry       = item.sizePricing?.find(sp => sp.size === newSize) ?? null;
+      const newUnitPrice    = sizeEntry ? getEffectivePrice(sizeEntry) : item.unit_price;
+      const newOriginalPrice = sizeEntry && hasDiscount(sizeEntry) ? (sizeEntry.selling_price ?? sizeEntry.price) : null;
+      const newCostPrice    = sizeEntry?.cost_price ?? item.cost_price ?? 0;
+      const newProfit       = sizeEntry?.profit     ?? item.profit     ?? 0;
 
       const existingAtNewKey = prev.find(i => i.cartKey === newKey);
       if (existingAtNewKey) {
@@ -105,7 +109,8 @@ export function CartProvider({ children }) {
       return prev.map(i =>
         i.cartKey === cartKey
           ? { ...i, size: newSize, colour: newColour, cartKey: newKey,
-              unit_price: newUnitPrice, cost_price: newCostPrice, profit: newProfit }
+              unit_price: newUnitPrice, original_price: newOriginalPrice,
+              cost_price: newCostPrice, profit: newProfit }
           : i
       );
     });
@@ -117,9 +122,12 @@ export function CartProvider({ children }) {
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
+  const totalSavings = cartItems.reduce((sum, item) =>
+    sum + (item.original_price != null && item.original_price > item.unit_price
+      ? (item.original_price - item.unit_price) * item.quantity : 0), 0);
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, addMultipleToCart, removeFromCart, updateQuantity, updateVariant, clearCart, totalItems, subtotal }}>
+    <CartContext.Provider value={{ cartItems, addToCart, addMultipleToCart, removeFromCart, updateQuantity, updateVariant, clearCart, totalItems, subtotal, totalSavings }}>
       {children}
     </CartContext.Provider>
   );
