@@ -91,6 +91,8 @@ export default function AdminProductsPage() {
   const [submitting, setSubmitting]   = useState(false);
   const [error, setError]             = useState("");
   const [success, setSuccess]         = useState("");
+  const [useSizePricing, setUseSizePricing] = useState(false);
+  const [sizePricingRows, setSizePricingRows] = useState([{ size: "", cost_price: "", profit: "" }]);
 
   // Edit modal
   const [editingProduct, setEditingProduct] = useState(null);
@@ -102,6 +104,8 @@ export default function AdminProductsPage() {
   const [editTiktokUrl, setEditTiktokUrl]   = useState("");
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError]           = useState("");
+  const [editUseSizePricing, setEditUseSizePricing] = useState(false);
+  const [editSizePricingRows, setEditSizePricingRows] = useState([{ size: "", cost_price: "", profit: "" }]);
 
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [deletingId, setDeletingId]           = useState(null);
@@ -144,10 +148,16 @@ export default function AdminProductsPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(""); setSuccess("");
-    if (!form.product_name.trim() || !form.category_id || !form.cost_price || !form.status_id) {
+    if (!form.product_name.trim() || !form.category_id || (!useSizePricing && !form.cost_price) || !form.status_id) {
       setError("Product name, category, cost price, and status are required.");
       return;
     }
+    const validRows = sizePricingRows.filter(r => r.size.trim() && r.cost_price !== "" && r.profit !== "");
+    if (useSizePricing && validRows.length === 0) {
+      setError("Add at least one complete size entry, or disable size-based pricing.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const [imageUrl, imageUrl2] = await Promise.all([
@@ -159,19 +169,35 @@ export default function AdminProductsPage() {
       const cost_price = Number(form.cost_price);
       const profit     = Number(form.profit || 0);
 
+      const size_pricing = useSizePricing && validRows.length > 0
+        ? validRows.map(r => ({
+            size:          r.size.trim(),
+            cost_price:    Number(r.cost_price),
+            profit:        Number(r.profit),
+            selling_price: Number(r.cost_price) + Number(r.profit),
+          }))
+        : null;
+      const unit_price = size_pricing
+        ? Math.min(...size_pricing.map(r => r.selling_price))
+        : cost_price + profit;
+      const sizeValue = size_pricing
+        ? size_pricing.map(r => r.size).join(',')
+        : (form.sizes.trim() || null);
+
       const { error: insertError } = await supabase.from("products").insert({
         product_name: form.product_name.trim(),
         category_id: Number(form.category_id),
         cost_price,
         profit,
-        unit_price: cost_price + profit,
+        unit_price,
         product_status_id: Number(form.status_id),
         description: form.description.trim() || null,
         product_image_url:   imageUrl,
         product_image_url_2: imageUrl2,
         product_video_url:   videoUrl,
-        size:   form.sizes.trim()   || null,
+        size:   sizeValue,
         colour: form.colours.trim() || null,
+        size_pricing,
         estimated_shipping_fee: form.estimated_shipping_fee ? Number(form.estimated_shipping_fee) : null,
       });
 
@@ -182,6 +208,8 @@ export default function AdminProductsPage() {
       setImageFile(null);    setImagePreview(null);
       setImageFile2(null);   setImagePreview2(null);
       setTiktokUrl("");
+      setUseSizePricing(false);
+      setSizePricingRows([{ size: "", cost_price: "", profit: "" }]);
       loadAll();
       setTimeout(() => setSuccess(""), 4000);
     } catch (err) {
@@ -243,6 +271,18 @@ export default function AdminProductsPage() {
     setEditImageFile2(null);   setEditImagePreview2(null);
     setEditTiktokUrl(product.product_video_url ?? "");
     setEditError("");
+    const sp = product.size_pricing;
+    if (sp && sp.length > 0) {
+      setEditUseSizePricing(true);
+      setEditSizePricingRows(sp.map(r => ({
+        size:       r.size,
+        cost_price: String(r.cost_price ?? ""),
+        profit:     String(r.profit     ?? ""),
+      })));
+    } else {
+      setEditUseSizePricing(false);
+      setEditSizePricingRows([{ size: "", cost_price: "", profit: "" }]);
+    }
   }
 
   function handleEditClose() {
@@ -251,6 +291,8 @@ export default function AdminProductsPage() {
     setEditImageFile2(null);   setEditImagePreview2(null);
     setEditTiktokUrl("");
     setEditError("");
+    setEditUseSizePricing(false);
+    setEditSizePricingRows([{ size: "", cost_price: "", profit: "" }]);
   }
 
   function handleEditChange(e) {
@@ -260,10 +302,16 @@ export default function AdminProductsPage() {
   async function handleEditSubmit(e) {
     e.preventDefault();
     setEditError("");
-    if (!editForm.product_name.trim() || !editForm.category_id || !editForm.cost_price || !editForm.status_id) {
+    if (!editForm.product_name.trim() || !editForm.category_id || (!editUseSizePricing && !editForm.cost_price) || !editForm.status_id) {
       setEditError("Product name, category, cost price, and status are required.");
       return;
     }
+    const validEditRows = editSizePricingRows.filter(r => r.size.trim() && r.cost_price !== "" && r.profit !== "");
+    if (editUseSizePricing && validEditRows.length === 0) {
+      setEditError("Add at least one complete size entry, or disable size-based pricing.");
+      return;
+    }
+
     setEditSubmitting(true);
     try {
       const [imageUrl, imageUrl2] = await Promise.all([
@@ -275,20 +323,36 @@ export default function AdminProductsPage() {
       const cost_price = Number(editForm.cost_price);
       const profit     = Number(editForm.profit || 0);
 
+      const size_pricing = editUseSizePricing && validEditRows.length > 0
+        ? validEditRows.map(r => ({
+            size:          r.size.trim(),
+            cost_price:    Number(r.cost_price),
+            profit:        Number(r.profit),
+            selling_price: Number(r.cost_price) + Number(r.profit),
+          }))
+        : null;
+      const unit_price = size_pricing
+        ? Math.min(...size_pricing.map(r => r.selling_price))
+        : cost_price + profit;
+      const sizeValue = size_pricing
+        ? size_pricing.map(r => r.size).join(',')
+        : (editForm.sizes.trim() || null);
+
       const { error: updateError } = await supabase.from("products")
         .update({
           product_name: editForm.product_name.trim(),
           category_id: Number(editForm.category_id),
           cost_price,
           profit,
-          unit_price: cost_price + profit,
+          unit_price,
           product_status_id: Number(editForm.status_id),
           description: editForm.description.trim() || null,
           product_image_url:   imageUrl,
           product_image_url_2: imageUrl2,
           product_video_url:   videoUrl,
-          size:   editForm.sizes.trim()   || null,
+          size:   sizeValue,
           colour: editForm.colours.trim() || null,
+          size_pricing,
           estimated_shipping_fee: editForm.estimated_shipping_fee ? Number(editForm.estimated_shipping_fee) : null,
         })
         .eq("product_id", editingProduct.product_id);
@@ -343,7 +407,7 @@ export default function AdminProductsPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Cost Price (GHS) *</label>
+            <label className={labelClass}>Cost Price (GHS){useSizePricing ? " (optional)" : " *"}</label>
             <input name="cost_price" type="number" min="0" step="0.01" value={form.cost_price} onChange={handleChange} placeholder="0.00" className={inputClass} />
           </div>
 
@@ -352,7 +416,7 @@ export default function AdminProductsPage() {
             <input name="profit" type="number" min="0" step="0.01" value={form.profit} onChange={handleChange} placeholder="0.00" className={inputClass} />
           </div>
 
-          {(form.cost_price || form.profit) && (
+          {!useSizePricing && (form.cost_price || form.profit) && (
             <div className="sm:col-span-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-4 py-2.5">
               Final Price (shown to customers):{" "}
               <span className="font-bold text-[#1e2d3d]">
@@ -393,9 +457,86 @@ export default function AdminProductsPage() {
             <p className="text-xs text-gray-400 mt-2">Media will display as a slideshow: Image 1 → Image 2 → TikTok link</p>
           </div>
 
-          <div>
-            <label className={labelClass}>Sizes <span className="text-gray-400 font-normal">(comma-separated, optional)</span></label>
-            <input name="sizes" value={form.sizes} onChange={handleChange} placeholder="S,M,L,XL or King,Queen" className={inputClass} />
+          {/* Sizes / Size-based pricing */}
+          <div className="sm:col-span-2">
+            <label className="flex items-center gap-2.5 cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={useSizePricing}
+                onChange={e => setUseSizePricing(e.target.checked)}
+                className="w-4 h-4 accent-[#F2AA25]"
+              />
+              <span className="text-xs font-semibold text-[#1e2d3d]">
+                Enable size-based pricing <span className="text-gray-400 font-normal">(different price per size)</span>
+              </span>
+            </label>
+
+            {useSizePricing ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
+                  <span>Size Name</span>
+                  <span>Cost Price (GHS)</span>
+                  <span>Profit (GHS)</span>
+                  <span>Selling Price</span>
+                  <span />
+                </div>
+                {sizePricingRows.map((row, i) => {
+                  const selling = (Number(row.cost_price) || 0) + (Number(row.profit) || 0);
+                  return (
+                    <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-2 items-center">
+                      <input
+                        value={row.size}
+                        onChange={e => setSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, size: e.target.value } : r))}
+                        placeholder="e.g. Small"
+                        className={inputClass}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={row.cost_price}
+                        onChange={e => setSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, cost_price: e.target.value } : r))}
+                        placeholder="0.00"
+                        className={inputClass}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={row.profit}
+                        onChange={e => setSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, profit: e.target.value } : r))}
+                        placeholder="0.00"
+                        className={inputClass}
+                      />
+                      <div className="border border-gray-100 bg-gray-50 rounded-xl px-3 py-2 text-xs font-semibold text-[#1e2d3d]">
+                        {row.cost_price !== "" || row.profit !== "" ? `GHS ${selling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSizePricingRows(prev => prev.filter((_, j) => j !== i))}
+                        disabled={sizePricingRows.length === 1}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30 transition-colors"
+                      >×</button>
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "" }])}
+                  className="text-xs font-semibold text-[#F2AA25] hover:text-amber-600 transition-colors mt-1"
+                >+ Add Size</button>
+                {sizePricingRows.some(r => r.size.trim() && r.cost_price !== "" && r.profit !== "") && (
+                  <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2">
+                    Prices shown to customers:{" "}
+                    <span className="font-semibold text-[#1e2d3d]">
+                      From GHS {Math.min(...sizePricingRows.filter(r => r.cost_price !== "" && r.profit !== "").map(r => Number(r.cost_price) + Number(r.profit))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </p>
+                )}
+              </div>
+            ) : (
+              <input name="sizes" value={form.sizes} onChange={handleChange} placeholder="S,M,L,XL or King,Queen" className={inputClass} />
+            )}
           </div>
 
           <div>
@@ -614,7 +755,7 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Cost Price (GHS) *</label>
+                  <label className={labelClass}>Cost Price (GHS){editUseSizePricing ? " (optional)" : " *"}</label>
                   <input name="cost_price" type="number" min="0" step="0.01" value={editForm.cost_price} onChange={handleEditChange} className={inputClass} />
                 </div>
 
@@ -623,7 +764,7 @@ export default function AdminProductsPage() {
                   <input name="profit" type="number" min="0" step="0.01" value={editForm.profit} onChange={handleEditChange} className={inputClass} />
                 </div>
 
-                {(editForm.cost_price || editForm.profit) && (
+                {!editUseSizePricing && (editForm.cost_price || editForm.profit) && (
                   <div className="sm:col-span-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-4 py-2.5">
                     Final Price:{" "}
                     <span className="font-bold text-[#1e2d3d]">
@@ -666,9 +807,86 @@ export default function AdminProductsPage() {
                   <p className="text-xs text-gray-400 mt-2">Media will display as a slideshow: Image 1 → Image 2 → TikTok link</p>
                 </div>
 
-                <div>
-                  <label className={labelClass}>Sizes <span className="text-gray-400 font-normal">(comma-separated)</span></label>
-                  <input name="sizes" value={editForm.sizes} onChange={handleEditChange} placeholder="S,M,L,XL" className={inputClass} />
+                {/* Sizes / Size-based pricing (edit) */}
+                <div className="sm:col-span-2">
+                  <label className="flex items-center gap-2.5 cursor-pointer mb-2">
+                    <input
+                      type="checkbox"
+                      checked={editUseSizePricing}
+                      onChange={e => setEditUseSizePricing(e.target.checked)}
+                      className="w-4 h-4 accent-[#F2AA25]"
+                    />
+                    <span className="text-xs font-semibold text-[#1e2d3d]">
+                      Enable size-based pricing <span className="text-gray-400 font-normal">(different price per size)</span>
+                    </span>
+                  </label>
+
+                  {editUseSizePricing ? (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
+                        <span>Size Name</span>
+                        <span>Cost Price (GHS)</span>
+                        <span>Profit (GHS)</span>
+                        <span>Selling Price</span>
+                        <span />
+                      </div>
+                      {editSizePricingRows.map((row, i) => {
+                        const selling = (Number(row.cost_price) || 0) + (Number(row.profit) || 0);
+                        return (
+                          <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_auto] gap-2 items-center">
+                            <input
+                              value={row.size}
+                              onChange={e => setEditSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, size: e.target.value } : r))}
+                              placeholder="e.g. Small"
+                              className={inputClass}
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={row.cost_price}
+                              onChange={e => setEditSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, cost_price: e.target.value } : r))}
+                              placeholder="0.00"
+                              className={inputClass}
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={row.profit}
+                              onChange={e => setEditSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, profit: e.target.value } : r))}
+                              placeholder="0.00"
+                              className={inputClass}
+                            />
+                            <div className="border border-gray-100 bg-gray-50 rounded-xl px-3 py-2 text-xs font-semibold text-[#1e2d3d]">
+                              {row.cost_price !== "" || row.profit !== "" ? `GHS ${selling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setEditSizePricingRows(prev => prev.filter((_, j) => j !== i))}
+                              disabled={editSizePricingRows.length === 1}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30 transition-colors"
+                            >×</button>
+                          </div>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => setEditSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "" }])}
+                        className="text-xs font-semibold text-[#F2AA25] hover:text-amber-600 transition-colors mt-1"
+                      >+ Add Size</button>
+                      {editSizePricingRows.some(r => r.size.trim() && r.cost_price !== "" && r.profit !== "") && (
+                        <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2">
+                          Prices shown to customers:{" "}
+                          <span className="font-semibold text-[#1e2d3d]">
+                            From GHS {Math.min(...editSizePricingRows.filter(r => r.cost_price !== "" && r.profit !== "").map(r => Number(r.cost_price) + Number(r.profit))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <input name="sizes" value={editForm.sizes} onChange={handleEditChange} placeholder="S,M,L,XL" className={inputClass} />
+                  )}
                 </div>
 
                 <div>

@@ -32,8 +32,11 @@ export function CartProvider({ children }) {
     localStorage.setItem(storageKey, JSON.stringify(cartItems));
   }, [cartItems, storageKey]);
 
-  function addToCart(product, quantity, size, colour) {
-    const key = `${product.id}-${size}-${colour}`;
+  function addToCart(product, quantity, size, colour, overridePrice, sizeCostPrice, sizeProfit) {
+    const key       = `${product.id}-${size}-${colour}`;
+    const unitPrice = overridePrice ?? product.unit_price;
+    const costPrice = sizeCostPrice ?? product.cost_price ?? 0;
+    const profit    = sizeProfit    ?? product.profit     ?? 0;
     setCartItems(prev => {
       const existing = prev.find(item => item.cartKey === key);
       if (existing) {
@@ -41,7 +44,7 @@ export function CartProvider({ children }) {
           item.cartKey === key ? { ...item, quantity: item.quantity + quantity } : item
         );
       }
-      return [...prev, { ...product, quantity, size, colour, cartKey: key }];
+      return [...prev, { ...product, unit_price: unitPrice, cost_price: costPrice, profit, quantity, size, colour, cartKey: key }];
     });
   }
 

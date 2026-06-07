@@ -103,6 +103,9 @@ export default function CartPage() {
               </div>
               <p className="text-xs text-gray-400 mt-1">Delivery fee calculated at checkout</p>
             </div>
+            <p className="text-xs text-gray-400 leading-relaxed mb-3">
+              Please review your cart carefully before checking out — Miss Betty Import is not responsible for errors in size, colour, or style chosen by the customer.
+            </p>
             <button
               onClick={() => !hasBlockedPreorders && navigate("/checkout")}
               disabled={hasBlockedPreorders}

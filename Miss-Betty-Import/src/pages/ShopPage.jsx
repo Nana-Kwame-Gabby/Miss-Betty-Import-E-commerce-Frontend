@@ -25,6 +25,8 @@ const CATEGORY_ICONS = {
 };
 
 function mapProduct(p) {
+  const sizePricing = Array.isArray(p.size_pricing) && p.size_pricing.length > 0
+    ? p.size_pricing : null;
   return {
     id: p.product_id,
     category: p.category?.category_name ?? 'Others',
@@ -33,8 +35,13 @@ function mapProduct(p) {
     product_image_url_2: p.product_image_url_2 ?? '',
     product_video_url:   p.product_video_url   ?? '',
     unit_price: Number(p.unit_price),
+    cost_price: Number(p.cost_price ?? 0),
+    profit:     Number(p.profit ?? 0),
     description: p.description ?? '',
-    sizes: p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : [],
+    sizePricing,
+    sizes: sizePricing
+      ? sizePricing.map(sp => sp.size)
+      : (p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : []),
     colours: p.colour ? p.colour.split(',').map(c => c.trim()).filter(Boolean) : [],
     product_status: p.product_status?.status_name ?? 'Available',
     estimated_shipping_fee: p.estimated_shipping_fee ?? null,
@@ -111,13 +118,20 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
+  const _entry = product?.sizePricing && selectedSize
+    ? (product.sizePricing.find(sp => sp.size === selectedSize) ?? null)
+    : null;
+  const displayPrice     = _entry?.selling_price ?? _entry?.price ?? product?.unit_price ?? 0;
+  const displayCostPrice = _entry?.cost_price ?? product?.cost_price ?? 0;
+  const displayProfit    = _entry?.profit     ?? product?.profit    ?? 0;
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
 
   function handleAdd() {
-    addToCart(product, qty, selectedSize, selectedColour);
+    addToCart(product, qty, selectedSize, selectedColour, displayPrice, displayCostPrice, displayProfit);
     setAdded(true);
     setTimeout(() => { setAdded(false); onClose(); }, 1500);
   }
@@ -126,7 +140,12 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
     if (blockedByPreorder) return;
     navigate("/checkout", {
       state: {
-        buyNow: { product, quantity: qty, size: selectedSize, colour: selectedColour },
+        buyNow: {
+          product, quantity: qty, size: selectedSize, colour: selectedColour,
+          unitPrice:  displayPrice,
+          costPrice:  displayCostPrice,
+          sizeProfit: displayProfit,
+        },
       },
     });
   }
@@ -183,7 +202,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
             {product.product_name}
           </h2>
           <p className="text-[#F2AA25] font-bold text-xl mb-3">
-            GHS {product.unit_price.toLocaleString()}
+            GHS {displayPrice.toLocaleString()}
           </p>
           {product.description && (
             <p className="text-gray-500 text-sm leading-relaxed mb-3">
@@ -203,19 +222,27 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
             <div className="mb-3">
               <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Size</p>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setSelectedSize(s)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                      selectedSize === s
-                        ? "bg-[#1e2d3d] text-white"
-                        : "border border-gray-300 text-gray-600 hover:border-[#1e2d3d]"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+                {product.sizes.map(s => {
+                  const priceEntry = product.sizePricing?.find(sp => sp.size === s);
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setSelectedSize(s)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                        selectedSize === s
+                          ? "bg-[#1e2d3d] text-white"
+                          : "border border-gray-300 text-gray-600 hover:border-[#1e2d3d]"
+                      }`}
+                    >
+                      <span className="block">{s}</span>
+                      {priceEntry && (
+                        <span className={`block text-xs font-normal ${selectedSize === s ? "text-white/80" : "text-gray-400"}`}>
+                          GHS {(priceEntry.selling_price ?? priceEntry.price ?? 0).toLocaleString()}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -375,7 +402,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
           {product.product_name}
         </h3>
         <p className="text-[#F2AA25] font-bold text-sm sm:text-base mb-2">
-          GHS {product.unit_price.toLocaleString()}
+          {product.sizePricing ? "From " : ""}GHS {product.unit_price.toLocaleString()}
         </p>
         <div className="flex gap-1.5">
           <button

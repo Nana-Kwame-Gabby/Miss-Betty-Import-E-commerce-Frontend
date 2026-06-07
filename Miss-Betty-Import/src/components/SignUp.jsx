@@ -13,6 +13,7 @@ export default function SignUp() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
@@ -36,6 +37,10 @@ export default function SignUp() {
     }
     if (password.length < 6) {
       setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (!agreedToTerms) {
+      setError("You must agree to the Terms & Conditions to create an account.");
       return;
     }
 
@@ -165,9 +170,28 @@ export default function SignUp() {
             </p>
           )}
 
+          <label className="w-full flex items-start gap-2.5 mb-4 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={e => setAgreedToTerms(e.target.checked)}
+              className="mt-0.5 w-4 h-4 flex-shrink-0 accent-[#F2AA25]"
+            />
+            <span className="text-xs text-gray-600 leading-relaxed">
+              I have read and agree to the{" "}
+              <Link to="/terms" className="text-[#F2AA25] hover:underline font-medium" target="_blank">
+                Terms & Conditions
+              </Link>
+              {" "}and{" "}
+              <Link to="/privacy-policy" className="text-[#F2AA25] hover:underline font-medium" target="_blank">
+                Privacy Policy
+              </Link>
+            </span>
+          </label>
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !agreedToTerms}
             className="w-full font-bold text-sm sm:text-base rounded-2xl py-2.5 sm:py-3 mb-4 text-white cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
             style={{ backgroundColor: "#F2AA25" }}
           >

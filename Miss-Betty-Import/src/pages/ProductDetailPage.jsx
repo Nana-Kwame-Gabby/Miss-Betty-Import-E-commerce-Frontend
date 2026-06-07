@@ -8,6 +8,8 @@ import MediaCarousel from "../components/MediaCarousel";
 import ReviewsSection from "../components/ReviewsSection";
 
 function mapProduct(p) {
+  const sizePricing = Array.isArray(p.size_pricing) && p.size_pricing.length > 0
+    ? p.size_pricing : null;
   return {
     id: p.product_id,
     category: p.category?.category_name ?? 'Others',
@@ -16,8 +18,13 @@ function mapProduct(p) {
     product_image_url_2: p.product_image_url_2 ?? '',
     product_video_url:   p.product_video_url   ?? '',
     unit_price: Number(p.unit_price),
+    cost_price: Number(p.cost_price ?? 0),
+    profit:     Number(p.profit ?? 0),
     description: p.description ?? '',
-    sizes: p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : [],
+    sizePricing,
+    sizes: sizePricing
+      ? sizePricing.map(sp => sp.size)
+      : (p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : []),
     colours: p.colour ? p.colour.split(',').map(c => c.trim()).filter(Boolean) : [],
     product_status: p.product_status?.status_name ?? 'Available',
     estimated_shipping_fee: p.estimated_shipping_fee ?? null,
@@ -57,6 +64,13 @@ export default function ProductDetailPage() {
     loadProduct();
   }, [id]);
 
+  const _entry = product?.sizePricing && selectedSize
+    ? (product.sizePricing.find(sp => sp.size === selectedSize) ?? null)
+    : null;
+  const displayPrice     = _entry?.selling_price ?? _entry?.price ?? product?.unit_price ?? 0;
+  const displayCostPrice = _entry?.cost_price ?? product?.cost_price ?? 0;
+  const displayProfit    = _entry?.profit     ?? product?.profit    ?? 0;
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 flex items-center justify-center">
@@ -75,11 +89,15 @@ export default function ProductDetailPage() {
     );
   }
 
+  function handleSizeSelect(size) {
+    setSelectedSize(size);
+  }
+
   function handleAddToCart() {
     if (!selectedSize && product.sizes.length > 0) return setError("Please select a size.");
     if (!selectedColour && product.colours.length > 0) return setError("Please select a colour.");
     setError("");
-    addToCart(product, quantity, selectedSize, selectedColour);
+    addToCart(product, quantity, selectedSize, selectedColour, displayPrice, displayCostPrice, displayProfit);
     setAdded(true);
     setTimeout(() => setAdded(false), 2500);
   }
@@ -91,7 +109,12 @@ export default function ProductDetailPage() {
     setError("");
     navigate("/checkout", {
       state: {
-        buyNow: { product, quantity, size: selectedSize, colour: selectedColour },
+        buyNow: {
+          product, quantity, size: selectedSize, colour: selectedColour,
+          unitPrice:  displayPrice,
+          costPrice:  displayCostPrice,
+          sizeProfit: displayProfit,
+        },
       },
     });
   }
@@ -127,7 +150,7 @@ export default function ProductDetailPage() {
           <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-1.5">{product.product_name}</h1>
 
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-[#F2AA25] font-bold text-2xl">GHS {product.unit_price.toLocaleString()}</span>
+            <span className="text-[#F2AA25] font-bold text-2xl">GHS {displayPrice.toLocaleString()}</span>
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
               product.product_status === "Available"
                 ? "bg-green-100 text-green-700"
@@ -155,19 +178,27 @@ export default function ProductDetailPage() {
                 Size <span className="text-gray-400 font-normal ml-1">{selectedSize && `— ${selectedSize}`}</span>
               </p>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`px-3 py-1.5 rounded-xl border text-sm font-semibold transition-colors ${
-                      selectedSize === size
-                        ? "border-[#F2AA25] bg-[#F2AA25] text-white"
-                        : "border-gray-200 text-[#1e2d3d] hover:border-[#F2AA25]"
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {product.sizes.map(size => {
+                  const priceEntry = product.sizePricing?.find(sp => sp.size === size);
+                  return (
+                    <button
+                      key={size}
+                      onClick={() => handleSizeSelect(size)}
+                      className={`px-3 py-1.5 rounded-xl border text-sm font-semibold transition-colors ${
+                        selectedSize === size
+                          ? "border-[#F2AA25] bg-[#F2AA25] text-white"
+                          : "border-gray-200 text-[#1e2d3d] hover:border-[#F2AA25]"
+                      }`}
+                    >
+                      <span className="block">{size}</span>
+                      {priceEntry && (
+                        <span className={`block text-xs font-normal ${selectedSize === size ? "text-white/80" : "text-gray-400"}`}>
+                          GHS {(priceEntry.selling_price ?? priceEntry.price ?? 0).toLocaleString()}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

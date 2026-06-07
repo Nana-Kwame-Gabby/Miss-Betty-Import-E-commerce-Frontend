@@ -13,7 +13,7 @@ const ghanaRegions = [
 ];
 
 export default function CheckoutPage() {
-  const { cartItems, subtotal, clearCart } = useCart();
+  const { cartItems, subtotal } = useCart();
   const { user } = useUser();
   const { session } = useAuth();
   const { ordersClosed } = useAppSettings();
@@ -25,15 +25,18 @@ export default function CheckoutPage() {
   const checkoutItems = buyNowData
     ? [{
         ...buyNowData.product,
-        quantity: buyNowData.quantity,
-        size:     buyNowData.size,
-        colour:   buyNowData.colour,
-        cartKey:  `buynow-${buyNowData.product.id}`,
+        unit_price: buyNowData.unitPrice  ?? buyNowData.product.unit_price,
+        cost_price: buyNowData.costPrice  ?? buyNowData.product.cost_price ?? 0,
+        profit:     buyNowData.sizeProfit ?? buyNowData.product.profit     ?? 0,
+        quantity:   buyNowData.quantity,
+        size:       buyNowData.size,
+        colour:     buyNowData.colour,
+        cartKey:    `buynow-${buyNowData.product.id}`,
       }]
     : cartItems;
 
   const checkoutSubtotal = buyNowData
-    ? buyNowData.product.unit_price * buyNowData.quantity
+    ? (buyNowData.unitPrice ?? buyNowData.product.unit_price) * buyNowData.quantity
     : subtotal;
 
   const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
@@ -108,15 +111,16 @@ export default function CheckoutPage() {
           product_name:      item.product_name,
           product_image_url: item.product_image_url || "",
           unit_price:        item.unit_price,
+          cost_price:        item.cost_price  ?? 0,
+          profit:            item.profit      ?? 0,
           quantity:          item.quantity,
-          size:              item.size || null,
+          size:              item.size   || null,
           colour:            item.colour || null,
           cartKey:           item.cartKey,
         })),
       }));
 
-      // 5. Clear cart and redirect to Hubtel
-      if (!buyNowData) clearCart();
+      // 5. Redirect to Hubtel
       window.location.href = fnData.checkoutUrl;
     } catch (err) {
       setSubmitError(err.message);

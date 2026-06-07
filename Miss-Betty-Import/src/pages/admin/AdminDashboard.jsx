@@ -89,7 +89,7 @@ export default function AdminDashboard() {
         supabase.from('shipping_fee_payments')
           .select('customer_id, amount_paid, paid_at, customers(customer_name)')
           .order('paid_at', { ascending: false }),
-        supabase.from('orders').select('customer_id, product_id, size, quantity, products(cost_price, profit)'),
+        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit'),
         supabase.from('product_size_shipping_fees').select('product_id, size, shipping_fee'),
       ]);
 
@@ -107,8 +107,8 @@ export default function AdminDashboard() {
         const qty  = Number(o.quantity ?? 1);
         const fee  = feeMap[`${o.product_id}::${o.size ?? ''}`] ?? 0;
         totalByCustomer[o.customer_id] = (totalByCustomer[o.customer_id] ?? 0) + fee * qty;
-        totalCostPrice += Number(o.products?.cost_price ?? 0) * qty;
-        totalProfit    += Number(o.products?.profit     ?? 0) * qty;
+        totalCostPrice += Number(o.cost_price ?? 0) * qty;
+        totalProfit    += Number(o.profit     ?? 0) * qty;
       });
 
       // Compute running balance per customer (sorted chronologically, then re-sorted newest-first)
