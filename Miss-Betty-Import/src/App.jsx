@@ -30,6 +30,7 @@ import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminInvoicesPage from "./pages/admin/AdminInvoicesPage";
 import AdminShippingFeesPage from "./pages/admin/AdminShippingFeesPage";
 import AdminProductRequestsPage from "./pages/admin/AdminProductRequestsPage";
+import AdminBulkSmsPage from "./pages/admin/AdminBulkSmsPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import ProductRequestPage from "./pages/ProductRequestPage";
 
@@ -95,6 +96,7 @@ function App() {
                   <Route path="/admin/invoices" element={<AdminInvoicesPage />} />
                   <Route path="/admin/shipping-fees" element={<AdminShippingFeesPage />} />
                   <Route path="/admin/product-requests" element={<AdminProductRequestsPage />} />
+                  <Route path="/admin/bulk-sms" element={<AdminBulkSmsPage />} />
                 </Route>
               </Route>
 

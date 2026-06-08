@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabase";
 import MediaCarousel from "../components/MediaCarousel";
 import ReviewsSection from "../components/ReviewsSection";
 import AccountDropdown from "../components/AccountDropdown";
+import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
 
 const CATEGORY_ICONS = {
   'Mother care items':               '👶',
@@ -25,8 +26,18 @@ const CATEGORY_ICONS = {
 };
 
 function mapProduct(p) {
-  const sizePricing = Array.isArray(p.size_pricing) && p.size_pricing.length > 0
+  const rawSizePricing = Array.isArray(p.size_pricing) && p.size_pricing.length > 0
     ? p.size_pricing : null;
+  const sizePricing = rawSizePricing
+    ? rawSizePricing.map(r => ({
+        ...r,
+        discount_price: r.discount_price != null ? Number(r.discount_price) : null,
+      }))
+    : null;
+  const discountedSizes   = (sizePricing ?? []).filter(r => r.discount_price != null);
+  const minDiscountPrice  = discountedSizes.length ? Math.min(...discountedSizes.map(r => r.discount_price)) : null;
+  const productDiscountPrice = p.discount_price != null ? Number(p.discount_price) : null;
+  const discount_price = sizePricing ? minDiscountPrice : productDiscountPrice;
   return {
     id: p.product_id,
     category: p.category?.category_name ?? 'Others',
@@ -37,6 +48,7 @@ function mapProduct(p) {
     unit_price: Number(p.unit_price),
     cost_price: Number(p.cost_price ?? 0),
     profit:     Number(p.profit ?? 0),
+    discount_price,
     description: p.description ?? '',
     sizePricing,
     sizes: sizePricing
@@ -120,12 +132,15 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   const [pendingVariants, setPendingVariants] = useState([]);
   const [added,           setAdded]           = useState(false);
 
-  const curEntry     = product?.sizePricing && curSize
+  const curEntry        = product?.sizePricing && curSize
     ? (product.sizePricing.find(sp => sp.size === curSize) ?? null)
     : null;
-  const curPrice     = curEntry?.selling_price ?? curEntry?.price ?? product?.unit_price ?? 0;
-  const curCostPrice = curEntry?.cost_price ?? product?.cost_price ?? 0;
-  const curProfit    = curEntry?.profit     ?? product?.profit    ?? 0;
+  const curRegularPrice  = curEntry?.selling_price ?? curEntry?.price ?? product?.unit_price ?? 0;
+  const curDiscountPrice = curEntry?.discount_price ?? product?.discount_price ?? null;
+  const curHasDiscount   = curDiscountPrice != null && curDiscountPrice > 0 && curDiscountPrice < curRegularPrice;
+  const curPrice         = curHasDiscount ? curDiscountPrice : curRegularPrice;
+  const curCostPrice     = curEntry?.cost_price ?? product?.cost_price ?? 0;
+  const curProfit        = curEntry?.profit     ?? product?.profit    ?? 0;
 
   const totalQty  = pendingVariants.reduce((s, v) => s + v.qty, 0);
   const totalCost = pendingVariants.reduce((s, v) => s + v.price * v.qty, 0);
@@ -150,6 +165,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
       return [...prev, {
         variantKey: vKey, size: curSize, colour: curColour,
         qty: curQty, price: curPrice, costPrice: curCostPrice, profit: curProfit,
+        originalPrice: curHasDiscount ? curRegularPrice : null,
       }];
     });
     setCurQty(1);
@@ -160,6 +176,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
       pendingVariants.map(v => ({
         product, size: v.size, colour: v.colour,
         qty: v.qty, price: v.price, costPrice: v.costPrice, profit: v.profit,
+        originalPrice: v.originalPrice ?? null,
       }))
     );
     andThen();
@@ -177,7 +194,8 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   }
 
   function handleSimpleAdd() {
-    addToCart(product, curQty, null, null, product.unit_price, product.cost_price, product.profit);
+    addToCart(product, curQty, null, null, curPrice, product.cost_price, product.profit,
+      curHasDiscount ? curRegularPrice : null);
     setAdded(true);
     setTimeout(() => { setAdded(false); onClose(); }, 1500);
   }
@@ -246,9 +264,15 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
           <h2 className="font-bold text-[#1e2d3d] text-lg mb-1 leading-snug">
             {product.product_name}
           </h2>
-          <p className="text-[#F2AA25] font-bold text-xl mb-2">
-            GHS {curPrice.toLocaleString()}
-          </p>
+          <div className="flex items-baseline gap-2 flex-wrap mb-2">
+            <p className="text-[#F2AA25] font-bold text-xl">GHS {curPrice.toLocaleString()}</p>
+            {curHasDiscount && (
+              <>
+                <span className="text-gray-400 text-sm line-through">GHS {curRegularPrice.toLocaleString()}</span>
+                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">SALE</span>
+              </>
+            )}
+          </div>
 
           {product.description && (
             <p className="text-gray-500 text-sm leading-relaxed mb-3">
@@ -446,7 +470,15 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
 
   function handleAdd(e) {
     e.stopPropagation();
-    addToCart(product, 1, product.sizes[0] ?? null, product.colours[0] ?? null);
+    const firstSize = product.sizes[0] ?? null;
+    const sizeEntry = product.sizePricing?.find(sp => sp.size === firstSize) ?? null;
+    const price     = sizeEntry ? getEffectivePrice(sizeEntry) : getEffectivePrice(product);
+    const costP     = sizeEntry?.cost_price ?? product.cost_price ?? 0;
+    const prof      = sizeEntry?.profit     ?? product.profit     ?? 0;
+    const origPrice = sizeEntry
+      ? (hasDiscount(sizeEntry) ? (sizeEntry.selling_price ?? product.unit_price) : null)
+      : (hasDiscount(product)   ? product.unit_price : null);
+    addToCart(product, 1, firstSize, product.colours[0] ?? null, price, costP, prof, origPrice);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   }
@@ -516,9 +548,21 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
         <h3 className="font-semibold text-[#1e2d3d] text-xs sm:text-sm mb-0.5 line-clamp-2 flex-1">
           {product.product_name}
         </h3>
-        <p className="text-[#F2AA25] font-bold text-sm sm:text-base mb-2">
-          {product.sizePricing ? "From " : ""}GHS {product.unit_price.toLocaleString()}
-        </p>
+        <div className="mb-2 flex items-baseline gap-1.5 flex-wrap">
+          {hasDiscount(product) ? (
+            <>
+              <span className="text-[#F2AA25] font-bold text-sm sm:text-base">
+                {product.sizePricing ? "From " : ""}GHS {getEffectivePrice(product).toLocaleString()}
+              </span>
+              <span className="text-gray-400 text-xs line-through">GHS {product.unit_price.toLocaleString()}</span>
+              <span className="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">SALE</span>
+            </>
+          ) : (
+            <span className="text-[#F2AA25] font-bold text-sm sm:text-base">
+              {product.sizePricing ? "From " : ""}GHS {product.unit_price.toLocaleString()}
+            </span>
+          )}
+        </div>
         <div className="flex gap-1.5">
           <button
             onClick={handleAdd}

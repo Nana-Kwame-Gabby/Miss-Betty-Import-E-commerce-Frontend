@@ -487,7 +487,15 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
 
   function handleAdd(e) {
     e.stopPropagation();
-    addToCart(product, 1, product.sizes[0] ?? null, product.colours[0] ?? null);
+    const firstSize = product.sizes[0] ?? null;
+    const sizeEntry = product.sizePricing?.find(sp => sp.size === firstSize) ?? null;
+    const price     = sizeEntry ? getEffectivePrice(sizeEntry) : getEffectivePrice(product);
+    const costP     = sizeEntry?.cost_price ?? product.cost_price ?? 0;
+    const prof      = sizeEntry?.profit     ?? product.profit     ?? 0;
+    const origPrice = sizeEntry
+      ? (hasDiscount(sizeEntry) ? (sizeEntry.selling_price ?? product.unit_price) : null)
+      : (hasDiscount(product)   ? product.unit_price : null);
+    addToCart(product, 1, firstSize, product.colours[0] ?? null, price, costP, prof, origPrice);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   }
