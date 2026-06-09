@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useUser } from "../context/UserContext";
@@ -54,8 +54,11 @@ export default function CheckoutPage() {
     region: user.deliveryRegion, town: user.deliveryTown,
   });
   const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
+  const [submitting,   setSubmitting]   = useState(false);
+  const [submitError,  setSubmitError]  = useState("");
+  const [iframeUrl,    setIframeUrl]    = useState(null);
+  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const iframeRef = useRef(null);
 
   function validate() {
     const e = {};
@@ -67,6 +70,25 @@ export default function CheckoutPage() {
   function handleChange(e) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
     setErrors(prev => ({ ...prev, [e.target.name]: "" }));
+  }
+
+  function handleIframeLoad() {
+    setIframeLoaded(true);
+    try {
+      const href = iframeRef.current?.contentWindow?.location?.href;
+      if (!href) return;
+      const url = new URL(href);
+      if (url.pathname.includes("order-confirmation")) {
+        navigate(url.pathname + url.search);
+      }
+    } catch {
+      // Cross-origin (Hubtel's page) — normal, ignore
+    }
+  }
+
+  function handleIframeClose() {
+    setIframeUrl(null);
+    setIframeLoaded(false);
   }
 
   async function handleSubmit(e) {
@@ -88,7 +110,8 @@ export default function CheckoutPage() {
       if (custError || !cust) throw new Error("Could not find your account. Please try again.");
 
       // 2. Generate order_id
-      const orderId = `ORD-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000) + 1000}`;
+      const uid     = crypto.randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase();
+      const orderId = `ORD-${new Date().getFullYear()}-${uid}`;
 
       // 3. Call Hubtel via edge function
       const returnUrl       = `${window.location.origin}/order-confirmation?orderId=${orderId}&status=success`;
@@ -128,8 +151,10 @@ export default function CheckoutPage() {
         })),
       }));
 
-      // 5. Redirect to Hubtel
-      window.location.href = fnData.checkoutUrl;
+      // 5. Open Hubtel checkout in iframe overlay
+      setIframeLoaded(false);
+      setIframeUrl(fnData.checkoutUrl);
+      setSubmitting(false);
     } catch (err) {
       setSubmitError(err.message);
       setSubmitting(false);
@@ -155,6 +180,7 @@ export default function CheckoutPage() {
     "w-full bg-gray-100 border border-gray-200 rounded-2xl px-3 py-2 sm:py-2.5 text-sm text-gray-500 cursor-default outline-none";
 
   return (
+    <>
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
       {hasBlockedPreorders && (
         <div className="bg-red-50 border border-red-200 rounded-2xl px-3 py-2.5 mb-3 text-sm text-red-700 font-medium flex items-center gap-2">
@@ -223,7 +249,7 @@ export default function CheckoutPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                 </svg>
-                Redirecting to Hubtel…
+                Opening Payment…
               </>
             ) : "Pay with Hubtel"}
           </button>
@@ -273,5 +299,52 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+
+      {/* Hubtel Onsite Checkout iframe modal */}
+
+      {iframeUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={handleIframeClose} />
+          <div className="relative z-10 flex flex-col w-full h-full sm:w-[480px] sm:h-[640px] sm:rounded-2xl overflow-hidden shadow-2xl bg-white">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 bg-[#1e2d3d] flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F2AA25" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+                <span className="text-white text-sm font-semibold">Secure Payment</span>
+              </div>
+              <button
+                onClick={handleIframeClose}
+                className="text-gray-300 hover:text-white transition-colors p-1"
+                aria-label="Cancel payment"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Loading spinner */}
+            {!iframeLoaded && (
+              <div className="absolute inset-0 top-12 flex flex-col items-center justify-center bg-white z-10 gap-3">
+                <div className="w-10 h-10 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-gray-400 font-medium">Loading payment…</p>
+              </div>
+            )}
+
+            <iframe
+              ref={iframeRef}
+              src={iframeUrl}
+              onLoad={handleIframeLoad}
+              className="flex-1 w-full border-0"
+              title="Hubtel Secure Payment"
+              allow="payment"
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

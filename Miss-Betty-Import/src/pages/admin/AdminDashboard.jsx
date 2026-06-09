@@ -265,7 +265,19 @@ export default function AdminDashboard() {
         )}
 
         {statusResult && !statusError && (() => {
-          const d = statusResult.data ?? {};
+          const dataObj = statusResult.data;
+          const d = (dataObj && typeof dataObj === "object" && (dataObj.status || dataObj.transactionId || dataObj.clientReference))
+            ? dataObj
+            : statusResult;
+          const hasEnvelope = statusResult.responseCode || statusResult.message;
+          const hasData     = d.status || d.clientReference || d.transactionId || d.amount != null;
+          if (!hasEnvelope && !hasData) {
+            return (
+              <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2.5 text-xs text-yellow-700 font-medium">
+                ⚠️ No transaction data found for this Order ID. Verify the ID is correct and that payment was initiated via Hubtel.
+              </div>
+            );
+          }
           const statusColor =
             d.status === "Paid"     ? "bg-green-100 text-green-700" :
             d.status === "Unpaid"   ? "bg-amber-100 text-amber-700" :
