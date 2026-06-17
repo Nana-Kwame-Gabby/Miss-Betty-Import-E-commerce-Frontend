@@ -52,14 +52,24 @@ export default function AdminDashboard() {
     setCheckingStatus(true);
     setStatusResult(null);
     setStatusError("");
+    console.log("[check-payment-status] Checking transaction status for:", statusRef.trim());
     try {
       const { data, error } = await supabase.functions.invoke("check-payment-status", {
         body: { clientReference: statusRef.trim() },
       });
-      if (error) setStatusError(error.message ?? "Failed to call payment service");
-      else if (data?.error) setStatusError(data.error);
-      else setStatusResult(data);
+      console.log("[check-payment-status] Raw response — data:", data, "| error:", error);
+      if (error) {
+        console.error("[check-payment-status] Supabase function error:", error.message ?? error);
+        setStatusError(error.message ?? "Failed to call payment service");
+      } else if (data?.error) {
+        console.warn("[check-payment-status] Payment service error:", data.error);
+        setStatusError(data.error);
+      } else {
+        console.log("[check-payment-status] Transaction data:", data);
+        setStatusResult(data);
+      }
     } catch (err) {
+      console.error("[check-payment-status] Unexpected error:", err);
       setStatusError(err.message ?? "Unexpected error");
     }
     setCheckingStatus(false);
