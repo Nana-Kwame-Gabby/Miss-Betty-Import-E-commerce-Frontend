@@ -11,7 +11,7 @@ const STATUS_COLORS = {
   Cancelled:  "bg-red-100 text-red-700",
 };
 
-function groupByInvoiceId(rows) {
+function groupByInvoiceId(rows, customerNameMap = {}) {
   const map = {};
   for (const row of rows) {
     if (!map[row.invoice_id]) map[row.invoice_id] = [];
@@ -19,7 +19,7 @@ function groupByInvoiceId(rows) {
   }
   return Object.entries(map).map(([invoice_id, items]) => ({
     invoice_id,
-    customer_name: items[0].customer_name,
+    customer_name: customerNameMap[invoice_id] ?? '',
     date: items[0].date,
     items,
     total: items.reduce((s, r) => s + Number(r.total ?? 0), 0),
@@ -131,16 +131,20 @@ export default function AdminInvoicesPage() {
     async function loadInvoices() {
       const [{ data: rawData }, { data: orderRows }] = await Promise.all([
         supabase.from('invoices').select('*').order('date', { ascending: false }),
-        supabase.from('orders').select('order_id, status').order('order_id'),
+        supabase.from('orders').select('order_id, status, customer_id, customers(customer_name)').order('order_id'),
       ]);
 
-      const grouped = groupByInvoiceId(rawData ?? []);
-
-      // Build status map: first status per order_id
+      // Build status map and customer name map from orders
       const statusMap = {};
+      const customerNameMap = {};
       (orderRows ?? []).forEach(r => {
         if (!statusMap[r.order_id]) statusMap[r.order_id] = r.status;
+        if (r.order_id && !customerNameMap[r.order_id]) {
+          customerNameMap[r.order_id] = r.customers?.customer_name ?? null;
+        }
       });
+
+      const grouped = groupByInvoiceId(rawData ?? [], customerNameMap);
 
       setInvoices(grouped.map(inv => ({
         ...inv,

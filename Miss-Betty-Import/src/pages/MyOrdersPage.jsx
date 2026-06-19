@@ -47,6 +47,7 @@ export default function MyOrdersPage() {
   const [loading,      setLoading]      = useState(true);
   const [reviewTarget, setReviewTarget] = useState(null);
   const [reviewedSet,  setReviewedSet]  = useState(new Set());
+  const [customerId,   setCustomerId]   = useState(null);
 
   useEffect(() => {
     async function loadOrders() {
@@ -57,12 +58,14 @@ export default function MyOrdersPage() {
         .single();
 
       if (!cust) { setLoading(false); return; }
+      setCustomerId(cust.customer_id);
 
       const [{ data }, { data: existingReviews }] = await Promise.all([
         supabase
           .from('orders')
           .select('*, products(product_name)')
           .eq('customer_id', cust.customer_id)
+          .eq('deleted_by_customer', false)
           .order('created_at', { ascending: false }),
         supabase
           .from('reviews')
@@ -100,6 +103,17 @@ export default function MyOrdersPage() {
   async function handleConfirmReceipt(orderId) {
     await supabase.from('orders').update({ status: 'Received' }).eq('order_id', orderId);
     setOrders(prev => prev.map(o => o.order_id === orderId ? { ...o, status: 'Received' } : o));
+  }
+
+  async function handleDeleteOrder(orderId) {
+    if (!window.confirm('Remove this order from your history? This cannot be undone.')) return;
+    const { error } = await supabase
+      .from('orders')
+      .update({ deleted_by_customer: true })
+      .eq('order_id', orderId)
+      .eq('customer_id', customerId);
+    if (error) { alert('Could not remove order. Please try again.'); return; }
+    setOrders(prev => prev.filter(o => o.order_id !== orderId));
   }
 
   function openReview(item, orderId) {
@@ -147,7 +161,7 @@ export default function MyOrdersPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              {["Order ID", "Date", "Items", "Size", "Colour", "Total", "Status", "", ""].map((h, i) => (
+              {["Order ID", "Date", "Items", "Size", "Colour", "Total", "Status", "", "", ""].map((h, i) => (
                 <th key={i} className="text-left px-3 py-3 font-semibold text-[#1e2d3d] whitespace-nowrap">{h}</th>
               ))}
             </tr>
@@ -220,6 +234,18 @@ export default function MyOrdersPage() {
                     </div>
                   )}
                 </td>
+                <td className="px-3 py-3">
+                  <button
+                    onClick={() => handleDeleteOrder(order.order_id)}
+                    title="Remove from history"
+                    className="text-gray-300 hover:text-red-400 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                      <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                    </svg>
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -281,6 +307,12 @@ export default function MyOrdersPage() {
                 })}
               </div>
             )}
+            <button
+              onClick={() => handleDeleteOrder(order.order_id)}
+              className="mt-2 w-full text-xs font-semibold text-red-400 border border-red-200 py-1.5 rounded-xl hover:bg-red-50 transition-colors"
+            >
+              Remove order
+            </button>
           </div>
         ))}
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAppSettings } from "../../context/AppSettingsContext";
+import * as XLSX from 'xlsx';
 
 function StatCard({ title, value, icon, color, loading }) {
   return (
@@ -37,6 +38,9 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ products: 0, orders: 0, customers: 0, revenue: 0, shippingCollected: 0, totalCostPrice: 0, totalProfit: 0 });
   const [paymentRows, setPaymentRows] = useState([]);
   const [custTotals, setCustTotals] = useState({});
+  const [productCustTotals, setProductCustTotals] = useState({});
+  const [customerShippingData, setCustomerShippingData] = useState([]);
+  const [expandedCustomer, setExpandedCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -93,13 +97,13 @@ export default function AdminDashboard() {
         { data: allFeeData },
       ] = await Promise.all([
         supabase.from('products').select('product_id', { count: 'exact', head: true }),
-        supabase.from('orders').select('order_id', { count: 'exact', head: true }),
+        supabase.from('orders').select('order_id', { count: 'exact', head: true }).eq('deleted_by_admin', false),
         supabase.from('customers').select('customer_id', { count: 'exact', head: true }),
-        supabase.from('invoices').select('total'),
+        supabase.from('invoices').select('total').eq('deleted_by_admin', false),
         supabase.from('shipping_fee_payments')
-          .select('customer_id, amount_paid, paid_at, customers(customer_name)')
+          .select('customer_id, amount_paid, paid_at, product_id, size, customers(customer_name), products(product_name)')
           .order('paid_at', { ascending: false }),
-        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit, shipping_fee'),
+        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit, shipping_fee, shipping_fee_paid, customers(customer_name), products(product_name)').eq('deleted_by_admin', false),
         supabase.from('product_size_shipping_fees').select('product_id, size, shipping_fee'),
       ]);
 
@@ -111,6 +115,7 @@ export default function AdminDashboard() {
         feeMap[`${f.product_id}::${f.size}`] = Number(f.shipping_fee ?? 0);
       });
       const totalByCustomer = {};
+      const totalByProductCust = {};
       let totalCostPrice = 0;
       let totalProfit    = 0;
       (allOrderData ?? []).forEach(o => {
@@ -119,6 +124,8 @@ export default function AdminDashboard() {
           ? Number(o.shipping_fee)
           : (feeMap[`${o.product_id}::${o.size ?? ''}`] ?? 0);
         totalByCustomer[o.customer_id] = (totalByCustomer[o.customer_id] ?? 0) + fee * qty;
+        const pKey = `${o.customer_id}::${o.product_id}::${o.size ?? ''}`;
+        totalByProductCust[pKey] = (totalByProductCust[pKey] ?? 0) + fee * qty;
         totalCostPrice += Number(o.cost_price ?? 0) * qty;
         totalProfit    += Number(o.profit     ?? 0) * qty;
       });
@@ -141,9 +148,65 @@ export default function AdminDashboard() {
       });
       enriched.sort((a, b) => new Date(b.paid_at) - new Date(a.paid_at));
 
+      // Build paid-product set from new-style payment records (those with product_id)
+      const paidProductSet = new Set();
+      (paymentData ?? []).forEach(p => {
+        if (p.product_id != null) {
+          paidProductSet.add(`${p.customer_id}::${p.product_id}::${p.size ?? ''}`);
+        }
+      });
+
+      // Build customer-centric shipping data
+      const custMap = {};
+      (allOrderData ?? []).forEach(o => {
+        if (!custMap[o.customer_id]) {
+          custMap[o.customer_id] = {
+            customerId: o.customer_id,
+            customerName: o.customers?.customer_name ?? `Customer #${o.customer_id}`,
+            productGroups: {},
+          };
+        }
+        const pKey = `${o.product_id}::${o.size ?? ''}`;
+        if (!custMap[o.customer_id].productGroups[pKey]) {
+          const feePerItem = o.shipping_fee != null
+            ? Number(o.shipping_fee)
+            : (feeMap[`${o.product_id}::${o.size ?? ''}`] ?? 0);
+          custMap[o.customer_id].productGroups[pKey] = {
+            productId: o.product_id,
+            productName: o.products?.product_name ?? `Product #${o.product_id}`,
+            size: o.size ?? null,
+            sizeDisplay: o.size ?? '—',
+            totalQty: 0,
+            feePerItem,
+          };
+        }
+        const grp = custMap[o.customer_id].productGroups[pKey];
+        grp.totalQty += Number(o.quantity ?? 1);
+      });
+
+      const builtCustomerShippingData = Object.values(custMap).map(cust => {
+        const products = Object.values(cust.productGroups).map(grp => {
+          const paidKey = `${cust.customerId}::${grp.productId}::${grp.size ?? ''}`;
+          const isPaid  = paidProductSet.has(paidKey);
+          return { ...grp, totalFee: grp.feePerItem * grp.totalQty, isPaid };
+        });
+        const totalFee  = products.reduce((s, p) => s + p.totalFee, 0);
+        const totalPaid = products.filter(p => p.isPaid).reduce((s, p) => s + p.totalFee, 0);
+        return {
+          customerId:   cust.customerId,
+          customerName: cust.customerName,
+          products,
+          totalFee,
+          totalPaid,
+          isFullyPaid:  totalFee > 0 && totalPaid >= totalFee,
+        };
+      });
+
       setStats({ products: products ?? 0, orders: orders ?? 0, customers: customers ?? 0, revenue, shippingCollected, totalCostPrice, totalProfit });
       setPaymentRows(enriched);
       setCustTotals(totalByCustomer);
+      setProductCustTotals(totalByProductCust);
+      setCustomerShippingData(builtCustomerShippingData);
       setLoading(false);
     }
     loadStats();
@@ -154,6 +217,12 @@ export default function AdminDashboard() {
     const { error } = await supabase.from('shipping_fee_payments').delete().gte('id', 1);
     if (!error) {
       setPaymentRows([]);
+      setCustomerShippingData(prev => prev.map(c => ({
+        ...c,
+        products: c.products.map(p => ({ ...p, isPaid: false })),
+        totalPaid: 0,
+        isFullyPaid: false,
+      })));
       setStats(prev => ({ ...prev, shippingCollected: 0 }));
       setConfirmDelete(false);
     } else {
@@ -162,9 +231,27 @@ export default function AdminDashboard() {
     setDeleting(false);
   }
 
-  const filteredPayments = paymentRows.filter(r =>
-    (r.customers?.customer_name ?? "").toLowerCase().includes(query.toLowerCase())
+  const filteredCustomers = customerShippingData.filter(c =>
+    c.customerName.toLowerCase().includes(query.toLowerCase())
   );
+
+  function handleDownloadShippingPayments() {
+    const rows = filteredCustomers.flatMap(cust =>
+      cust.products.map(p => ({
+        'Customer Name':     cust.customerName,
+        'Product':           p.productName,
+        'Size':              p.sizeDisplay,
+        'Qty':               p.totalQty,
+        'Fee / Item (GHS)':  p.feePerItem > 0 ? p.feePerItem : '',
+        'Total Fee (GHS)':   p.totalFee > 0 ? p.totalFee : '',
+        'Payment Status':    p.isPaid ? 'Paid' : 'Unpaid',
+      }))
+    );
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Shipping Status');
+    XLSX.writeFile(wb, 'Miss-Betty-Shipping-Status.xlsx');
+  }
 
   return (
     <div>
@@ -441,12 +528,12 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* ── Shipping Fee Payments ───────────────────────────────── */}
+      {/* ── Customer Shipping Fee Status ───────────────────────────────── */}
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-bold text-[#1e2d3d]">Shipping Fee Payments</h2>
-            <p className="text-xs text-gray-400 mt-0.5">All shipping fee payments made by customers</p>
+            <h2 className="text-sm font-bold text-[#1e2d3d]">Customer Shipping Fee Status</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Click a customer to see per-product shipping fee details</p>
           </div>
 
           {/* Search */}
@@ -468,6 +555,17 @@ export default function AdminDashboard() {
           </div>
 
           <button
+            onClick={handleDownloadShippingPayments}
+            disabled={filteredCustomers.length === 0}
+            className="flex items-center gap-1.5 bg-[#1e2d3d] text-white text-xs font-semibold px-3 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download Excel
+          </button>
+
+          <button
             onClick={() => setConfirmDelete(true)}
             disabled={paymentRows.length === 0}
             className="flex items-center gap-1.5 bg-red-500 text-white text-xs font-semibold px-3 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
@@ -484,47 +582,109 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-center py-12">
             <div className="w-7 h-7 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : filteredPayments.length === 0 ? (
+        ) : filteredCustomers.length === 0 ? (
           <div className="text-center py-12 text-gray-400 text-sm">
-            {query ? `No payments match "${query}".` : "No shipping fee payments yet."}
+            {query ? `No customers match "${query}".` : "No orders placed yet."}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer Name</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Total Shipping Fee</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Amount Paid</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Balance</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Date</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Time</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Products</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Total Fee</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Paid</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-3 w-8" />
                 </tr>
               </thead>
               <tbody>
-                {filteredPayments.map((r, i) => {
-                  const d = new Date(r.paid_at);
-                  return (
-                    <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-3 font-semibold text-[#1e2d3d]">{r.customers?.customer_name ?? '—'}</td>
+                {filteredCustomers.map(cust => (
+                  <>
+                    <tr
+                      key={cust.customerId}
+                      onClick={() => setExpandedCustomer(expandedCustomer === cust.customerId ? null : cust.customerId)}
+                      className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <td className="px-5 py-3 font-bold">
+                        <span className={cust.totalFee === 0 ? "text-gray-500" : cust.isFullyPaid ? "text-green-600" : "text-red-500"}>
+                          {cust.customerName}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center text-gray-500 hidden sm:table-cell">
+                        {cust.products.length}
+                      </td>
                       <td className="px-4 py-3 text-right font-semibold text-[#1e2d3d] hidden sm:table-cell">
-                        {custTotals[r.customer_id] > 0 ? `GHS ${custTotals[r.customer_id].toLocaleString()}` : '—'}
+                        {cust.totalFee > 0 ? `GHS ${cust.totalFee.toLocaleString()}` : '—'}
                       </td>
-                      <td className="px-4 py-3 text-right font-bold text-[#F2AA25]">GHS {Number(r.amount_paid).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right font-semibold">
-                        {r.balance === 0
-                          ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">Paid in Full</span>
-                          : <span className="text-[#1e2d3d]">GHS {r.balance.toLocaleString()}</span>}
+                      <td className="px-4 py-3 text-right font-semibold text-green-600 hidden sm:table-cell">
+                        {cust.totalPaid > 0 ? `GHS ${cust.totalPaid.toLocaleString()}` : '—'}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
-                        {d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      <td className="px-4 py-3">
+                        {cust.totalFee === 0
+                          ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">No Fee Set</span>
+                          : cust.isFullyPaid
+                            ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">Fully Paid</span>
+                            : <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-600">
+                                Owes GHS {(cust.totalFee - cust.totalPaid).toLocaleString()}
+                              </span>
+                        }
                       </td>
-                      <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">
-                        {d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      <td className="px-4 py-3 text-gray-400 text-right">
+                        <svg
+                          className={`inline-block transition-transform duration-200 ${expandedCustomer === cust.customerId ? "rotate-180" : ""}`}
+                          xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                          fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                        >
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
                       </td>
                     </tr>
-                  );
-                })}
+
+                    {expandedCustomer === cust.customerId && (
+                      <tr key={`${cust.customerId}-detail`}>
+                        <td colSpan={6} className="p-0 bg-gray-50">
+                          <div className="px-6 py-3 border-b border-gray-100">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="text-gray-400 uppercase tracking-wide">
+                                  <th className="text-left pb-2 font-semibold">Product</th>
+                                  <th className="text-left pb-2 font-semibold hidden sm:table-cell">Size</th>
+                                  <th className="text-center pb-2 font-semibold hidden sm:table-cell">Qty</th>
+                                  <th className="text-right pb-2 font-semibold hidden sm:table-cell">Fee / Item</th>
+                                  <th className="text-right pb-2 font-semibold">Total Fee</th>
+                                  <th className="text-right pb-2 font-semibold">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {cust.products.map((p, idx) => (
+                                  <tr key={idx} className="border-t border-gray-200">
+                                    <td className="py-2 pr-3 font-semibold text-[#1e2d3d]">{p.productName}</td>
+                                    <td className="py-2 pr-3 text-gray-500 hidden sm:table-cell">{p.sizeDisplay}</td>
+                                    <td className="py-2 pr-3 text-center text-gray-500 hidden sm:table-cell">{p.totalQty}</td>
+                                    <td className="py-2 pr-3 text-right text-gray-500 hidden sm:table-cell">
+                                      {p.feePerItem > 0 ? `GHS ${p.feePerItem.toLocaleString()}` : '—'}
+                                    </td>
+                                    <td className="py-2 pr-3 text-right font-semibold text-[#1e2d3d]">
+                                      {p.totalFee > 0 ? `GHS ${p.totalFee.toLocaleString()}` : '—'}
+                                    </td>
+                                    <td className="py-2 text-right">
+                                      {p.isPaid
+                                        ? <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">Paid</span>
+                                        : <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold">Unpaid</span>
+                                      }
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
               </tbody>
             </table>
           </div>

@@ -69,6 +69,7 @@ export default function AdminOrdersPage() {
     const { data } = await supabase
       .from('orders')
       .select('*, products(product_name, procurement_status, product_status(status_name)), customers(customer_name, telephone)')
+      .eq('deleted_by_admin', false)
       .order('created_at', { ascending: false });
 
     const rows = data ?? [];
@@ -93,11 +94,12 @@ export default function AdminOrdersPage() {
 
   async function handleDeleteAll() {
     setDeleting(true);
-    const [{ error: ordersErr }, { error: invoicesErr }] = await Promise.all([
-      supabase.from('orders').delete().gte('id', 1),
-      supabase.from('invoices').delete().neq('invoice_id', ''),
+    const [{ error: ordErr }, { error: invErr }] = await Promise.all([
+      supabase.from('orders').update({ deleted_by_admin: true }).eq('deleted_by_admin', false),
+      supabase.from('invoices').update({ deleted_by_admin: true }).eq('deleted_by_admin', false),
     ]);
-    if (!ordersErr && !invoicesErr) {
+    const error = ordErr || invErr;
+    if (!error) {
       setProductRows([]);
       setDeliveryRows([]);
       setConfirmDelete(false);
@@ -277,7 +279,7 @@ export default function AdminOrdersPage() {
           <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
             <h3 className="text-base font-bold text-[#1e2d3d] mb-2">Delete All Orders?</h3>
             <p className="text-sm text-gray-500 mb-5">
-              This will permanently delete all order records. This action cannot be undone.
+              This will clear all orders from the admin view. Customer order histories are not affected.
             </p>
             <div className="flex justify-end gap-3">
               <button
