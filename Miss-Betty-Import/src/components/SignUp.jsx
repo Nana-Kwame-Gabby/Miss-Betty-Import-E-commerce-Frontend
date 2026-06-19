@@ -14,6 +14,9 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
@@ -21,6 +24,13 @@ export default function SignUp() {
       provider: 'google',
       options: { redirectTo: window.location.origin + '/shop' },
     });
+  }
+
+  async function handleResend() {
+    setResending(true);
+    await supabase.auth.resend({ type: "signup", email });
+    setResending(false);
+    setResent(true);
   }
 
   async function handleSubmit(e) {
@@ -51,6 +61,7 @@ export default function SignUp() {
       password,
       options: {
         data: { full_name: fullName, phone },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
@@ -60,19 +71,14 @@ export default function SignUp() {
       return;
     }
 
-    const { error: customerError } = await supabase.from("customers").insert({
-      customer_name: fullName,
-      email,
-      telephone: phone,
-      auth_id: data.user.id,
-    });
-
-    if (customerError) {
-      setError(customerError.message);
+    if (!data.session) {
+      setVerificationSent(true);
       setLoading(false);
       return;
     }
 
+    // Email confirmations are disabled in Supabase — user is auto-confirmed.
+    console.warn("Email confirmations are disabled in Supabase. Enable them in Authentication → Providers → Email.");
     navigate("/shop");
   }
 
@@ -80,6 +86,37 @@ export default function SignUp() {
     "w-full border border-gray-300 rounded-2xl px-4 py-2.5 sm:py-3 text-sm outline-none focus:border-[#F2AA25]";
 
   const labelClass = "block font-semibold text-[#1e2d3d] mb-1.5 text-xs sm:text-sm";
+
+  if (verificationSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-6">
+        <div className="bg-white rounded-2xl shadow-lg w-full max-w-md px-5 py-8 sm:px-8 flex flex-col items-center text-center">
+          <img src={logo} alt="Miss Betty Import Logo" className="h-16 sm:h-20 mx-auto mb-4" />
+          <h1 className="font-bold text-xl text-[#1e2d3d] mb-2">Check your email</h1>
+          <p className="text-sm text-gray-500 mb-1">We sent a verification link to:</p>
+          <p className="font-semibold text-[#1e2d3d] mb-5 text-sm">{email}</p>
+          <p className="text-xs text-gray-400 mb-6">
+            Click the link in that email to verify your account and gain access to the platform. Check your spam folder if you don't see it.
+          </p>
+          {resent ? (
+            <p className="text-xs text-green-600 font-semibold mb-4">Verification email resent!</p>
+          ) : (
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="w-full py-2.5 rounded-2xl text-sm font-bold text-white mb-3 disabled:opacity-60"
+              style={{ backgroundColor: "#F2AA25" }}
+            >
+              {resending ? "Sending…" : "Resend verification email"}
+            </button>
+          )}
+          <Link to="/login" className="text-xs text-gray-400 hover:text-gray-600 underline">
+            Back to login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-6">
@@ -109,7 +146,6 @@ export default function SignUp() {
           Join Miss Betty Imports today
         </p>
 
-        {/* Google sign-up */}
         <button
           type="button"
           onClick={handleGoogleSignIn}

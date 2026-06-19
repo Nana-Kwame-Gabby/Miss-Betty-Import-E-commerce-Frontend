@@ -33,6 +33,8 @@ import AdminProductRequestsPage from "./pages/admin/AdminProductRequestsPage";
 import AdminBulkSmsPage from "./pages/admin/AdminBulkSmsPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import ProductRequestPage from "./pages/ProductRequestPage";
+import AuthCallbackPage from "./pages/AuthCallbackPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
 
 function LoadingSpinner() {
   return (
@@ -50,9 +52,10 @@ function PublicOnlyRoute() {
 }
 
 function ProtectedLayout() {
-  const { session, loading, isAdmin } = useAuth();
+  const { session, loading, isAdmin, emailVerified } = useAuth();
   if (loading) return <LoadingSpinner />;
   if (!session) return <Navigate to="/login" replace />;
+  if (!emailVerified) return <Navigate to="/verify-email" replace />;
   if (isAdmin) return <Navigate to="/admin" replace />;
   return <Outlet />;
 }
@@ -79,6 +82,8 @@ function App() {
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
               <Route path="/terms" element={<TermsAndConditionsPage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
               {/* Public-only — redirect to /shop if already logged in */}
               <Route element={<PublicOnlyRoute />}>
                 <Route path="/login" element={<LoginPage />} />
