@@ -131,24 +131,36 @@ export default function CheckoutPage() {
         throw new Error(fnData?.error || "Failed to start payment. Please try again.");
       }
 
-      // 4. Save pending order data for the confirmation page to use after redirect
+      // 4. Persist pending order to DB so the callback can create the order server-side
+      //    even if the customer closes the browser before reaching the confirmation page.
+      const pendingItems = checkoutItems.map(item => ({
+        id:                item.id,
+        product_name:      item.product_name,
+        product_image_url: item.product_image_url || "",
+        unit_price:        item.unit_price,
+        original_price:    item.original_price ?? null,
+        cost_price:        item.cost_price  ?? 0,
+        profit:            item.profit      ?? 0,
+        quantity:          item.quantity,
+        size:              item.size   || null,
+        colour:            item.colour || null,
+        cartKey:           item.cartKey,
+      }));
+
+      const { error: pendingError } = await supabase.from('pending_orders').insert({
+        order_id:    orderId,
+        customer_id: cust.customer_id,
+        form_data:   form,
+        items:       pendingItems,
+      });
+      if (pendingError) throw new Error("Could not save order. Please try again.");
+
+      // Keep sessionStorage as a fallback for the confirmation page polling
       sessionStorage.setItem(`pending_order_${orderId}`, JSON.stringify({
         customerId: cust.customer_id,
         orderId,
         form,
-        items: checkoutItems.map(item => ({
-          id:                item.id,
-          product_name:      item.product_name,
-          product_image_url: item.product_image_url || "",
-          unit_price:        item.unit_price,
-          original_price:    item.original_price ?? null,
-          cost_price:        item.cost_price  ?? 0,
-          profit:            item.profit      ?? 0,
-          quantity:          item.quantity,
-          size:              item.size   || null,
-          colour:            item.colour || null,
-          cartKey:           item.cartKey,
-        })),
+        items: pendingItems,
       }));
 
       // 5. Open Hubtel checkout in iframe overlay

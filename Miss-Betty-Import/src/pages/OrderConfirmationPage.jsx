@@ -6,7 +6,7 @@ import { useCart } from "../context/CartContext";
 export default function OrderConfirmationPage() {
   const [searchParams] = useSearchParams();
   const { state } = useLocation();
-  const { clearCart } = useCart();
+  const { clearCart, removeCartKeys } = useCart();
 
   const urlOrderId    = searchParams.get("orderId");
   const hubtelStatus  = searchParams.get("status"); // "success" | "cancelled" | "failed"
@@ -28,25 +28,89 @@ export default function OrderConfirmationPage() {
     if (ranRef.current) return;
     ranRef.current = true;
 
-    async function createOrder() {
-      const key    = `pending_order_${urlOrderId}`;
-      const saved  = JSON.parse(sessionStorage.getItem(key) || "null");
+    async function fetchOrderFromDB(orderId) {
+      const { data: orderRows } = await supabase
+        .from("orders")
+        .select("*, products(product_name, product_image_url)")
+        .eq("order_id", orderId);
+      if (!orderRows?.length) return null;
+
+      const { data: custRows } = await supabase
+        .from("customers")
+        .select("customer_name, email, telephone")
+        .eq("customer_id", orderRows[0].customer_id)
+        .single();
+
+      const items = orderRows.map(r => ({
+        cartKey:           String(r.id),
+        id:                r.product_id,
+        product_name:      r.products?.product_name ?? `Product #${r.product_id}`,
+        product_image_url: r.products?.product_image_url ?? "",
+        unit_price:        Number(r.unit_price),
+        quantity:          r.quantity,
+        size:              r.size,
+        colour:            r.colour,
+      }));
+
+      return {
+        form: {
+          fullName: custRows?.customer_name ?? "",
+          email:    custRows?.email         ?? "",
+          phone:    custRows?.telephone      ?? "",
+          region:   orderRows[0].delivery_region ?? "",
+          town:     orderRows[0].delivery_town   ?? "",
+        },
+        items,
+        subtotal: items.reduce((s, i) => s + i.unit_price * i.quantity, 0),
+        orderId,
+      };
+    }
+
+    async function processOrder() {
+      // Primary path: poll DB for the order created by the hubtel-callback webhook.
+      // The callback fires server-to-server and may complete slightly before or after
+      // the browser redirect lands here — polling handles the timing gap.
+      const MAX_POLLS = 8;
+      const POLL_MS   = 2000;
+      let dbOrder = null;
+
+      for (let i = 0; i < MAX_POLLS; i++) {
+        dbOrder = await fetchOrderFromDB(urlOrderId);
+        if (dbOrder) break;
+        if (i < MAX_POLLS - 1) await new Promise(r => setTimeout(r, POLL_MS));
+      }
+
+      if (dbOrder) {
+        const { data: pendingRows } = await supabase
+          .from("pending_orders").select("items").eq("order_id", urlOrderId).limit(1);
+        const keys = (pendingRows?.[0]?.items || [])
+          .map(i => i.cartKey).filter(k => k && !k.startsWith("buynow-"));
+        keys.length ? removeCartKeys(keys) : clearCart();
+        sessionStorage.removeItem(`pending_order_${urlOrderId}`);
+        setOrderData(dbOrder);
+        setPhase("ready");
+        return;
+      }
+
+      // Fallback: callback didn't fire within the polling window.
+      // Use sessionStorage data (saved by CheckoutPage) as a safety net.
+      const key   = `pending_order_${urlOrderId}`;
+      const saved = JSON.parse(sessionStorage.getItem(key) || "null");
 
       if (saved) {
-        // First-time success: create order + invoice from saved data
         const orderRows = saved.items.map(item => ({
-          order_id:        urlOrderId,
-          customer_id:     saved.customerId,
-          product_id:      item.id,
-          quantity:        item.quantity,
-          unit_price:      item.unit_price,
-          cost_price:      item.cost_price ?? 0,
-          profit:          item.profit     ?? 0,
-          size:            item.size,
-          colour:          item.colour,
-          status:          "Ordered",
-          delivery_region: saved.form.region,
-          delivery_town:   saved.form.town,
+          order_id:          urlOrderId,
+          customer_id:       saved.customerId,
+          product_id:        item.id,
+          quantity:          item.quantity,
+          unit_price:        item.unit_price,
+          cost_price:        item.cost_price ?? 0,
+          profit:            item.profit     ?? 0,
+          size:              item.size,
+          colour:            item.colour,
+          status:            "Ordered",
+          delivery_region:   saved.form.region,
+          delivery_town:     saved.form.town,
           can_edit_delivery: true,
         }));
 
@@ -61,68 +125,51 @@ export default function OrderConfirmationPage() {
           total:         item.unit_price * item.quantity,
         }));
 
-        await supabase.from("orders").insert(orderRows);
-        await supabase.from("invoices").insert(invoiceRows);
+        // Double-check idempotency before inserting
+        const { data: alreadyExists } = await supabase
+          .from("orders").select("order_id").eq("order_id", urlOrderId).limit(1);
+
+        if (!alreadyExists?.length) {
+          await supabase.from("orders").insert(orderRows);
+          await supabase.from("invoices").insert(invoiceRows);
+        }
+
+        const keys = (saved.items || [])
+          .map(i => i.cartKey).filter(k => k && !k.startsWith("buynow-"));
+        keys.length ? removeCartKeys(keys) : clearCart();
         sessionStorage.removeItem(key);
-        clearCart();
 
         const subtotal = saved.items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
         setOrderData({ form: saved.form, items: saved.items, subtotal, orderId: urlOrderId });
         setPhase("ready");
       } else {
-        // Page refreshed after order already created — fetch from DB
-        const { data: orderRows } = await supabase
-          .from("orders")
-          .select("*, products(product_name, product_image_url)")
-          .eq("order_id", urlOrderId);
-
-        if (!orderRows?.length) { setPhase("no-order"); return; }
-
-        const { data: custRows } = await supabase
-          .from("customers")
-          .select("customer_name, email, telephone")
-          .eq("customer_id", orderRows[0].customer_id)
-          .single();
-
-        const items = orderRows.map(r => ({
-          cartKey:           String(r.id),
-          id:                r.product_id,
-          product_name:      r.products?.product_name ?? `Product #${r.product_id}`,
-          product_image_url: r.products?.product_image_url ?? "",
-          unit_price:        Number(r.unit_price),
-          quantity:          r.quantity,
-          size:              r.size,
-          colour:            r.colour,
-        }));
-
-        const subtotal = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
-
-        setOrderData({
-          form: {
-            fullName: custRows?.customer_name ?? "",
-            email:    custRows?.email         ?? "",
-            phone:    custRows?.telephone      ?? "",
-            region:   orderRows[0].delivery_region ?? "",
-            town:     orderRows[0].delivery_town   ?? "",
-          },
-          items,
-          subtotal,
-          orderId: urlOrderId,
-        });
-        setPhase("ready");
+        // No sessionStorage either — order may have been created by callback after
+        // polling ended. Do one final DB check.
+        const finalCheck = await fetchOrderFromDB(urlOrderId);
+        if (finalCheck) {
+          const { data: pendingRows } = await supabase
+            .from("pending_orders").select("items").eq("order_id", urlOrderId).limit(1);
+          const keys = (pendingRows?.[0]?.items || [])
+            .map(i => i.cartKey).filter(k => k && !k.startsWith("buynow-"));
+          keys.length ? removeCartKeys(keys) : clearCart();
+          setOrderData(finalCheck);
+          setPhase("ready");
+        } else {
+          setPhase("no-order");
+        }
       }
     }
 
-    createOrder();
-  }, [phase, urlOrderId, clearCart]);
+    processOrder();
+  }, [phase, urlOrderId, clearCart, removeCartKeys]);
 
   if (phase === "processing") {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
         <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 max-w-sm w-full text-center">
           <div className="w-12 h-12 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <h2 className="text-lg font-bold text-[#1e2d3d] mb-1">Placing Your Order</h2>
-          <p className="text-sm text-gray-400">Just a moment…</p>
+          <h2 className="text-lg font-bold text-[#1e2d3d] mb-1">Processing Your Payment</h2>
+          <p className="text-sm text-gray-400">Confirming your order, please don't close this page…</p>
         </div>
       </div>
     );

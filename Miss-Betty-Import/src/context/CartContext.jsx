@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef } from "react";
 import { hasDiscount, getEffectivePrice } from "../lib/priceUtils";
 import { useAuth } from "./AuthContext";
+import { supabase } from "../lib/supabase";
 
 const CartContext = createContext();
 
@@ -120,6 +121,45 @@ export function CartProvider({ children }) {
     setCartItems([]);
   }
 
+  function removeCartKeys(keys) {
+    const keySet = new Set(keys);
+    setCartItems(prev => prev.filter(item => !keySet.has(item.cartKey)));
+  }
+
+  // On login, clean up any cart items that were successfully purchased (server-side callback
+  // may have created the order before the customer reached the confirmation page).
+  useEffect(() => {
+    if (!storageKey || !user) return;
+
+    const cleanedKey = `mbimport_cleaned_orders_${user.id}`;
+    const alreadyCleaned = JSON.parse(localStorage.getItem(cleanedKey) || '[]');
+
+    supabase
+      .from('pending_orders')
+      .select('order_id, items')
+      .not('processed_at', 'is', null)
+      .then(({ data }) => {
+        if (!data?.length) return;
+        const fresh = data.filter(p => !alreadyCleaned.includes(p.order_id));
+        if (!fresh.length) return;
+
+        const keysToRemove = [];
+        fresh.forEach(p =>
+          (p.items || []).forEach(item => {
+            if (item.cartKey && !item.cartKey.startsWith('buynow-'))
+              keysToRemove.push(item.cartKey);
+          })
+        );
+
+        if (keysToRemove.length) removeCartKeys(keysToRemove);
+
+        localStorage.setItem(
+          cleanedKey,
+          JSON.stringify([...alreadyCleaned, ...fresh.map(p => p.order_id)])
+        );
+      });
+  }, [storageKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
   const totalSavings = cartItems.reduce((sum, item) =>
@@ -127,7 +167,7 @@ export function CartProvider({ children }) {
       ? (item.original_price - item.unit_price) * item.quantity : 0), 0);
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart, addMultipleToCart, removeFromCart, updateQuantity, updateVariant, clearCart, totalItems, subtotal, totalSavings }}>
+    <CartContext.Provider value={{ cartItems, addToCart, addMultipleToCart, removeFromCart, updateQuantity, updateVariant, clearCart, removeCartKeys, totalItems, subtotal, totalSavings }}>
       {children}
     </CartContext.Provider>
   );
