@@ -30,10 +30,21 @@ export function UserProvider({ children }) {
       data: { phone, delivery_region: region, delivery_town: town },
     });
     if (session?.user?.id) {
-      await supabase
+      const { data: customer } = await supabase
         .from("customers")
         .update({ telephone: phone })
-        .eq("auth_id", session.user.id);
+        .eq("auth_id", session.user.id)
+        .select("customer_id")
+        .single();
+
+      if (customer?.customer_id) {
+        await supabase
+          .from("orders")
+          .update({ delivery_region: region, delivery_town: town })
+          .eq("customer_id", customer.customer_id)
+          .eq("can_edit_delivery", true)
+          .eq("deleted_by_admin", false);
+      }
     }
   }
 
