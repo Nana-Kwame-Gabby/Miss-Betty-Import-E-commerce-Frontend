@@ -31,6 +31,7 @@ import AdminInvoicesPage from "./pages/admin/AdminInvoicesPage";
 import AdminShippingFeesPage from "./pages/admin/AdminShippingFeesPage";
 import AdminProductRequestsPage from "./pages/admin/AdminProductRequestsPage";
 import AdminBulkSmsPage from "./pages/admin/AdminBulkSmsPage";
+import AdminAvailableOrdersPage from "./pages/admin/AdminAvailableOrdersPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import ProductRequestPage from "./pages/ProductRequestPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
@@ -85,11 +86,11 @@ function App() {
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
               {/* Public-only — redirect to /shop if already logged in */}
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route element={<PublicOnlyRoute />}>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
               </Route>
 
               {/* Admin — role-gated */}
@@ -102,6 +103,7 @@ function App() {
                   <Route path="/admin/shipping-fees" element={<AdminShippingFeesPage />} />
                   <Route path="/admin/product-requests" element={<AdminProductRequestsPage />} />
                   <Route path="/admin/bulk-sms" element={<AdminBulkSmsPage />} />
+                  <Route path="/admin/available-orders" element={<AdminAvailableOrdersPage />} />
                 </Route>
               </Route>
 

@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 
 function buildFeeGroups(rows, existingFees) {
   const groupMap = {};
-  rows.forEach(row => {
+  rows.filter(r => r.products?.product_status?.status_name !== 'Available').forEach(row => {
     const key = `${row.product_id}::${row.size ?? ''}`;
     if (!groupMap[key]) {
       groupMap[key] = {
@@ -73,7 +73,7 @@ export default function AdminShippingFeesPage() {
     const [{ data }, { data: existingFees }] = await Promise.all([
       supabase
         .from('orders')
-        .select('product_id, size, quantity, shipping_fee_paid, created_at, products(product_name), customers(customer_name)')
+        .select('product_id, size, quantity, shipping_fee_paid, created_at, products(product_name, product_status(status_name)), customers(customer_name)')
         .eq('deleted_by_admin', false)
         .order('created_at', { ascending: false }),
       supabase.from('product_size_shipping_fees').select('*'),

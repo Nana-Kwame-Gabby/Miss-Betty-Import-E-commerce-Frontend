@@ -8,8 +8,6 @@ const PROCUREMENT_COLORS = {
   "Not Ordered": "bg-gray-100 text-gray-500",
 };
 
-const FILTERS = ["All", "Pre-order"];
-
 function groupByProduct(rows) {
   const productMap = {};
   const deliverySet = new Set();
@@ -22,7 +20,6 @@ function groupByProduct(rows) {
       productMap[pid] = {
         product_id: pid,
         product_name: row.products?.product_name ?? `Product #${pid}`,
-        product_status_name: row.products?.product_status?.status_name ?? null,
         procurement_status: row.products?.procurement_status ?? 'Not Ordered',
         sizeColourMap: {},
         total_quantity: 0,
@@ -53,12 +50,11 @@ function groupByProduct(rows) {
   return { productRows: Object.values(productMap), deliveryRows };
 }
 
-export default function AdminOrdersPage() {
+export default function AdminAvailableOrdersPage() {
   const [productRows, setProductRows] = useState([]);
   const [deliveryRows, setDeliveryRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
-  const [filter, setFilter] = useState("All");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -72,10 +68,10 @@ export default function AdminOrdersPage() {
       .eq('deleted_by_admin', false)
       .order('created_at', { ascending: false });
 
-    const preOrderRows = (data ?? []).filter(
-      r => r.products?.product_status?.status_name === 'Pre-order'
+    const availableRows = (data ?? []).filter(
+      r => r.products?.product_status?.status_name === 'Available'
     );
-    const { productRows: pr, deliveryRows: dr } = groupByProduct(preOrderRows);
+    const { productRows: pr, deliveryRows: dr } = groupByProduct(availableRows);
     setProductRows(pr);
     setDeliveryRows(dr);
     setLoading(false);
@@ -89,10 +85,6 @@ export default function AdminOrdersPage() {
     ));
     setUpdatingId(null);
   }
-
-  const filteredProducts = filter === "All"
-    ? productRows
-    : productRows.filter(r => r.product_status_name === filter);
 
   async function handleDeleteAll() {
     setDeleting(true);
@@ -112,7 +104,7 @@ export default function AdminOrdersPage() {
   }
 
   function handleDownloadExcel() {
-    const rows = filteredProducts.flatMap(row =>
+    const rows = productRows.flatMap(row =>
       Object.entries(row.sizeColourMap).flatMap(([size, colourMap]) =>
         Object.entries(colourMap).map(([colour, qty]) => ({
           'Product Name':  row.product_name,
@@ -123,14 +115,14 @@ export default function AdminOrdersPage() {
     );
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Product Orders');
-    XLSX.writeFile(wb, 'Miss-Betty-Product-Orders.xlsx');
+    XLSX.utils.book_append_sheet(wb, ws, 'Available Orders');
+    XLSX.writeFile(wb, 'Miss-Betty-Available-Orders.xlsx');
   }
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Pre-Order Goods</h1>
-      <p className="text-sm text-gray-400 mb-6">Manage pre-order product orders</p>
+      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Available Goods Orders</h1>
+      <p className="text-sm text-gray-400 mb-6">Manage and dispatch in-stock orders</p>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -142,26 +134,12 @@ export default function AdminOrdersPage() {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
             <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-sm font-bold text-[#1e2d3d]">
-                Product Orders ({filteredProducts.length})
+                Product Orders ({productRows.length})
               </h2>
               <div className="flex items-center gap-2">
-                {FILTERS.map(f => (
-                  <button
-                    key={f}
-                    onClick={() => setFilter(f)}
-                    className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-                      filter === f
-                        ? "bg-[#F2AA25] text-white border-[#F2AA25]"
-                        : "border-gray-200 text-gray-500 hover:border-[#F2AA25] hover:text-[#F2AA25]"
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-                <span className="w-px h-5 bg-gray-200 mx-1" />
                 <button
                   onClick={handleDownloadExcel}
-                  disabled={filteredProducts.length === 0}
+                  disabled={productRows.length === 0}
                   className="flex items-center gap-1.5 bg-[#1e2d3d] text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -184,10 +162,8 @@ export default function AdminOrdersPage() {
               </div>
             </div>
 
-            {filteredProducts.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 text-sm">
-                No orders{filter !== "All" ? ` for "${filter}" products` : ""}.
-              </div>
+            {productRows.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 text-sm">No available goods orders.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -200,7 +176,7 @@ export default function AdminOrdersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProducts.map(row => (
+                    {productRows.map(row => (
                       <tr key={row.product_id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                         <td className="px-5 py-3 font-semibold text-[#1e2d3d]">{row.product_name}</td>
                         <td className="px-4 py-3 hidden sm:table-cell">
@@ -276,6 +252,7 @@ export default function AdminOrdersPage() {
           </div>
         </>
       )}
+
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">

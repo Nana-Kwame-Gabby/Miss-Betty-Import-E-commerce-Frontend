@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabase";
 function groupOrdersByProductSize(orders, feeMap) {
   const groups = {};
   for (const o of orders) {
+    if (o.products?.product_status?.status_name === 'Available') continue;
     const key = `${o.product_id}::${o.size ?? ''}`;
     if (!groups[key]) {
       groups[key] = {
@@ -123,7 +124,7 @@ export default function ShippingFeePage() {
       // Load unpaid orders + fee rates
       const [{ data: orderData }, { data: feeData }] = await Promise.all([
         supabase.from('orders')
-          .select('*, products(product_name)')
+          .select('*, products(product_name, product_status(status_name))')
           .eq('customer_id', cust.customer_id)
           .eq('shipping_fee_paid', false)
           .order('created_at', { ascending: false }),

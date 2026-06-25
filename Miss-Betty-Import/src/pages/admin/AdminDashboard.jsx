@@ -103,7 +103,7 @@ export default function AdminDashboard() {
         supabase.from('shipping_fee_payments')
           .select('customer_id, amount_paid, paid_at, product_id, size, customers(customer_name), products(product_name)')
           .order('paid_at', { ascending: false }),
-        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit, shipping_fee, shipping_fee_paid, customers(customer_name), products(product_name)').eq('deleted_by_admin', false),
+        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit, shipping_fee, shipping_fee_paid, customers(customer_name), products(product_name, product_status(status_name))').eq('deleted_by_admin', false),
         supabase.from('product_size_shipping_fees').select('product_id, size, shipping_fee'),
       ]);
 
@@ -119,15 +119,19 @@ export default function AdminDashboard() {
       let totalCostPrice = 0;
       let totalProfit    = 0;
       (allOrderData ?? []).forEach(o => {
-        const qty  = Number(o.quantity ?? 1);
-        const fee  = o.shipping_fee != null
+        const isAvailable = o.products?.product_status?.status_name === 'Available';
+        const qty = Number(o.quantity ?? 1);
+        totalCostPrice += Number(o.cost_price ?? 0) * qty;
+        totalProfit    += Number(o.profit     ?? 0) * qty;
+
+        if (isAvailable) return;
+
+        const fee = o.shipping_fee != null
           ? Number(o.shipping_fee)
           : (feeMap[`${o.product_id}::${o.size ?? ''}`] ?? 0);
         totalByCustomer[o.customer_id] = (totalByCustomer[o.customer_id] ?? 0) + fee * qty;
         const pKey = `${o.customer_id}::${o.product_id}::${o.size ?? ''}`;
         totalByProductCust[pKey] = (totalByProductCust[pKey] ?? 0) + fee * qty;
-        totalCostPrice += Number(o.cost_price ?? 0) * qty;
-        totalProfit    += Number(o.profit     ?? 0) * qty;
       });
 
       // Compute running balance per customer (sorted chronologically, then re-sorted newest-first)
@@ -159,6 +163,7 @@ export default function AdminDashboard() {
       // Build customer-centric shipping data
       const custMap = {};
       (allOrderData ?? []).forEach(o => {
+        if (o.products?.product_status?.status_name === 'Available') return;
         if (!custMap[o.customer_id]) {
           custMap[o.customer_id] = {
             customerId: o.customer_id,

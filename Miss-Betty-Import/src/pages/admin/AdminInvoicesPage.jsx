@@ -11,11 +11,27 @@ const STATUS_COLORS = {
   Cancelled:  "bg-red-100 text-red-700",
 };
 
-function groupByInvoiceId(rows, customerNameMap = {}) {
+const PRODUCT_TYPE_COLORS = {
+  'Available': 'bg-green-100 text-green-700',
+  'Pre-order': 'bg-teal-100 text-teal-700',
+};
+function ProductTypeBadge({ status }) {
+  if (!status) return <span className="text-gray-400 text-xs">—</span>;
+  return (
+    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${PRODUCT_TYPE_COLORS[status] ?? 'bg-gray-100 text-gray-500'}`}>
+      {status}
+    </span>
+  );
+}
+
+function groupByInvoiceId(rows, customerNameMap = {}, productTypeMap = {}) {
   const map = {};
   for (const row of rows) {
     if (!map[row.invoice_id]) map[row.invoice_id] = [];
-    map[row.invoice_id].push(row);
+    map[row.invoice_id].push({
+      ...row,
+      product_status_name: productTypeMap[row.product_name] ?? null,
+    });
   }
   return Object.entries(map).map(([invoice_id, items]) => ({
     invoice_id,
@@ -69,6 +85,7 @@ function InvoiceModal({ invoice, onClose }) {
                 <th className="text-left py-2 text-xs font-semibold text-[#1e2d3d] uppercase">Product</th>
                 <th className="text-center py-2 text-xs font-semibold text-[#1e2d3d] uppercase hidden sm:table-cell">Size</th>
                 <th className="text-center py-2 text-xs font-semibold text-[#1e2d3d] uppercase hidden sm:table-cell">Colour</th>
+                <th className="text-center py-2 text-xs font-semibold text-[#1e2d3d] uppercase hidden sm:table-cell">Type</th>
                 <th className="text-center py-2 text-xs font-semibold text-[#1e2d3d] uppercase">Qty</th>
                 <th className="text-right py-2 text-xs font-semibold text-[#1e2d3d] uppercase">Unit Price</th>
                 <th className="text-right py-2 text-xs font-semibold text-[#1e2d3d] uppercase">Total</th>
@@ -80,6 +97,9 @@ function InvoiceModal({ invoice, onClose }) {
                   <td className="py-2.5 text-[#1e2d3d]">{item.product_name}</td>
                   <td className="py-2.5 text-center text-gray-500 hidden sm:table-cell">{item.size ?? '—'}</td>
                   <td className="py-2.5 text-center text-gray-500 hidden sm:table-cell">{item.colour ?? '—'}</td>
+                  <td className="py-2.5 text-center hidden sm:table-cell">
+                    <ProductTypeBadge status={item.product_status_name} />
+                  </td>
                   <td className="py-2.5 text-center text-gray-500">{item.quantity}</td>
                   <td className="py-2.5 text-right text-gray-500">GHS {Number(item.unit_price).toLocaleString()}</td>
                   <td className="py-2.5 text-right font-semibold text-[#1e2d3d]">GHS {Number(item.total).toLocaleString()}</td>
@@ -88,7 +108,7 @@ function InvoiceModal({ invoice, onClose }) {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-[#1e2d3d]">
-                <td colSpan={3} className="py-3 hidden sm:table-cell" />
+                <td colSpan={4} className="py-3 hidden sm:table-cell" />
                 <td colSpan={2} className="py-3 text-right font-bold text-[#1e2d3d] text-base">Grand Total</td>
                 <td className="py-3 text-right font-bold text-[#F2AA25] text-base">GHS {invoice.total.toLocaleString()}</td>
               </tr>
@@ -129,9 +149,10 @@ export default function AdminInvoicesPage() {
 
   useEffect(() => {
     async function loadInvoices() {
-      const [{ data: rawData }, { data: orderRows }] = await Promise.all([
+      const [{ data: rawData }, { data: orderRows }, { data: productData }] = await Promise.all([
         supabase.from('invoices').select('*').order('date', { ascending: false }),
         supabase.from('orders').select('order_id, status, customer_id, customers(customer_name)').order('order_id'),
+        supabase.from('products').select('product_name, product_status(status_name)'),
       ]);
 
       // Build status map and customer name map from orders
@@ -144,7 +165,15 @@ export default function AdminInvoicesPage() {
         }
       });
 
-      const grouped = groupByInvoiceId(rawData ?? [], customerNameMap);
+      // Build product name → status map
+      const productTypeMap = {};
+      (productData ?? []).forEach(p => {
+        if (p.product_name) {
+          productTypeMap[p.product_name] = p.product_status?.status_name ?? null;
+        }
+      });
+
+      const grouped = groupByInvoiceId(rawData ?? [], customerNameMap, productTypeMap);
 
       setInvoices(grouped.map(inv => ({
         ...inv,
@@ -186,6 +215,7 @@ export default function AdminInvoicesPage() {
     const rows = invoices.flatMap(inv =>
       inv.items.map(item => ({
         Customer:            inv.customer_name ?? '—',
+        'Product Type':      item.product_status_name ?? '—',
         Product:             item.product_name ?? '—',
         Size:                item.size ?? '—',
         Colour:              item.colour ?? '—',
@@ -273,6 +303,7 @@ export default function AdminInvoicesPage() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Invoice #</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Date</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Product Type</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Items</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Total</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
@@ -286,6 +317,14 @@ export default function AdminInvoicesPage() {
                   <td className="px-4 py-3 text-[#1e2d3d]">{inv.customer_name}</td>
                   <td className="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">
                     {inv.date ? new Date(inv.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                  </td>
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    {(() => {
+                      const types = [...new Set(inv.items.map(i => i.product_status_name).filter(Boolean))];
+                      if (types.length === 0) return <span className="text-gray-400 text-xs">—</span>;
+                      if (types.length === 1) return <ProductTypeBadge status={types[0]} />;
+                      return <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 whitespace-nowrap">Mixed</span>;
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-gray-400 hidden md:table-cell">{inv.items.length} item{inv.items.length !== 1 ? 's' : ''}</td>
                   <td className="px-4 py-3 text-right font-bold text-[#F2AA25]">GHS {inv.total.toLocaleString()}</td>

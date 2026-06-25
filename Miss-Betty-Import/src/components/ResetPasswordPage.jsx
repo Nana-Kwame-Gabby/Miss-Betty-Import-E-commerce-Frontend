@@ -6,6 +6,7 @@ import { supabase } from "../lib/supabase";
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  const [linkError, setLinkError] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,8 +14,41 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "RECOVERY") setReady(true);
+    const code = new URLSearchParams(window.location.search).get("code");
+
+    if (code) {
+      // Remove code from URL immediately — prevents re-exchange if user refreshes the page
+      window.history.replaceState({}, "", window.location.pathname);
+
+      supabase.auth.exchangeCodeForSession(code)
+        .then(({ data: { session }, error: exchangeError }) => {
+          if (!exchangeError && session) {
+            setReady(true);
+          } else {
+            setLinkError(
+              exchangeError?.message?.toLowerCase().includes("expired")
+                ? "This reset link has expired. Please request a new one."
+                : "This reset link has already been used or is invalid. Please request a new one."
+            );
+          }
+        })
+        .catch(() => {
+          setLinkError("This reset link could not be verified. Please request a new one.");
+        });
+    } else {
+      // No code in URL — check for an existing recovery session (e.g. user navigated back)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          setReady(true);
+        } else {
+          setLinkError("No reset link found. Please request a new password reset.");
+        }
+      });
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Accept both RECOVERY and SIGNED_IN — Supabase may fire either after code exchange
+      if ((event === "RECOVERY" || event === "SIGNED_IN") && session) setReady(true);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -90,6 +124,30 @@ export default function ResetPasswordPage() {
               Redirecting you to login…
             </p>
           </div>
+        ) : linkError ? (
+          /* Link invalid / expired state */
+          <div className="w-full flex flex-col items-center text-center py-4">
+            <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <h1 className="font-bold text-lg sm:text-xl text-center mb-2" style={{ color: "#5c2d0e" }}>
+              Link Expired
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 text-center mb-5">
+              {linkError}
+            </p>
+            <Link
+              to="/forgot-password"
+              className="w-full text-center font-bold text-sm rounded-2xl py-2.5 text-white"
+              style={{ backgroundColor: "#F2AA25" }}
+            >
+              Request New Reset Link
+            </Link>
+          </div>
         ) : !ready ? (
           /* Verifying token state */
           <div className="w-full flex flex-col items-center text-center py-4">
@@ -99,12 +157,6 @@ export default function ResetPasswordPage() {
             </h1>
             <p className="text-xs sm:text-sm text-gray-500 text-center">
               Please wait a moment.
-            </p>
-            <p className="text-xs text-gray-400 text-center mt-4">
-              If this takes too long,{" "}
-              <Link to="/forgot-password" className="font-semibold" style={{ color: "#F2AA25" }}>
-                request a new link
-              </Link>
             </p>
           </div>
         ) : (
