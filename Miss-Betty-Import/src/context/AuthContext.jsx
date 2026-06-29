@@ -31,14 +31,21 @@ export function AuthProvider({ children }) {
         .eq('auth_id', u.id)
         .maybeSingle();
 
-      if (!existing) {
-        await supabase.from('customers').insert({
-          customer_name: u.user_metadata?.full_name || u.user_metadata?.name || '',
-          email: u.email,
-          telephone: u.user_metadata?.phone || '',
-          auth_id: u.id,
-        });
+      if (existing) return;
+
+      if (u.app_metadata?.provider === 'google') {
+        sessionStorage.setItem('oauth_denied', '1');
+        setSession(null);
+        await supabase.auth.signOut();
+        return;
       }
+
+      await supabase.from('customers').insert({
+        customer_name: u.user_metadata?.full_name || u.user_metadata?.name || '',
+        email: u.email,
+        telephone: u.user_metadata?.phone || '',
+        auth_id: u.id,
+      });
     }
 
     ensureCustomerRow();

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { colourMap } from "../data/mockData";
@@ -10,6 +10,7 @@ import MediaCarousel from "../components/MediaCarousel";
 import ReviewsSection from "../components/ReviewsSection";
 import AccountDropdown from "../components/AccountDropdown";
 import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
+import BottomNav from "../components/BottomNav";
 
 const CATEGORY_ICONS = {
   'Mother care items':               '👶',
@@ -123,6 +124,8 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   const { session } = useAuth();
   const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
+  const isPreorder = typeof product?.product_status === "string" && product.product_status.toLowerCase().includes("pre");
+  const blockedByPreorder = ordersClosed && isPreorder;
 
   const hasVariants = product.sizes.length > 0 || product.colours.length > 0;
 
@@ -189,7 +192,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
 
   function handleCheckout() {
     if (!session) { navigate("/login"); return; }
-    if (ordersClosed || pendingVariants.length === 0) return;
+    if (blockedByPreorder || pendingVariants.length === 0) return;
     commitToCart(() => navigate("/checkout"));
   }
 
@@ -202,7 +205,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
 
   function handleSimpleBuyNow() {
     if (!session) { navigate("/login"); return; }
-    if (ordersClosed) return;
+    if (blockedByPreorder) return;
     navigate("/checkout", {
       state: {
         buyNow: {
@@ -399,16 +402,16 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
                 {buyNow ? (
                   <button
                     onClick={handleCheckout}
-                    disabled={ordersClosed || pendingVariants.length === 0}
+                    disabled={blockedByPreorder || pendingVariants.length === 0}
                     className={`w-full font-semibold py-2 rounded-xl text-sm transition-opacity ${
-                      ordersClosed
+                      blockedByPreorder
                         ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                         : pendingVariants.length === 0
                         ? "bg-[#F2AA25]/40 text-white cursor-not-allowed"
                         : "bg-[#F2AA25] text-white hover:opacity-90"
                     }`}
                   >
-                    {ordersClosed ? "Orders Closed" : "Proceed to Checkout"}
+                    {blockedByPreorder ? "Pre-orders Closed" : "Proceed to Checkout"}
                   </button>
                 ) : (
                   <button
@@ -440,8 +443,8 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
                 <button onClick={() => setCurQty(q => q + 1)} className="px-3 py-2 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none">+</button>
               </div>
               {buyNow ? (
-                <button onClick={handleSimpleBuyNow} disabled={ordersClosed} className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-opacity ${ordersClosed ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-[#F2AA25] text-white hover:opacity-90"}`}>
-                  {ordersClosed ? "Orders Closed" : "Proceed to Checkout"}
+                <button onClick={handleSimpleBuyNow} disabled={blockedByPreorder} className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-opacity ${blockedByPreorder ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-[#F2AA25] text-white hover:opacity-90"}`}>
+                  {blockedByPreorder ? "Pre-orders Closed" : "Proceed to Checkout"}
                 </button>
               ) : (
                 <button onClick={handleSimpleAdd} className={`flex-1 font-semibold py-2 rounded-xl text-sm transition-colors ${added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"}`}>
@@ -604,6 +607,17 @@ export default function HomePage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const categoryRef = useRef(null);
+  const filterBarRef = useRef(null);
+  const [filterBarHeight, setFilterBarHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = filterBarRef.current;
+    if (!el) return;
+    setFilterBarHeight(el.offsetHeight);
+    const ro = new ResizeObserver(() => setFilterBarHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -721,98 +735,104 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Announcement bar */}
-      <div className="bg-[#F2AA25] py-1.5 overflow-hidden">
-        <div className="marquee-track">
-          {[1, 2].map(i => (
-            <span key={i} className="text-white font-semibold text-sm whitespace-nowrap px-8">
-              {announcementMessage || "Browse our latest imported products — quality items delivered to your door"}
-              &nbsp;&nbsp;&nbsp;✦&nbsp;&nbsp;&nbsp;
-              {announcementMessage || "Browse our latest imported products — quality items delivered to your door"}
-              &nbsp;&nbsp;&nbsp;✦&nbsp;&nbsp;&nbsp;
-            </span>
-          ))}
+      {/* Fixed sub-header: announcement banner + filters */}
+      <div ref={filterBarRef} className="fixed top-16 sm:top-[72px] left-0 right-0 z-30">
+        {/* Announcement banner */}
+        <div className="bg-[#F2AA25] py-1.5 overflow-hidden">
+          <div className="marquee-track">
+            {[1, 2].map(i => (
+              <span key={i} className="text-white font-semibold text-sm whitespace-nowrap px-8">
+                {announcementMessage || "Browse our latest imported products — quality items delivered to your door"}
+                &nbsp;&nbsp;&nbsp;✦&nbsp;&nbsp;&nbsp;
+                {announcementMessage || "Browse our latest imported products — quality items delivered to your door"}
+                &nbsp;&nbsp;&nbsp;✦&nbsp;&nbsp;&nbsp;
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Filter row */}
+        <div className="bg-gray-50 border-b border-gray-100 shadow-sm">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-3 flex-wrap">
+
+              {/* Categories dropdown */}
+              <div className="relative" ref={categoryRef}>
+                <button
+                  onClick={() => setCategoryMenuOpen(v => !v)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#1e2d3d] text-white hover:bg-[#2a3f54] transition-colors"
+                >
+                  <span>
+                    {activeCategory === "All"
+                      ? "🏷️ Categories"
+                      : `${CATEGORY_ICONS[activeCategory] ?? '🏷️'} ${activeCategory}`}
+                  </span>
+                  <svg
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${categoryMenuOpen ? 'rotate-180' : ''}`}
+                    xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+
+                <div className={`absolute left-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 z-50 w-56 overflow-y-auto max-h-80 transition-all duration-200 origin-top ${
+                  categoryMenuOpen
+                    ? 'opacity-100 scale-100 pointer-events-auto'
+                    : 'opacity-0 scale-95 pointer-events-none'
+                }`}>
+                  <button
+                    onClick={() => { setActiveCategory("All"); setCategoryMenuOpen(false); }}
+                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50 ${
+                      activeCategory === "All" ? "font-semibold text-[#F2AA25]" : "text-gray-700"
+                    }`}
+                  >
+                    <span>🏷️</span> All Categories
+                  </button>
+                  <div className="border-t border-gray-100" />
+                  {dbCategories.map(cat => (
+                    <button
+                      key={cat.category_id}
+                      onClick={() => { setActiveCategory(cat.category_name); setCategoryMenuOpen(false); }}
+                      className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50 ${
+                        activeCategory === cat.category_name
+                          ? "font-semibold text-[#F2AA25]"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      <span>{CATEGORY_ICONS[cat.category_name] ?? '🏷️'}</span>
+                      <span>{cat.category_name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-gray-400 text-sm">
+                {loadingProducts ? 'Loading…' : `${filtered.length} ${filtered.length === 1 ? "product" : "products"} found`}
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              {["All", "Available", "Pre-order"].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                    statusFilter === s
+                      ? "bg-[#F2AA25] text-white"
+                      : "border border-gray-300 text-gray-600 hover:border-[#F2AA25]"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Products section */}
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-4">
-        {/* Filter row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-3 flex-wrap">
-
-            {/* Categories dropdown */}
-            <div className="relative" ref={categoryRef}>
-              <button
-                onClick={() => setCategoryMenuOpen(v => !v)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#1e2d3d] text-white hover:bg-[#2a3f54] transition-colors"
-              >
-                <span>
-                  {activeCategory === "All"
-                    ? "🏷️ Categories"
-                    : `${CATEGORY_ICONS[activeCategory] ?? '🏷️'} ${activeCategory}`}
-                </span>
-                <svg
-                  className={`w-3.5 h-3.5 transition-transform duration-200 ${categoryMenuOpen ? 'rotate-180' : ''}`}
-                  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-
-              <div className={`absolute left-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 z-50 w-56 overflow-y-auto max-h-80 transition-all duration-200 origin-top ${
-                categoryMenuOpen
-                  ? 'opacity-100 scale-100 pointer-events-auto'
-                  : 'opacity-0 scale-95 pointer-events-none'
-              }`}>
-                <button
-                  onClick={() => { setActiveCategory("All"); setCategoryMenuOpen(false); }}
-                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50 ${
-                    activeCategory === "All" ? "font-semibold text-[#F2AA25]" : "text-gray-700"
-                  }`}
-                >
-                  <span>🏷️</span> All Categories
-                </button>
-                <div className="border-t border-gray-100" />
-                {dbCategories.map(cat => (
-                  <button
-                    key={cat.category_id}
-                    onClick={() => { setActiveCategory(cat.category_name); setCategoryMenuOpen(false); }}
-                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50 ${
-                      activeCategory === cat.category_name
-                        ? "font-semibold text-[#F2AA25]"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    <span>{CATEGORY_ICONS[cat.category_name] ?? '🏷️'}</span>
-                    <span>{cat.category_name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <p className="text-gray-400 text-sm">
-              {loadingProducts ? 'Loading…' : `${filtered.length} ${filtered.length === 1 ? "product" : "products"} found`}
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            {["All", "Available", "Pre-order"].map(s => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  statusFilter === s
-                    ? "bg-[#F2AA25] text-white"
-                    : "border border-gray-300 text-gray-600 hover:border-[#F2AA25]"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
+      <main style={{ paddingTop: filterBarHeight }} className="max-w-7xl mx-auto px-3 sm:px-6 pb-20">
 
         {loadingProducts ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
@@ -866,6 +886,8 @@ export default function HomePage() {
       {lightboxImage && (
         <ImageLightbox src={lightboxImage.src} alt={lightboxImage.alt} onClose={() => setLightboxImage(null)} />
       )}
+
+      <BottomNav />
 
       {/* Footer */}
       <footer className="bg-[#1e2d3d] text-white px-4 py-7">
