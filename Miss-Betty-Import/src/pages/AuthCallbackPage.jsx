@@ -7,13 +7,36 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get("code");
-    if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        navigate(error ? "/login" : "/shop", { replace: true });
-      });
-    } else {
+
+    if (!code) {
       navigate("/login", { replace: true });
+      return;
     }
+
+    let redirected = false;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (redirected) return;
+      if (event === "RECOVERY" && session) {
+        redirected = true;
+        navigate("/reset-password", { replace: true });
+      }
+    });
+
+    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+      if (error) {
+        navigate("/login", { replace: true });
+      } else if (!redirected) {
+        if (sessionStorage.getItem('pwd_reset')) {
+          sessionStorage.removeItem('pwd_reset');
+          navigate("/reset-password", { replace: true });
+        } else {
+          navigate("/shop", { replace: true });
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   return (

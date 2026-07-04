@@ -82,7 +82,7 @@ export default function ResetPasswordPage() {
 
     setSuccess(true);
     await supabase.auth.signOut();
-    setTimeout(() => navigate("/"), 2000);
+    setTimeout(() => navigate("/login"), 2000);
   }
 
   const inputClass =

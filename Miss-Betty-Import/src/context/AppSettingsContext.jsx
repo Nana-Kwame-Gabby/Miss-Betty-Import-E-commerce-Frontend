@@ -7,6 +7,9 @@ const AppSettingsContext = createContext({
   settingsLoading: true,
   toggleOrdersClosed: async () => {},
   updateAnnouncementMessage: async () => {},
+  promoActive: false,
+  promoMessage: "",
+  savePromoAlert: async () => {},
 });
 
 function AnnouncementModal({ visible, message }) {
@@ -78,19 +81,28 @@ function AnnouncementBanner({ visible, message }) {
 }
 
 export function AppSettingsProvider({ children }) {
-  const [ordersClosed,       setOrdersClosed]       = useState(false);
+  const [ordersClosed,        setOrdersClosed]        = useState(false);
   const [announcementMessage, setAnnouncementMessage] = useState("");
-  const [settingsLoading,    setSettingsLoading]    = useState(true);
+  const [settingsLoading,     setSettingsLoading]     = useState(true);
+  const [promoActive,         setPromoActive]         = useState(false);
+  const [promoMessage,        setPromoMessage]        = useState("");
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from("app_settings")
-        .select("setting_value_bool, setting_value_text")
-        .eq("setting_key", "orders_closed")
-        .single();
-      setOrdersClosed(data?.setting_value_bool ?? false);
-      setAnnouncementMessage(data?.setting_value_text ?? "");
+      const [ordersResult, promoResult] = await Promise.all([
+        supabase.from("app_settings")
+          .select("setting_value_bool, setting_value_text")
+          .eq("setting_key", "orders_closed")
+          .maybeSingle(),
+        supabase.from("app_settings")
+          .select("setting_value_bool, setting_value_text")
+          .eq("setting_key", "promo_alert")
+          .maybeSingle(),
+      ]);
+      setOrdersClosed(ordersResult.data?.setting_value_bool ?? false);
+      setAnnouncementMessage(ordersResult.data?.setting_value_text ?? "");
+      setPromoActive(promoResult.data?.setting_value_bool ?? false);
+      setPromoMessage(promoResult.data?.setting_value_text ?? "");
       setSettingsLoading(false);
     }
     load();
@@ -107,7 +119,22 @@ export function AppSettingsProvider({ children }) {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    const promoChannel = supabase
+      .channel("promo_alert_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "app_settings", filter: "setting_key=eq.promo_alert" },
+        (payload) => {
+          setPromoActive(payload.new.setting_value_bool ?? false);
+          setPromoMessage(payload.new.setting_value_text ?? "");
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(promoChannel);
+    };
   }, []);
 
   async function toggleOrdersClosed(value) {
@@ -126,8 +153,44 @@ export function AppSettingsProvider({ children }) {
       .eq("setting_key", "orders_closed");
   }
 
+  async function savePromoAlert(active, message) {
+    setPromoActive(active);
+    setPromoMessage(message);
+
+    const payload = {
+      setting_value_bool: active,
+      setting_value_text: message || null,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Check whether the promo_alert row exists, then UPDATE or INSERT.
+    // upsert(onConflict) is avoided because setting_key may not have a unique
+    // constraint — this explicit pattern works regardless of the schema.
+    const { data: existing } = await supabase
+      .from("app_settings")
+      .select("setting_key")
+      .eq("setting_key", "promo_alert")
+      .maybeSingle();
+
+    const { error } = existing
+      ? await supabase
+          .from("app_settings")
+          .update(payload)
+          .eq("setting_key", "promo_alert")
+      : await supabase
+          .from("app_settings")
+          .insert({ setting_key: "promo_alert", ...payload });
+
+    if (error) console.error("[PromoAlert] save error:", error.message);
+    return error ?? null;
+  }
+
   return (
-    <AppSettingsContext.Provider value={{ ordersClosed, announcementMessage, settingsLoading, toggleOrdersClosed, updateAnnouncementMessage }}>
+    <AppSettingsContext.Provider value={{
+      ordersClosed, announcementMessage, settingsLoading,
+      toggleOrdersClosed, updateAnnouncementMessage,
+      promoActive, promoMessage, savePromoAlert,
+    }}>
       {children}
       <AnnouncementModal visible={ordersClosed && !!announcementMessage} message={announcementMessage} />
       <AnnouncementBanner visible={ordersClosed && !!announcementMessage} message={announcementMessage} />

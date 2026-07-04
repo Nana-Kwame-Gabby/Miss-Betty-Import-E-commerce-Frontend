@@ -38,7 +38,7 @@ export function CartProvider({ children }) {
     const key          = `${product.id}-${size}-${colour}`;
     const unitPrice    = overridePrice     ?? product.unit_price;
     const costPrice    = sizeCostPrice     ?? product.cost_price ?? 0;
-    const profit       = sizeProfit        ?? product.profit     ?? 0;
+    const profit       = unitPrice - costPrice;
     const originalPrice = sizeOriginalPrice ?? null;
     setCartItems(prev => {
       const existing = prev.find(item => item.cartKey === key);
@@ -73,7 +73,7 @@ export function CartProvider({ children }) {
           );
         } else {
           items = [...items, {
-            ...product, unit_price: price, cost_price: costPrice, profit,
+            ...product, unit_price: price, cost_price: costPrice, profit: price - costPrice,
             original_price: originalPrice ?? null,
             quantity: qty, size, colour, cartKey: key,
           }];
@@ -95,7 +95,7 @@ export function CartProvider({ children }) {
       const newUnitPrice    = sizeEntry ? getEffectivePrice(sizeEntry) : item.unit_price;
       const newOriginalPrice = sizeEntry && hasDiscount(sizeEntry) ? (sizeEntry.selling_price ?? sizeEntry.price) : null;
       const newCostPrice    = sizeEntry?.cost_price ?? item.cost_price ?? 0;
-      const newProfit       = sizeEntry?.profit     ?? item.profit     ?? 0;
+      const newProfit       = newUnitPrice - newCostPrice;
 
       const existingAtNewKey = prev.find(i => i.cartKey === newKey);
       if (existingAtNewKey) {

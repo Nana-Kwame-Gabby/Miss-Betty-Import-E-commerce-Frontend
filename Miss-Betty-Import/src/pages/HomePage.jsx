@@ -595,7 +595,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
 export default function HomePage() {
   const { totalItems } = useCart();
   const { session } = useAuth();
-  const { ordersClosed, announcementMessage } = useAppSettings();
+  const { ordersClosed, announcementMessage, promoActive, promoMessage } = useAppSettings();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -677,6 +677,17 @@ export default function HomePage() {
         .marquee-track:hover {
           animation-play-state: paused;
         }
+        @keyframes promoSlide {
+          0%    { transform: translateX(60px);  opacity: 0; }
+          12%   { transform: translateX(0);     opacity: 1; }
+          72%   { transform: translateX(0);     opacity: 1; }
+          84%   { transform: translateX(-60px); opacity: 0; }
+          100%  { transform: translateX(-60px); opacity: 0; }
+        }
+        .promo-slide {
+          animation: promoSlide 3.5s ease-in-out infinite;
+          will-change: transform, opacity;
+        }
       `}</style>
 
       {/* Header */}
@@ -737,6 +748,18 @@ export default function HomePage() {
 
       {/* Fixed sub-header: announcement banner + filters */}
       <div ref={filterBarRef} className="fixed top-16 sm:top-[72px] left-0 right-0 z-30">
+        {/* Promo alert banner */}
+        {promoActive && promoMessage && (
+          <div className="flex justify-center items-center py-2.5 bg-[#1e2d3d] overflow-hidden">
+            <p
+              className="promo-slide text-xl font-extrabold tracking-wide text-center whitespace-nowrap select-none"
+              style={{ color: "#F2AA25", textShadow: "0 0 14px rgba(242,170,37,0.55), 0 1px 3px rgba(0,0,0,0.35)" }}
+            >
+              {promoMessage}
+            </p>
+          </div>
+        )}
+
         {/* Announcement banner */}
         <div className="bg-[#F2AA25] py-1.5 overflow-hidden">
           <div className="marquee-track">
