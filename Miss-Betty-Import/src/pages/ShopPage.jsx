@@ -23,6 +23,7 @@ const CATEGORY_ICONS = {
   "Men's Fashion":                   '👔',
   'Ladies Fashion':                  '👜',
   'Sneakers':                        '👟',
+  'Skin Care':                       '🧴',
   'Others':                          '📦',
 };
 
