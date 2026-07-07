@@ -61,10 +61,9 @@ export function AuthProvider({ children }) {
   }
 
   const isAdmin = session?.user?.user_metadata?.role === 'admin';
-  const emailVerified = !!(session?.user?.email_confirmed_at);
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, signIn, signOut, loading, isAdmin, emailVerified }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, signIn, signOut, loading, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );
