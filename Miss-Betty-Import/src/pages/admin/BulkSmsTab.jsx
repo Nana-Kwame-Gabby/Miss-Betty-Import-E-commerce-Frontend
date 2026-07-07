@@ -1,15 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { SMS_MAX_CHARS as MAX_CHARS, smsSegments } from "../../lib/smsUtils";
 
-const MAX_CHARS = 320;
-
-function smsSegments(len) {
-  if (len <= 160) return 1;
-  if (len <= 320) return 2;
-  return Math.ceil(len / 153);
-}
-
-export default function AdminBulkSmsPage() {
+export default function BulkSmsTab() {
   const [message,        setMessage]        = useState("");
   const [customerCount,  setCustomerCount]  = useState(null);
   const [campaigns,      setCampaigns]      = useState([]);
@@ -97,9 +90,6 @@ export default function AdminBulkSmsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Bulk SMS</h1>
-      <p className="text-sm text-gray-400 mb-6">Broadcast a message to all registered customers</p>
-
       {/* Compose */}
       <div className="bg-white rounded-2xl shadow-sm p-5 mb-6">
         <div className="flex items-center justify-between mb-3">

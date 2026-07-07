@@ -30,7 +30,7 @@ import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminInvoicesPage from "./pages/admin/AdminInvoicesPage";
 import AdminShippingFeesPage from "./pages/admin/AdminShippingFeesPage";
 import AdminProductRequestsPage from "./pages/admin/AdminProductRequestsPage";
-import AdminBulkSmsPage from "./pages/admin/AdminBulkSmsPage";
+import AdminSmsMessagingPage from "./pages/admin/AdminSmsMessagingPage";
 import AdminAvailableOrdersPage from "./pages/admin/AdminAvailableOrdersPage";
 import AdminPromoAlertPage from "./pages/admin/AdminPromoAlertPage";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -100,7 +100,7 @@ function App() {
                   <Route path="/admin/invoices" element={<AdminInvoicesPage />} />
                   <Route path="/admin/shipping-fees" element={<AdminShippingFeesPage />} />
                   <Route path="/admin/product-requests" element={<AdminProductRequestsPage />} />
-                  <Route path="/admin/bulk-sms" element={<AdminBulkSmsPage />} />
+                  <Route path="/admin/bulk-sms" element={<AdminSmsMessagingPage />} />
                   <Route path="/admin/available-orders" element={<AdminAvailableOrdersPage />} />
                   <Route path="/admin/promo-alert" element={<AdminPromoAlertPage />} />
                 </Route>
