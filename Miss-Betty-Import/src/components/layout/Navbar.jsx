@@ -5,6 +5,7 @@ import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import MyAccountModal from "../MyAccountModal";
 import DeliveryDetailsModal from "../DeliveryDetailsModal";
+import NotificationBell from "../NotificationBell";
 
 function AccountDropdown() {
   const [open, setOpen] = useState(false);
@@ -149,6 +150,8 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
+
+            <NotificationBell />
 
             {/* Account dropdown */}
             <div className="hidden sm:block">

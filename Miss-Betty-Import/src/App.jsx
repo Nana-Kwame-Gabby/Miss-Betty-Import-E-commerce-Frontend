@@ -4,6 +4,7 @@ import { CartProvider } from "./context/CartContext";
 import { UserProvider } from "./context/UserContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AppSettingsProvider } from "./context/AppSettingsContext";
+import { NotificationProvider } from "./context/NotificationContext";
 
 import LoginPage from "./components/LoginPage";
 import SignUp from "./components/SignUp";
@@ -33,6 +34,7 @@ import AdminProductRequestsPage from "./pages/admin/AdminProductRequestsPage";
 import AdminSmsMessagingPage from "./pages/admin/AdminSmsMessagingPage";
 import AdminAvailableOrdersPage from "./pages/admin/AdminAvailableOrdersPage";
 import AdminPromoAlertPage from "./pages/admin/AdminPromoAlertPage";
+import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import ProductRequestPage from "./pages/ProductRequestPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
@@ -73,6 +75,7 @@ function App() {
     <AuthProvider>
       <UserProvider>
         <AppSettingsProvider>
+        <NotificationProvider>
         <CartProvider>
           <Router>
             <Routes>
@@ -103,6 +106,7 @@ function App() {
                   <Route path="/admin/bulk-sms" element={<AdminSmsMessagingPage />} />
                   <Route path="/admin/available-orders" element={<AdminAvailableOrdersPage />} />
                   <Route path="/admin/promo-alert" element={<AdminPromoAlertPage />} />
+                  <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
                 </Route>
               </Route>
 
@@ -123,6 +127,7 @@ function App() {
             </Routes>
           </Router>
         </CartProvider>
+        </NotificationProvider>
         </AppSettingsProvider>
       </UserProvider>
     </AuthProvider>

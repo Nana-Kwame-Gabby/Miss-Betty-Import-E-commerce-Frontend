@@ -1,10 +1,10 @@
 import { useState } from "react";
 import BulkSmsTab from "./BulkSmsTab";
-import IndividualSmsTab from "./IndividualSmsTab";
+import CustomSmsTab from "./CustomSmsTab";
 
 const TABS = [
-  { key: "bulk",       label: "Bulk SMS" },
-  { key: "individual", label: "Individual SMS" },
+  { key: "bulk",   label: "Bulk SMS" },
+  { key: "custom", label: "Custom SMS" },
 ];
 
 export default function AdminSmsMessagingPage() {
@@ -13,7 +13,7 @@ export default function AdminSmsMessagingPage() {
   return (
     <div>
       <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">SMS Messaging</h1>
-      <p className="text-sm text-gray-400 mb-4">Send SMS messages to all customers or to a single customer</p>
+      <p className="text-sm text-gray-400 mb-4">Send SMS messages to all customers, or to selected customers and/or manually-entered numbers</p>
 
       <div className="bg-white rounded-2xl shadow-sm p-1 inline-flex gap-1 mb-6">
         {TABS.map(tab => (
@@ -31,7 +31,7 @@ export default function AdminSmsMessagingPage() {
         ))}
       </div>
 
-      {activeTab === "bulk" ? <BulkSmsTab /> : <IndividualSmsTab />}
+      {activeTab === "bulk" ? <BulkSmsTab /> : <CustomSmsTab />}
     </div>
   );
 }

@@ -193,7 +193,7 @@ export default function AdminProductsPage() {
       }
       const simpleDiscountPrice = discountAmount > 0 ? cost_price + (profit - discountAmount) : null;
 
-      const { error: insertError } = await supabase.from("products").insert({
+      const { data: insertedProduct, error: insertError } = await supabase.from("products").insert({
         product_name: form.product_name.trim(),
         category_id: Number(form.category_id),
         cost_price,
@@ -209,9 +209,23 @@ export default function AdminProductsPage() {
         colour: form.colours.trim() || null,
         size_pricing,
         estimated_shipping_fee: form.estimated_shipping_fee ? Number(form.estimated_shipping_fee) : null,
-      });
+      }).select("product_id, product_name").single();
 
       if (insertError) throw new Error(insertError.message);
+
+      // Best-effort side effect: notification failures must never fail/rollback product creation.
+      try {
+        const { error: notifyError } = await supabase.from("notifications").insert({
+          title: "New product added!",
+          message: `${insertedProduct.product_name} is now available. Check it out!`,
+          link_url: `/shop/${insertedProduct.product_id}`,
+          type: "new_product",
+          product_id: insertedProduct.product_id,
+        });
+        if (notifyError) console.warn("[AdminProductsPage] notification insert failed:", notifyError.message);
+      } catch (notifyErr) {
+        console.warn("[AdminProductsPage] notification insert failed:", notifyErr.message);
+      }
 
       setSuccess("Product uploaded successfully!");
       setForm(EMPTY_FORM);
