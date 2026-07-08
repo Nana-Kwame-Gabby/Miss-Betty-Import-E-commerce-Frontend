@@ -6,6 +6,7 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useAppSettings } from "../context/AppSettingsContext";
 import AccountDropdown from "../components/AccountDropdown";
+import NotificationBell from "../components/NotificationBell";
 import MediaCarousel from "../components/MediaCarousel";
 import ReviewsSection from "../components/ReviewsSection";
 import BottomNav from "../components/BottomNav";
@@ -740,6 +741,8 @@ export default function ShopPage() {
                 </span>
               )}
             </Link>
+
+            <NotificationBell />
 
             {/* Account */}
             <AccountDropdown />
