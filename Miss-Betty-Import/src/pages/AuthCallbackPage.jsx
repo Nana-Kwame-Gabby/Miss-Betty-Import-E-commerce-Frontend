@@ -29,12 +29,33 @@ export default function AuthCallbackPage() {
 
     let redirected = false;
 
+    function goToDestination() {
+      if (redirected) return;
+      redirected = true;
+      if (sessionStorage.getItem('pwd_reset')) {
+        sessionStorage.removeItem('pwd_reset');
+        navigate("/reset-password", { replace: true });
+      } else {
+        navigate("/shop", { replace: true });
+      }
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (redirected) return;
       if (event === "RECOVERY" && session) {
         redirected = true;
         navigate("/reset-password", { replace: true });
+      } else if (event === "SIGNED_IN" && session) {
+        goToDestination();
       }
+    });
+
+    // The Supabase client auto-exchanges the code as part of its own
+    // initialization (detectSessionInUrl: true), independent of and racing
+    // the explicit call below. On fast connections it can finish before this
+    // effect even runs, so check for an already-established session up front.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) goToDestination();
     });
 
     supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
@@ -43,33 +64,25 @@ export default function AuthCallbackPage() {
         // A code was issued but the exchange itself was rejected by the
         // hook (alternate surfacing path — see comment above).
         if (isBlockedGoogleSignup(error.message)) {
+          redirected = true;
           sessionStorage.setItem('oauth_denied', '1');
           navigate("/signup", { replace: true });
           return;
         }
-        // The code may already have been exchanged by the Supabase client's
-        // own automatic URL detection (default detectSessionInUrl: true)
-        // before this explicit call ran — that's a real, separate success,
-        // not a failure. Check for an existing session before giving up.
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) {
-            if (sessionStorage.getItem('pwd_reset')) {
-              sessionStorage.removeItem('pwd_reset');
-              navigate("/reset-password", { replace: true });
+        // The code may have already been consumed by the automatic exchange
+        // above; give it a brief moment to finish before concluding failure.
+        setTimeout(() => {
+          if (redirected) return;
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+              goToDestination();
             } else {
-              navigate("/shop", { replace: true });
+              navigate("/login", { replace: true });
             }
-          } else {
-            navigate("/login", { replace: true });
-          }
-        });
-      } else if (!redirected) {
-        if (sessionStorage.getItem('pwd_reset')) {
-          sessionStorage.removeItem('pwd_reset');
-          navigate("/reset-password", { replace: true });
-        } else {
-          navigate("/shop", { replace: true });
-        }
+          });
+        }, 500);
+      } else {
+        goToDestination();
       }
     });
 
