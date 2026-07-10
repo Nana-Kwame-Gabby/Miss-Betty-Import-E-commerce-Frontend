@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [checkingCustomer, setCheckingCustomer] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -21,8 +22,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!session) return;
+    if (!session) {
+      setCheckingCustomer(false);
+      return;
+    }
     const u = session.user;
+    setCheckingCustomer(true);
 
     async function ensureCustomerRow() {
       const { data: existing } = await supabase
@@ -31,12 +36,16 @@ export function AuthProvider({ children }) {
         .eq('auth_id', u.id)
         .maybeSingle();
 
-      if (existing) return;
+      if (existing) {
+        setCheckingCustomer(false);
+        return;
+      }
 
       if (u.app_metadata?.provider === 'google') {
         sessionStorage.setItem('oauth_denied', '1');
         setSession(null);
         await supabase.auth.signOut();
+        setCheckingCustomer(false);
         return;
       }
 
@@ -46,6 +55,7 @@ export function AuthProvider({ children }) {
         telephone: u.user_metadata?.phone || '',
         auth_id: u.id,
       });
+      setCheckingCustomer(false);
     }
 
     ensureCustomerRow();
@@ -63,7 +73,7 @@ export function AuthProvider({ children }) {
   const isAdmin = session?.user?.user_metadata?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, signIn, signOut, loading, isAdmin }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, signIn, signOut, loading, isAdmin, checkingCustomer }}>
       {children}
     </AuthContext.Provider>
   );

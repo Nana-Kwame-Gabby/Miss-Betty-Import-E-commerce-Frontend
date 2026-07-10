@@ -55,9 +55,11 @@ function PublicOnlyRoute() {
 }
 
 function ProtectedLayout() {
-  const { session, loading, isAdmin } = useAuth();
-  if (loading) return <LoadingSpinner />;
-  if (!session) return <Navigate to="/login" replace />;
+  const { session, loading, isAdmin, checkingCustomer } = useAuth();
+  if (loading || checkingCustomer) return <LoadingSpinner />;
+  if (!session) {
+    return <Navigate to={sessionStorage.getItem('oauth_denied') ? "/signup" : "/login"} replace />;
+  }
   if (isAdmin) return <Navigate to="/admin" replace />;
   return <Outlet />;
 }

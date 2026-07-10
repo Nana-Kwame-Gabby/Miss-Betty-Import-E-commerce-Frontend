@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { supabase } from "../lib/supabase";
@@ -10,14 +10,6 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [oauthDenied, setOauthDenied] = useState(false);
-
-  useEffect(() => {
-    if (sessionStorage.getItem('oauth_denied')) {
-      sessionStorage.removeItem('oauth_denied');
-      setOauthDenied(true);
-    }
-  }, []);
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
@@ -70,20 +62,6 @@ export default function LoginPage() {
         <p className="text-xs sm:text-sm font-medium text-center mb-4 sm:mb-5">
           Please log in to continue
         </p>
-
-        {oauthDenied && (
-          <div className="w-full bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-center">
-            <p className="text-sm font-semibold text-amber-800 mb-1">
-              No account found for this Google address.
-            </p>
-            <p className="text-xs text-amber-700 mb-2">
-              Please create an account using the sign-up form before signing in with Google.
-            </p>
-            <Link to="/signup" className="text-sm font-bold text-[#F2AA25] hover:underline">
-              Create an Account →
-            </Link>
-          </div>
-        )}
 
         {/* Google sign-in */}
         <button

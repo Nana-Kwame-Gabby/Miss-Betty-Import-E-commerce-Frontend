@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { supabase } from "../lib/supabase";
@@ -13,6 +13,14 @@ export default function SignUp() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [oauthDenied, setOauthDenied] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem('oauth_denied')) {
+      sessionStorage.removeItem('oauth_denied');
+      setOauthDenied(true);
+    }
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -99,6 +107,17 @@ export default function SignUp() {
         <p className="text-xs sm:text-sm text-gray-500 text-center mb-4">
           Join Miss Betty Imports today
         </p>
+
+        {oauthDenied && (
+          <div className="w-full bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-center">
+            <p className="text-sm font-semibold text-amber-800 mb-1">
+              No account found for this Google address.
+            </p>
+            <p className="text-xs text-amber-700">
+              Please complete sign-up below to continue. You'll be able to use Google sign-in afterward.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="w-full flex flex-col items-center">
           <div className="w-full mb-3">
