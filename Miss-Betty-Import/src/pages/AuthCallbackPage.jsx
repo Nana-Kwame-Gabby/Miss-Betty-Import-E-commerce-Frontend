@@ -38,15 +38,31 @@ export default function AuthCallbackPage() {
     });
 
     supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+      if (redirected) return;
       if (error) {
         // A code was issued but the exchange itself was rejected by the
         // hook (alternate surfacing path — see comment above).
         if (isBlockedGoogleSignup(error.message)) {
           sessionStorage.setItem('oauth_denied', '1');
           navigate("/signup", { replace: true });
-        } else {
-          navigate("/login", { replace: true });
+          return;
         }
+        // The code may already have been exchanged by the Supabase client's
+        // own automatic URL detection (default detectSessionInUrl: true)
+        // before this explicit call ran — that's a real, separate success,
+        // not a failure. Check for an existing session before giving up.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) {
+            if (sessionStorage.getItem('pwd_reset')) {
+              sessionStorage.removeItem('pwd_reset');
+              navigate("/reset-password", { replace: true });
+            } else {
+              navigate("/shop", { replace: true });
+            }
+          } else {
+            navigate("/login", { replace: true });
+          }
+        });
       } else if (!redirected) {
         if (sessionStorage.getItem('pwd_reset')) {
           sessionStorage.removeItem('pwd_reset');
