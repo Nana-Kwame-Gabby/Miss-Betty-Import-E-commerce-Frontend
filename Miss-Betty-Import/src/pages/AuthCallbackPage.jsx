@@ -6,7 +6,21 @@ export default function AuthCallbackPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get("code");
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const errorDescription = params.get("error_description") || "";
+
+    function isBlockedGoogleSignup(message) {
+      return typeof message === "string" && message.includes("MBI_NO_CUSTOMER_ACCOUNT");
+    }
+
+    // GoTrue rejected the sign-in server-side (Before User Created hook)
+    // before ever issuing a code — surfaced via ?error_description=.
+    if (!code && isBlockedGoogleSignup(errorDescription)) {
+      sessionStorage.setItem('oauth_denied', '1');
+      navigate("/signup", { replace: true });
+      return;
+    }
 
     if (!code) {
       navigate("/login", { replace: true });
@@ -25,7 +39,14 @@ export default function AuthCallbackPage() {
 
     supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
       if (error) {
-        navigate("/login", { replace: true });
+        // A code was issued but the exchange itself was rejected by the
+        // hook (alternate surfacing path — see comment above).
+        if (isBlockedGoogleSignup(error.message)) {
+          sessionStorage.setItem('oauth_denied', '1');
+          navigate("/signup", { replace: true });
+        } else {
+          navigate("/login", { replace: true });
+        }
       } else if (!redirected) {
         if (sessionStorage.getItem('pwd_reset')) {
           sessionStorage.removeItem('pwd_reset');
