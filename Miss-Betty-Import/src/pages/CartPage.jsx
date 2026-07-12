@@ -73,7 +73,7 @@ function VariantAdder({ product, addToCart }) {
                   <span className="block">{s}</span>
                   {entry && (hasDis ? (
                     <>
-                      <span className="block text-[10px] font-semibold text-[#F2AA25]">GHS {disc.toLocaleString()}</span>
+                      <span className="block text-[10px] font-semibold text-[#DC2626]">GHS {disc.toLocaleString()}</span>
                       <span className={`block text-[9px] line-through ${active ? "text-white/50" : "text-gray-300"}`}>GHS {reg.toLocaleString()}</span>
                     </>
                   ) : (
@@ -223,7 +223,7 @@ export default function CartPage() {
                             {priceEntry && (
                               sizeHasDiscount ? (
                                 <>
-                                  <span className="block text-[10px] font-semibold text-[#F2AA25]">GHS {sizeEffective.toLocaleString()}</span>
+                                  <span className="block text-[10px] font-semibold text-[#DC2626]">GHS {sizeEffective.toLocaleString()}</span>
                                   <span className={`block text-[9px] font-normal line-through ${item.size === s ? "text-white/50" : "text-gray-300"}`}>GHS {sizeRegular.toLocaleString()}</span>
                                 </>
                               ) : (
@@ -257,7 +257,7 @@ export default function CartPage() {
                     </div>
                   )}
                   <div className="flex items-baseline gap-1.5 mt-1 flex-wrap">
-                    <p className="text-[#F2AA25] font-bold">GHS {item.unit_price.toLocaleString()}</p>
+                    <p className="text-[#DC2626] font-bold">GHS {item.unit_price.toLocaleString()}</p>
                     {item.original_price != null && item.original_price > item.unit_price && (
                       <span className="text-gray-400 text-xs line-through">GHS {item.original_price.toLocaleString()}</span>
                     )}
@@ -312,7 +312,7 @@ export default function CartPage() {
             <div className="border-t border-gray-100 pt-3 mb-3">
               <div className="flex justify-between font-bold text-[#1e2d3d] text-base">
                 <span>Subtotal</span>
-                <span className="text-[#F2AA25]">GHS {subtotal.toLocaleString()}</span>
+                <span className="text-[#DC2626]">GHS {subtotal.toLocaleString()}</span>
               </div>
               {totalSavings > 0 && (
                 <div className="flex justify-between text-green-600 text-xs font-semibold mt-1">

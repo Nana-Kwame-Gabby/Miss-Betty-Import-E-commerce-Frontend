@@ -271,7 +271,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
             {product.product_name}
           </h2>
           <div className="flex items-baseline gap-2 mb-2 flex-wrap">
-            <p className="text-[#F2AA25] font-bold text-xl">GHS {curPrice.toLocaleString()}</p>
+            <p className="text-[#DC2626] font-bold text-xl">GHS {curPrice.toLocaleString()}</p>
             {curHasDiscount && (
               <>
                 <span className="text-gray-400 text-sm line-through">GHS {curRegularPrice.toLocaleString()}</span>
@@ -319,7 +319,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
                           {priceEntry && (
                             sizeHasDiscount ? (
                               <>
-                                <span className={`block text-[10px] font-semibold ${curSize === s ? "text-[#F2AA25]" : "text-[#F2AA25]"}`}>
+                                <span className={`block text-[10px] font-semibold ${curSize === s ? "text-[#DC2626]" : "text-[#DC2626]"}`}>
                                   GHS {sizeDiscount.toLocaleString()}
                                 </span>
                                 <span className={`block text-[9px] font-normal line-through ${curSize === s ? "text-white/50" : "text-gray-300"}`}>
@@ -395,7 +395,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
                             <span className="text-xs text-gray-500 truncate">{v.colour}</span>
                           </>
                         )}
-                        <span className="text-xs text-[#F2AA25] font-semibold ml-auto flex-shrink-0 pl-1">GHS {v.price.toLocaleString()}</span>
+                        <span className="text-xs text-[#DC2626] font-semibold ml-auto flex-shrink-0 pl-1">GHS {v.price.toLocaleString()}</span>
                       </div>
                       <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                         <button onClick={() => setPendingVariants(prev => prev.map(x => x.variantKey === v.variantKey ? { ...x, qty: Math.max(1, x.qty - 1) } : x))} className="px-2 py-1 text-gray-500 hover:bg-gray-50 font-bold text-sm">−</button>
@@ -409,7 +409,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
                   ))}
                   <div className="flex justify-between px-3 py-1.5 bg-gray-50 text-xs font-semibold text-[#1e2d3d]">
                     <span>{totalQty} item{totalQty !== 1 ? "s" : ""}</span>
-                    <span className="text-[#F2AA25]">Total: GHS {totalCost.toLocaleString()}</span>
+                    <span className="text-[#DC2626]">Total: GHS {totalCost.toLocaleString()}</span>
                   </div>
                 </div>
               )}
@@ -571,14 +571,14 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
         <div className="mb-2 flex items-baseline gap-1.5 flex-wrap">
           {hasDiscount(product) ? (
             <>
-              <span className="text-[#F2AA25] font-bold text-sm sm:text-base">
+              <span className="text-[#DC2626] font-bold text-sm sm:text-base">
                 {product.sizePricing ? "From " : ""}GHS {getEffectivePrice(product).toLocaleString()}
               </span>
               <span className="text-gray-400 text-xs line-through">GHS {product.unit_price.toLocaleString()}</span>
               <span className="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">SALE</span>
             </>
           ) : (
-            <span className="text-[#F2AA25] font-bold text-sm sm:text-base">
+            <span className="text-[#DC2626] font-bold text-sm sm:text-base">
               {product.sizePricing ? "From " : ""}GHS {product.unit_price.toLocaleString()}
             </span>
           )}

@@ -266,7 +266,7 @@ export default function ShippingFeePage() {
                   <td className="px-4 py-3 font-semibold text-[#1e2d3d]">
                     {hasFee ? `GHS ${group.feePerItem.toLocaleString()}` : <span className="text-gray-400">—</span>}
                   </td>
-                  <td className="px-4 py-3 font-bold text-[#F2AA25]">
+                  <td className="px-4 py-3 font-bold text-[#DC2626]">
                     {hasFee ? `GHS ${group.totalFee.toLocaleString()}` : '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -307,7 +307,7 @@ export default function ShippingFeePage() {
             <tfoot>
               <tr className="border-t-2 border-[#1e2d3d] bg-gray-50">
                 <td colSpan={4} className="px-4 py-3 text-right font-bold text-[#1e2d3d] text-sm">Grand Total</td>
-                <td className="px-4 py-3 font-bold text-[#F2AA25] text-sm">GHS {grandTotal.toLocaleString()}</td>
+                <td className="px-4 py-3 font-bold text-[#DC2626] text-sm">GHS {grandTotal.toLocaleString()}</td>
                 <td />
               </tr>
             </tfoot>
@@ -380,7 +380,7 @@ export default function ShippingFeePage() {
           <div className="bg-[#1e2d3d] rounded-2xl p-3">
             <div className="flex justify-between items-center">
               <span className="text-white font-semibold text-sm">Grand Total</span>
-              <span className="text-[#F2AA25] font-bold text-lg">GHS {grandTotal.toLocaleString()}</span>
+              <span className="text-[#DC2626] font-bold text-lg">GHS {grandTotal.toLocaleString()}</span>
             </div>
             <p className="text-gray-400 text-xs mt-1">Pay each product's fee separately above</p>
           </div>

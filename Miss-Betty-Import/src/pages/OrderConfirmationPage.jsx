@@ -279,7 +279,7 @@ export default function OrderConfirmationPage() {
         </div>
         <div className="border-t border-gray-100 pt-3 flex justify-between font-bold text-[#1e2d3d]">
           <span>Total</span>
-          <span className="text-[#F2AA25]">GHS {subtotal.toLocaleString()}</span>
+          <span className="text-[#DC2626]">GHS {subtotal.toLocaleString()}</span>
         </div>
       </div>
 

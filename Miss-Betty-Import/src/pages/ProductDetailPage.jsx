@@ -214,7 +214,7 @@ export default function ProductDetailPage() {
           <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-1.5">{product.product_name}</h1>
 
           <div className="flex items-center gap-3 mb-3 flex-wrap">
-            <span className="text-[#F2AA25] font-bold text-2xl">GHS {curPrice.toLocaleString()}</span>
+            <span className="text-[#DC2626] font-bold text-2xl">GHS {curPrice.toLocaleString()}</span>
             {curHasDiscount && (
               <>
                 <span className="text-gray-400 text-base line-through">GHS {curRegularPrice.toLocaleString()}</span>
@@ -339,7 +339,7 @@ export default function ProductDetailPage() {
                             <span className="text-sm text-gray-500 truncate">{v.colour}</span>
                           </>
                         )}
-                        <span className="text-sm text-[#F2AA25] font-semibold ml-auto flex-shrink-0 pl-2">GHS {v.price.toLocaleString()}</span>
+                        <span className="text-sm text-[#DC2626] font-semibold ml-auto flex-shrink-0 pl-2">GHS {v.price.toLocaleString()}</span>
                       </div>
                       <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden flex-shrink-0">
                         <button onClick={() => setPendingVariants(prev => prev.map(x => x.variantKey === v.variantKey ? { ...x, qty: Math.max(1, x.qty - 1) } : x))} className="px-2.5 py-1.5 text-gray-500 hover:bg-gray-50 font-bold">−</button>
@@ -353,7 +353,7 @@ export default function ProductDetailPage() {
                   ))}
                   <div className="flex justify-between px-4 py-2 bg-gray-50 font-semibold text-sm text-[#1e2d3d]">
                     <span>{totalQty} item{totalQty !== 1 ? "s" : ""}</span>
-                    <span className="text-[#F2AA25]">Total: GHS {totalCost.toLocaleString()}</span>
+                    <span className="text-[#DC2626]">Total: GHS {totalCost.toLocaleString()}</span>
                   </div>
                 </div>
               )}

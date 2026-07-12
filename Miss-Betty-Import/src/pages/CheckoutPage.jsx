@@ -282,7 +282,7 @@ export default function CheckoutPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-[#1e2d3d] truncate">{item.product_name}</p>
                     <p className="text-xs text-gray-400">{item.size} · {item.colour} · ×{item.quantity}</p>
-                    <p className="text-sm font-bold text-[#F2AA25]">GHS {(item.unit_price * item.quantity).toLocaleString()}</p>
+                    <p className="text-sm font-bold text-[#DC2626]">GHS {(item.unit_price * item.quantity).toLocaleString()}</p>
                   </div>
                 </div>
               ))}
@@ -304,7 +304,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between font-bold text-[#1e2d3d] text-base">
                 <span>Total</span>
-                <span className="text-[#F2AA25]">GHS {checkoutSubtotal.toLocaleString()}</span>
+                <span className="text-[#DC2626]">GHS {checkoutSubtotal.toLocaleString()}</span>
               </div>
             </div>
           </div>
