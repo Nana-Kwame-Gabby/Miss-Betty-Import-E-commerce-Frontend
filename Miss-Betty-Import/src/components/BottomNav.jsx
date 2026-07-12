@@ -11,11 +11,11 @@ export default function BottomNav() {
 
   const linkClass = ({ isActive }) =>
     `flex flex-col items-center gap-0.5 flex-1 py-2 text-[10px] font-semibold transition-colors ${
-      isActive ? "text-[#F2AA25]" : "text-gray-400 hover:text-[#1e2d3d]"
+      isActive ? "text-[#F2AA25]" : "text-[#1e2d3d] hover:text-[#F2AA25]"
     }`;
 
   const btnClass =
-    "flex flex-col items-center gap-0.5 flex-1 py-2 text-[10px] font-semibold text-gray-400 hover:text-[#1e2d3d] transition-colors";
+    "flex flex-col items-center gap-0.5 flex-1 py-2 text-[10px] font-semibold text-[#1e2d3d] hover:text-[#F2AA25] transition-colors";
 
   return (
     <>
