@@ -503,10 +503,10 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
           <img
             src={product.product_image_url}
             alt={product.product_name}
-            className="w-full h-28 sm:h-40 object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-48 sm:h-64 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-28 sm:h-40 bg-gray-100 flex items-center justify-center">
+          <div className="w-full h-48 sm:h-64 bg-gray-100 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           </div>
         )}
@@ -862,7 +862,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden animate-pulse">
-                <div className="w-full h-28 sm:h-40 bg-gray-100" />
+                <div className="w-full h-48 sm:h-64 bg-gray-100" />
                 <div className="p-3 space-y-2">
                   <div className="h-3 bg-gray-100 rounded-full w-1/2" />
                   <div className="h-4 bg-gray-100 rounded-full w-3/4" />
