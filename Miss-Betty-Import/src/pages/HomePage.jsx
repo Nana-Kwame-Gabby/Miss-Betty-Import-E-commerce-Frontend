@@ -26,7 +26,7 @@ const CATEGORY_ICONS = {
   'Ladies Fashion':                  '👜',
   'Sneakers':                        '👟',
   'Skin Care':                       '🧴',
-  'Phones & Accessories':            '📱',
+  'Laptops, Phones & Accessories':   '📱',
   'Others':                          '📦',
 };
 
