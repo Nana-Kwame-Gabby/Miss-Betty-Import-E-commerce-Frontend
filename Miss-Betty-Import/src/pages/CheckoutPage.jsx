@@ -141,6 +141,25 @@ export default function CheckoutPage() {
 
       if (custError || !cust) throw new Error("Could not find your account. Please try again.");
 
+      // Best-effort stock check: catch "sold out since it was added to cart" before spending
+      // a Hubtel call. Advisory only — nothing is locked/reserved here, so it doesn't fully
+      // close the race between two simultaneous buyers of the last unit.
+      const availableItems = checkoutItems.filter(i => i.product_status === "Available");
+      if (availableItems.length > 0) {
+        const { data: stockRows } = await supabase
+          .from('product_variant_stock')
+          .select('product_id, size, colour, stock_quantity')
+          .in('product_id', [...new Set(availableItems.map(i => i.id))]);
+        for (const item of availableItems) {
+          const row = (stockRows ?? []).find(r =>
+            r.product_id === item.id && r.size === (item.size ?? "") && r.colour === (item.colour ?? "")
+          );
+          if (row && item.quantity > row.stock_quantity) {
+            throw new Error(`Sorry, "${item.product_name}" no longer has enough stock (${row.stock_quantity} left). Please update your cart.`);
+          }
+        }
+      }
+
       // 2. Generate order_id
       const uid     = crypto.randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase();
       const orderId = `ORD-${new Date().getFullYear()}-${uid}`;

@@ -63,6 +63,7 @@ function mapProduct(p) {
     product_status: p.product_status?.status_name ?? 'Available',
     estimated_shipping_fee_min: p.estimated_shipping_fee_min ?? null,
     estimated_shipping_fee_max: p.estimated_shipping_fee_max ?? null,
+    variantStock: p.product_variant_stock ?? [],
   };
 }
 
@@ -484,9 +485,29 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
   const isPreorder = typeof product?.product_status === "string" && product.product_status.toLowerCase().includes("pre");
   const blockedByOrders = ordersClosed && isPreorder;
 
+  // Stock is opt-in per product (no product_variant_stock rows = untracked = unlimited,
+  // matching every product's behavior before this feature existed) and only gates
+  // "Available" status products — Pre-order items have no stock limitations.
+  const isTracked = (product.variantStock?.length ?? 0) > 0;
+  const hasAnyStock = !isTracked || product.variantStock.some(r => r.stock_quantity > 0);
+  const outOfStock = product.product_status === "Available" && isTracked && !hasAnyStock;
+
+  function firstInStockVariant() {
+    const sizes = product.sizes.length > 0 ? product.sizes : [null];
+    const colours = product.colours.length > 0 ? product.colours : [null];
+    for (const size of sizes) {
+      for (const colour of colours) {
+        const row = product.variantStock.find(r => r.size === (size ?? "") && r.colour === (colour ?? ""));
+        if (!row || row.stock_quantity > 0) return { size, colour };
+      }
+    }
+    return { size: product.sizes[0] ?? null, colour: product.colours[0] ?? null };
+  }
+
   function handleAdd(e) {
     e.stopPropagation();
-    const firstSize = product.sizes[0] ?? null;
+    if (outOfStock) return;
+    const { size: firstSize, colour: firstColour } = firstInStockVariant();
     const sizeEntry = product.sizePricing?.find(sp => sp.size === firstSize) ?? null;
     const price     = sizeEntry ? getEffectivePrice(sizeEntry) : getEffectivePrice(product);
     const costP     = sizeEntry?.cost_price ?? product.cost_price ?? 0;
@@ -494,14 +515,14 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
     const origPrice = sizeEntry
       ? (hasDiscount(sizeEntry) ? (sizeEntry.selling_price ?? product.unit_price) : null)
       : (hasDiscount(product)   ? product.unit_price : null);
-    addToCart(product, 1, firstSize, product.colours[0] ?? null, price, costP, prof, origPrice);
+    addToCart(product, 1, firstSize, firstColour, price, costP, prof, origPrice);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   }
 
   function handleBuyNow(e) {
     e.stopPropagation();
-    if (blockedByOrders) return;
+    if (blockedByOrders || outOfStock) return;
     onBuyNow(product);
   }
 
@@ -524,12 +545,14 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
         )}
         <span
           className={`absolute top-2 right-2 text-xs font-semibold px-2 py-0.5 rounded-full ${
-            product.product_status === "Available"
+            outOfStock
+              ? "bg-red-100 text-red-700"
+              : product.product_status === "Available"
               ? "bg-green-100 text-green-700"
               : "bg-amber-100 text-amber-700"
           }`}
         >
-          {product.product_status}
+          {outOfStock ? "Out of Stock" : product.product_status}
         </span>
         {product.product_image_url && (
           <>
@@ -582,22 +605,23 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
         <div className="flex gap-1.5">
           <button
             onClick={handleAdd}
+            disabled={outOfStock}
             className={`flex-1 font-medium py-1 rounded-xl text-[11px] transition-colors ${
-              added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
+              outOfStock ? "bg-gray-200 text-gray-400 cursor-not-allowed" : added ? "bg-green-500 text-white" : "bg-[#F2AA25] text-white hover:opacity-90"
             }`}
           >
-            {added ? "✓ Added!" : "Add to Cart"}
+            {outOfStock ? "Out of Stock" : added ? "✓ Added!" : "Add to Cart"}
           </button>
           <button
             onClick={handleBuyNow}
-            disabled={blockedByOrders}
+            disabled={blockedByOrders || outOfStock}
             className={`flex-1 font-medium py-1 rounded-xl text-[11px] border-2 transition-colors ${
-              blockedByOrders
+              blockedByOrders || outOfStock
                 ? "border-gray-200 text-gray-400 cursor-not-allowed"
                 : "border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white"
             }`}
           >
-            {blockedByOrders ? "Pre-orders Closed" : "Buy Now"}
+            {outOfStock ? "Out of Stock" : blockedByOrders ? "Pre-orders Closed" : "Buy Now"}
           </button>
         </div>
       </div>
@@ -648,7 +672,7 @@ export default function HomePage() {
     async function loadData() {
       const [{ data: prods }, { data: cats }] = await Promise.all([
         supabase.from('products')
-          .select('*, category(category_name), product_status(status_name)')
+          .select('*, category(category_name), product_status(status_name), product_variant_stock(*)')
           .order('product_id', { ascending: false }),
         supabase.from('category').select('*').order('category_name'),
       ]);

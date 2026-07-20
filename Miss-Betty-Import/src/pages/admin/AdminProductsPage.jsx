@@ -79,6 +79,26 @@ async function uploadFile(file, folder = "", bucket = "product-images") {
   return publicUrl;
 }
 
+// One stock row per applicable (size, colour) combination — a single row when the
+// product has neither dimension, one row per size or per colour when only one is set,
+// one row per (size, colour) pair when both are. Preserves already-typed quantities for
+// combinations that still exist when sizes/colours text changes.
+function buildStockRows(sizesStr, coloursStr, existingRows = []) {
+  const sizes = sizesStr.split(",").map(s => s.trim()).filter(Boolean);
+  const colours = coloursStr.split(",").map(c => c.trim()).filter(Boolean);
+  const combos = sizes.length > 0 && colours.length > 0
+    ? sizes.flatMap(size => colours.map(colour => ({ size, colour })))
+    : sizes.length > 0
+    ? sizes.map(size => ({ size, colour: "" }))
+    : colours.length > 0
+    ? colours.map(colour => ({ size: "", colour }))
+    : [{ size: "", colour: "" }];
+  return combos.map(({ size, colour }) => {
+    const existing = existingRows.find(r => r.size === size && r.colour === colour);
+    return { size, colour, stock_quantity: existing ? existing.stock_quantity : "" };
+  });
+}
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -100,6 +120,15 @@ export default function AdminProductsPage() {
     "mbimport_form_admin_product_draft_size_pricing_rows",
     [{ size: "", cost_price: "", profit: "", discount_price: "" }]
   );
+  const [stockRows, setStockRows] = usePersistedState(
+    "mbimport_form_admin_product_draft_stock_rows",
+    [{ size: "", colour: "", stock_quantity: "" }]
+  );
+
+  useEffect(() => {
+    setStockRows(prev => buildStockRows(form.sizes, form.colours, prev));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.sizes, form.colours]);
 
   // Edit modal
   const [editingProduct, setEditingProduct] = useState(null);
@@ -113,6 +142,11 @@ export default function AdminProductsPage() {
   const [editError, setEditError]           = useState("");
   const [editUseSizePricing, setEditUseSizePricing] = useState(false);
   const [editSizePricingRows, setEditSizePricingRows] = useState([{ size: "", cost_price: "", profit: "", discount_price: "" }]);
+  const [editStockRows, setEditStockRows] = useState([{ size: "", colour: "", stock_quantity: "" }]);
+
+  useEffect(() => {
+    setEditStockRows(prev => buildStockRows(editForm.sizes, editForm.colours, prev));
+  }, [editForm.sizes, editForm.colours]);
 
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [deletingId, setDeletingId]           = useState(null);
@@ -127,7 +161,7 @@ export default function AdminProductsPage() {
     setLoadingProducts(true);
     const [{ data: prods }, { data: cats }, { data: stats }] = await Promise.all([
       supabase.from("products")
-        .select("*, category(category_name), product_status(status_name)")
+        .select("*, category(category_name), product_status(status_name), product_variant_stock(*)")
         .order("product_id", { ascending: false }),
       supabase.from("category").select("*").order("category_name"),
       supabase.from("product_status").select("*"),
@@ -225,6 +259,13 @@ export default function AdminProductsPage() {
 
       if (insertError) throw new Error(insertError.message);
 
+      const stockToSave = stockRows
+        .filter(r => r.stock_quantity !== "")
+        .map(r => ({ product_id: insertedProduct.product_id, size: r.size, colour: r.colour, stock_quantity: Number(r.stock_quantity) }));
+      if (stockToSave.length > 0) {
+        await supabase.from("product_variant_stock").upsert(stockToSave, { onConflict: "product_id,size,colour" });
+      }
+
       // Best-effort side effect: notification failures must never fail/rollback product creation.
       try {
         const { error: notifyError } = await supabase.from("notifications").insert({
@@ -246,6 +287,7 @@ export default function AdminProductsPage() {
       setTiktokUrl("");
       setUseSizePricing(false);
       setSizePricingRows([{ size: "", cost_price: "", profit: "", discount_price: "" }]);
+      setStockRows([{ size: "", colour: "", stock_quantity: "" }]);
       loadAll();
       setTimeout(() => setSuccess(""), 4000);
     } catch (err) {
@@ -311,6 +353,11 @@ export default function AdminProductsPage() {
     setEditImageFile2(null);   setEditImagePreview2(null);
     setEditTiktokUrl(product.product_video_url ?? "");
     setEditError("");
+    setEditStockRows(buildStockRows(
+      product.size ?? "",
+      product.colour ?? "",
+      (product.product_variant_stock ?? []).map(r => ({ ...r, stock_quantity: String(r.stock_quantity) }))
+    ));
     const sp = product.size_pricing;
     if (sp && sp.length > 0) {
       setEditUseSizePricing(true);
@@ -336,6 +383,7 @@ export default function AdminProductsPage() {
     setEditError("");
     setEditUseSizePricing(false);
     setEditSizePricingRows([{ size: "", cost_price: "", profit: "", discount_price: "" }]);
+    setEditStockRows([{ size: "", colour: "", stock_quantity: "" }]);
   }
 
   function handleEditChange(e) {
@@ -416,6 +464,17 @@ export default function AdminProductsPage() {
         .eq("product_id", editingProduct.product_id);
 
       if (updateError) throw new Error(updateError.message);
+
+      // Admin's save is authoritative: replace this product's stock rows outright rather
+      // than diffing, consistent with how every other field in this form already behaves.
+      await supabase.from("product_variant_stock").delete().eq("product_id", editingProduct.product_id);
+      const stockToSave = editStockRows
+        .filter(r => r.stock_quantity !== "")
+        .map(r => ({ product_id: editingProduct.product_id, size: r.size, colour: r.colour, stock_quantity: Number(r.stock_quantity) }));
+      if (stockToSave.length > 0) {
+        await supabase.from("product_variant_stock").insert(stockToSave);
+      }
+
       handleEditClose();
       loadAll();
     } catch (err) {
@@ -648,6 +707,32 @@ export default function AdminProductsPage() {
           </div>
 
           <div className="sm:col-span-2">
+            <label className={labelClass}>
+              Stock Quantity <span className="text-gray-400 font-normal">(optional — leave blank to not track stock for this product)</span>
+            </label>
+            <div className="space-y-1.5">
+              {stockRows.map((row, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  {(row.size || row.colour) && (
+                    <span className="text-xs font-semibold text-gray-500 w-32 flex-shrink-0 truncate">
+                      {[row.size, row.colour].filter(Boolean).join(" — ")}
+                    </span>
+                  )}
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={row.stock_quantity}
+                    onChange={e => setStockRows(prev => prev.map((r, j) => j === i ? { ...r, stock_quantity: e.target.value } : r))}
+                    placeholder="e.g. 20"
+                    className={inputClass}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="sm:col-span-2">
             <label className={labelClass}>Description</label>
             <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="Product description…" className={`${inputClass} resize-none`} />
           </div>
@@ -765,6 +850,7 @@ export default function AdminProductsPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Final Price</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Cost Price</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Profit</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Stock</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Media</th>
                   <th className="px-4 py-3" />
@@ -789,6 +875,11 @@ export default function AdminProductsPage() {
                     <td className="px-4 py-3 font-semibold text-[#F2AA25]">GHS {Number(p.unit_price).toLocaleString()}</td>
                     <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">GHS {Number(p.cost_price ?? 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">GHS {Number(p.profit ?? 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">
+                      {(p.product_variant_stock ?? []).length > 0
+                        ? p.product_variant_stock.reduce((s, r) => s + r.stock_quantity, 0)
+                        : "—"}
+                    </td>
                     <td className="px-4 py-3 hidden md:table-cell">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         p.product_status?.status_name === "Available"
@@ -1054,6 +1145,32 @@ export default function AdminProductsPage() {
                 <div>
                   <label className={labelClass}>Colours <span className="text-gray-400 font-normal">(comma-separated)</span></label>
                   <input name="colours" value={editForm.colours} onChange={handleEditChange} placeholder="Red,Blue,White" className={inputClass} />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>
+                    Stock Quantity <span className="text-gray-400 font-normal">(optional — leave blank to not track stock for this product)</span>
+                  </label>
+                  <div className="space-y-1.5">
+                    {editStockRows.map((row, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        {(row.size || row.colour) && (
+                          <span className="text-xs font-semibold text-gray-500 w-32 flex-shrink-0 truncate">
+                            {[row.size, row.colour].filter(Boolean).join(" — ")}
+                          </span>
+                        )}
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={row.stock_quantity}
+                          onChange={e => setEditStockRows(prev => prev.map((r, j) => j === i ? { ...r, stock_quantity: e.target.value } : r))}
+                          placeholder="e.g. 20"
+                          className={inputClass}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="sm:col-span-2">

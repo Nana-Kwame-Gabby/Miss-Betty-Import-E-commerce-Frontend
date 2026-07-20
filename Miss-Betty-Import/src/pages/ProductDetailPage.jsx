@@ -45,6 +45,7 @@ function mapProduct(p) {
     product_status: p.product_status?.status_name ?? 'Available',
     estimated_shipping_fee_min: p.estimated_shipping_fee_min ?? null,
     estimated_shipping_fee_max: p.estimated_shipping_fee_max ?? null,
+    variantStock: p.product_variant_stock ?? [],
   };
 }
 
@@ -72,7 +73,7 @@ export default function ProductDetailPage() {
     async function loadProduct() {
       const { data } = await supabase
         .from('products')
-        .select('*, category(category_name), product_status(status_name)')
+        .select('*, category(category_name), product_status(status_name), product_variant_stock(*)')
         .eq('product_id', Number(id))
         .single();
       if (data) {
@@ -107,6 +108,18 @@ export default function ProductDetailPage() {
        (!product.colours.length || curColour))
     : false;
 
+  // Stock is per (size, colour) combination and only tracked/gated for "Available" status
+  // products with at least one product_variant_stock row (opt-in — untracked = unlimited,
+  // matching every product's behavior before this feature existed).
+  const isTracked = (product?.variantStock?.length ?? 0) > 0;
+  const curStockRow = isTracked
+    ? product.variantStock.find(r => r.size === (curSize ?? "") && r.colour === (curColour ?? ""))
+    : null;
+  const curStock = curStockRow ? curStockRow.stock_quantity : null;
+  const curOutOfStock = product?.product_status === "Available" && isTracked && curStock != null && curStock <= 0;
+  const productOutOfStock = product?.product_status === "Available" && isTracked
+    && product.variantStock.every(r => r.stock_quantity <= 0);
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 flex items-center justify-center">
@@ -126,7 +139,7 @@ export default function ProductDetailPage() {
   }
 
   function addVariantToPending() {
-    if (!canAddVariant) return;
+    if (!canAddVariant || curOutOfStock) return;
     const vKey = `${curSize ?? 'none'}-${curColour ?? 'none'}`;
     setPendingVariants(prev => {
       const existing = prev.find(v => v.variantKey === vKey);
@@ -172,6 +185,7 @@ export default function ProductDetailPage() {
   }
 
   function handleSimpleAdd() {
+    if (curOutOfStock) return;
     const simpleOriginal = curHasDiscount ? curRegularPrice : null;
     addToCart(product, curQty, null, null, curPrice, product.cost_price, product.profit, simpleOriginal);
     setAdded(true);
@@ -179,7 +193,7 @@ export default function ProductDetailPage() {
   }
 
   function handleSimpleBuyNow() {
-    if (ordersClosed && isPreorder) return;
+    if ((ordersClosed && isPreorder) || curOutOfStock) return;
     navigate("/checkout", {
       state: {
         buyNow: {
@@ -230,13 +244,23 @@ export default function ProductDetailPage() {
               </>
             )}
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-              product.product_status === "Available"
+              productOutOfStock
+                ? "bg-red-100 text-red-700"
+                : product.product_status === "Available"
                 ? "bg-green-100 text-green-700"
                 : "bg-amber-100 text-amber-700"
             }`}>
-              {product.product_status}
+              {productOutOfStock ? "Out of Stock" : product.product_status}
             </span>
           </div>
+
+          {product.product_status === "Available" && isTracked && curStock != null && (
+            <p className={`text-sm font-semibold mb-3 ${curStock > 0 ? "text-gray-500" : "text-red-600"}`}>
+              {curStock > 0
+                ? `${curStock} item${curStock !== 1 ? "s" : ""} left in stock`
+                : "Out of stock for this selection"}
+            </p>
+          )}
 
           {product.description && (
             <p className="text-gray-500 text-sm leading-relaxed mb-3">{product.description}</p>
@@ -332,10 +356,10 @@ export default function ProductDetailPage() {
                 </div>
                 <button
                   onClick={addVariantToPending}
-                  disabled={!canAddVariant}
+                  disabled={!canAddVariant || curOutOfStock}
                   className="flex-1 bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-[#1e2d3d] font-semibold text-sm py-2 rounded-xl transition-colors"
                 >
-                  + Add Variant
+                  {curOutOfStock ? "Out of Stock" : "+ Add Variant"}
                 </button>
               </div>
 
@@ -422,20 +446,23 @@ export default function ProductDetailPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleSimpleAdd}
-                  className={`flex-1 font-semibold py-2 sm:py-2.5 text-sm rounded-2xl text-white transition-all ${added ? "bg-green-500" : "bg-[#F2AA25] hover:opacity-90"}`}
+                  disabled={curOutOfStock}
+                  className={`flex-1 font-semibold py-2 sm:py-2.5 text-sm rounded-2xl text-white transition-all ${
+                    curOutOfStock ? "bg-gray-300 cursor-not-allowed" : added ? "bg-green-500" : "bg-[#F2AA25] hover:opacity-90"
+                  }`}
                 >
-                  {added ? "✓ Added to Cart!" : "Add to Cart"}
+                  {curOutOfStock ? "Out of Stock" : added ? "✓ Added to Cart!" : "Add to Cart"}
                 </button>
                 <button
                   onClick={handleSimpleBuyNow}
-                  disabled={ordersClosed && isPreorder}
+                  disabled={(ordersClosed && isPreorder) || curOutOfStock}
                   className={`flex-1 font-semibold py-2 sm:py-2.5 text-sm rounded-2xl border-2 transition-colors ${
-                    ordersClosed && isPreorder
+                    (ordersClosed && isPreorder) || curOutOfStock
                       ? "border-gray-200 text-gray-400 cursor-not-allowed"
                       : "border-[#1e2d3d] text-[#1e2d3d] hover:bg-[#1e2d3d] hover:text-white"
                   }`}
                 >
-                  {ordersClosed && isPreorder ? "Pre-orders Closed" : "Buy Now"}
+                  {curOutOfStock ? "Out of Stock" : ordersClosed && isPreorder ? "Pre-orders Closed" : "Buy Now"}
                 </button>
               </div>
             </>
