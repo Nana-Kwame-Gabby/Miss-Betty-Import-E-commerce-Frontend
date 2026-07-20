@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useUser } from "../context/UserContext";
@@ -12,6 +12,10 @@ const ghanaRegions = [
   "Northern", "Upper East", "Upper West", "Volta", "Brong-Ahafo",
   "Western North", "Ahafo", "Bono East", "Oti", "North East", "Savannah",
 ];
+
+// How long a persisted in-progress Hubtel payment is trusted before we treat it as
+// stale/expired rather than attempting to reopen it.
+const PAYMENT_RESUME_TTL_MS = 15 * 60 * 1000;
 
 export default function CheckoutPage() {
   const { cartItems, subtotal, totalSavings } = useCart();
@@ -64,9 +68,24 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState({});
   const [submitting,   setSubmitting]   = useState(false);
   const [submitError,  setSubmitError]  = useState("");
-  const [iframeUrl,    setIframeUrl]    = useState(null);
+  // The in-progress Hubtel payment (orderId + hosted checkout URL) survives navigation,
+  // so returning to /checkout reopens the same Hubtel session instead of starting over.
+  // OTP/payment-method entry itself lives entirely inside Hubtel's cross-origin page and
+  // can't be captured here — this only preserves what our own code actually controls.
+  const [paymentInProgress, setPaymentInProgress] = usePersistedState(
+    session?.user?.id ? `mbimport_form_checkout_payment_${session.user.id}` : "mbimport_form_checkout_payment_anon",
+    null
+  );
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const iframeRef = useRef(null);
+
+  // Discard a stale in-progress payment rather than reopening a likely-dead Hubtel URL.
+  useEffect(() => {
+    if (paymentInProgress && Date.now() - paymentInProgress.savedAt > PAYMENT_RESUME_TTL_MS) {
+      setPaymentInProgress(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function validate() {
     const e = {};
@@ -91,6 +110,7 @@ export default function CheckoutPage() {
       if (!href) return;
       const url = new URL(href);
       if (url.pathname.includes("order-confirmation")) {
+        setPaymentInProgress(null); // payment concluded (success or Hubtel-side cancellation) — nothing left to resume
         navigate(url.pathname + url.search);
       }
     } catch {
@@ -99,7 +119,7 @@ export default function CheckoutPage() {
   }
 
   function handleIframeClose() {
-    setIframeUrl(null);
+    setPaymentInProgress(null); // explicit cancel
     setIframeLoaded(false);
   }
 
@@ -177,7 +197,7 @@ export default function CheckoutPage() {
 
       // 5. Open Hubtel checkout in iframe overlay
       setIframeLoaded(false);
-      setIframeUrl(fnData.checkoutUrl);
+      setPaymentInProgress({ orderId, iframeUrl: fnData.checkoutUrl, savedAt: Date.now() });
       setSubmitting(false);
     } catch (err) {
       setSubmitError(err.message);
@@ -326,7 +346,7 @@ export default function CheckoutPage() {
 
       {/* Hubtel Onsite Checkout iframe modal */}
 
-      {iframeUrl && (
+      {paymentInProgress?.iframeUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/60" onClick={handleIframeClose} />
           <div className="relative z-10 flex flex-col w-full h-full sm:w-[480px] sm:h-[640px] sm:rounded-2xl overflow-hidden shadow-2xl bg-white">
@@ -360,7 +380,7 @@ export default function CheckoutPage() {
 
             <iframe
               ref={iframeRef}
-              src={iframeUrl}
+              src={paymentInProgress.iframeUrl}
               onLoad={handleIframeLoad}
               className="flex-1 w-full border-0"
               title="Hubtel Secure Payment"

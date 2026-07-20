@@ -68,7 +68,10 @@ export function AuthProvider({ children }) {
 
   async function signOut() {
     const userId = session?.user?.id;
-    if (userId) sessionStorage.removeItem(`mbimport_form_checkout_delivery_${userId}`);
+    if (userId) {
+      sessionStorage.removeItem(`mbimport_form_checkout_delivery_${userId}`);
+      sessionStorage.removeItem(`mbimport_form_checkout_payment_${userId}`);
+    }
     await supabase.auth.signOut();
   }
 
