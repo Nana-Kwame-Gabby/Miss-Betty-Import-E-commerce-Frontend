@@ -64,7 +64,8 @@ function mapProduct(p) {
       : (p.size ? p.size.split(',').map(s => s.trim()).filter(Boolean) : []),
     colours: p.colour ? p.colour.split(',').map(c => c.trim()).filter(Boolean) : [],
     product_status: p.product_status?.status_name ?? 'Available',
-    estimated_shipping_fee: p.estimated_shipping_fee ?? null,
+    estimated_shipping_fee_min: p.estimated_shipping_fee_min ?? null,
+    estimated_shipping_fee_max: p.estimated_shipping_fee_max ?? null,
   };
 }
 
@@ -289,10 +290,18 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
             </p>
           )}
 
-          {product.estimated_shipping_fee != null && product.estimated_shipping_fee > 0 && (
+          {(product.estimated_shipping_fee_min > 0 || product.estimated_shipping_fee_max > 0) && (
             <p className="text-sm text-gray-500 mb-3 flex items-center gap-1.5">
               <span>🚚</span>
-              Est. shipping: <span className="font-semibold text-[#1e2d3d] ml-0.5">GHS {Number(product.estimated_shipping_fee).toLocaleString()}</span>
+              Est. shipping: <span className="font-bold text-base text-[#1e2d3d] ml-0.5">
+                GHS {
+                  product.estimated_shipping_fee_min > 0
+                    && product.estimated_shipping_fee_max > 0
+                    && product.estimated_shipping_fee_min !== product.estimated_shipping_fee_max
+                    ? `${product.estimated_shipping_fee_min.toLocaleString()}–${product.estimated_shipping_fee_max.toLocaleString()}`
+                    : Number(product.estimated_shipping_fee_max || product.estimated_shipping_fee_min).toLocaleString()
+                }
+              </span>
             </p>
           )}
 

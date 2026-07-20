@@ -12,7 +12,8 @@ const EMPTY_FORM = {
   description: "",
   sizes: "",
   colours: "",
-  estimated_shipping_fee: "",
+  estimated_shipping_fee_min: "",
+  estimated_shipping_fee_max: "",
 };
 
 const Spinner = () => (
@@ -158,6 +159,11 @@ export default function AdminProductsPage() {
       setError("Product name, category, cost price, and status are required.");
       return;
     }
+    if (form.estimated_shipping_fee_min !== "" && form.estimated_shipping_fee_max !== ""
+        && Number(form.estimated_shipping_fee_max) < Number(form.estimated_shipping_fee_min)) {
+      setError("Maximum shipping fee must be greater than or equal to minimum.");
+      return;
+    }
     const validRows = sizePricingRows.filter(r => r.size.trim() && r.cost_price !== "" && r.profit !== "");
     if (useSizePricing && validRows.length === 0) {
       setError("Add at least one complete size entry, or disable size-based pricing.");
@@ -213,7 +219,8 @@ export default function AdminProductsPage() {
         size:   sizeValue,
         colour: form.colours.trim() || null,
         size_pricing,
-        estimated_shipping_fee: form.estimated_shipping_fee ? Number(form.estimated_shipping_fee) : null,
+        estimated_shipping_fee_min: form.estimated_shipping_fee_min ? Number(form.estimated_shipping_fee_min) : null,
+        estimated_shipping_fee_max: form.estimated_shipping_fee_max ? Number(form.estimated_shipping_fee_max) : null,
       }).select("product_id, product_name").single();
 
       if (insertError) throw new Error(insertError.message);
@@ -297,7 +304,8 @@ export default function AdminProductsPage() {
       description:    product.description ?? "",
       sizes:          product.size ?? "",
       colours:        product.colour ?? "",
-      estimated_shipping_fee: String(product.estimated_shipping_fee ?? ""),
+      estimated_shipping_fee_min: String(product.estimated_shipping_fee_min ?? ""),
+      estimated_shipping_fee_max: String(product.estimated_shipping_fee_max ?? ""),
     });
     setEditImageFile(null);    setEditImagePreview(null);
     setEditImageFile2(null);   setEditImagePreview2(null);
@@ -339,6 +347,11 @@ export default function AdminProductsPage() {
     setEditError("");
     if (!editForm.product_name.trim() || !editForm.category_id || (!editUseSizePricing && !editForm.cost_price) || !editForm.status_id) {
       setEditError("Product name, category, cost price, and status are required.");
+      return;
+    }
+    if (editForm.estimated_shipping_fee_min !== "" && editForm.estimated_shipping_fee_max !== ""
+        && Number(editForm.estimated_shipping_fee_max) < Number(editForm.estimated_shipping_fee_min)) {
+      setEditError("Maximum shipping fee must be greater than or equal to minimum.");
       return;
     }
     const validEditRows = editSizePricingRows.filter(r => r.size.trim() && r.cost_price !== "" && r.profit !== "");
@@ -397,7 +410,8 @@ export default function AdminProductsPage() {
           size:   sizeValue,
           colour: editForm.colours.trim() || null,
           size_pricing,
-          estimated_shipping_fee: editForm.estimated_shipping_fee ? Number(editForm.estimated_shipping_fee) : null,
+          estimated_shipping_fee_min: editForm.estimated_shipping_fee_min ? Number(editForm.estimated_shipping_fee_min) : null,
+          estimated_shipping_fee_max: editForm.estimated_shipping_fee_max ? Number(editForm.estimated_shipping_fee_max) : null,
         })
         .eq("product_id", editingProduct.product_id);
 
@@ -639,15 +653,29 @@ export default function AdminProductsPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Est. Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+            <label className={labelClass}>Minimum Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
             <input
-              name="estimated_shipping_fee"
+              name="estimated_shipping_fee_min"
               type="number"
               min="0"
               step="0.01"
-              value={form.estimated_shipping_fee}
+              value={form.estimated_shipping_fee_min}
               onChange={handleChange}
-              placeholder="e.g. 30"
+              placeholder="e.g. 150"
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className={labelClass}>Maximum Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input
+              name="estimated_shipping_fee_max"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.estimated_shipping_fee_max}
+              onChange={handleChange}
+              placeholder="e.g. 200"
               className={inputClass}
             />
           </div>
@@ -1034,15 +1062,29 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Est. Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label className={labelClass}>Minimum Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
                   <input
-                    name="estimated_shipping_fee"
+                    name="estimated_shipping_fee_min"
                     type="number"
                     min="0"
                     step="0.01"
-                    value={editForm.estimated_shipping_fee}
+                    value={editForm.estimated_shipping_fee_min}
                     onChange={handleEditChange}
-                    placeholder="e.g. 30"
+                    placeholder="e.g. 150"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass}>Maximum Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <input
+                    name="estimated_shipping_fee_max"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editForm.estimated_shipping_fee_max}
+                    onChange={handleEditChange}
+                    placeholder="e.g. 200"
                     className={inputClass}
                   />
                 </div>
