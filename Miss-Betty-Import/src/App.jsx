@@ -39,6 +39,12 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import ProductRequestPage from "./pages/ProductRequestPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 
+// Take manual control of scroll position so the browser's own native scroll
+// restoration (which can fire on back/forward) doesn't race with our per-page hooks.
+if (typeof window !== "undefined" && window.history?.scrollRestoration) {
+  window.history.scrollRestoration = "manual";
+}
+
 function LoadingSpinner() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

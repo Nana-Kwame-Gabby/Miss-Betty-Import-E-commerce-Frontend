@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../context/AuthContext";
+import usePersistedState from "../../hooks/usePersistedState";
 
 const TITLE_MAX = 150;
 const MESSAGE_MAX = 1000;
@@ -10,7 +11,7 @@ export default function AdminNotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [loading,       setLoading]       = useState(true);
 
-  const [form,       setForm]       = useState({ title: "", message: "", link_url: "" });
+  const [form,       setForm]       = usePersistedState("mbimport_form_admin_notification_draft", { title: "", message: "", link_url: "" });
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [banner,     setBanner]     = useState(null); // { type: "success"|"error", text }

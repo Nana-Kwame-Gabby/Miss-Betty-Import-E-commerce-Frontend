@@ -7,6 +7,8 @@ import { supabase } from "../lib/supabase";
 import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
 import MediaCarousel from "../components/MediaCarousel";
 import ReviewsSection from "../components/ReviewsSection";
+import usePersistedState from "../hooks/usePersistedState";
+import useScrollRestoration from "../hooks/useScrollRestoration";
 
 function mapProduct(p) {
   const rawSizePricing = Array.isArray(p.size_pricing) && p.size_pricing.length > 0
@@ -54,12 +56,16 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState(null);
   const isPreorder = product ? product.product_status.toLowerCase().includes("pre") : false;
   const [loading, setLoading] = useState(true);
-  const [curSize,         setCurSize]         = useState(null);
-  const [curColour,       setCurColour]       = useState(null);
-  const [curQty,          setCurQty]          = useState(1);
-  const [pendingVariants, setPendingVariants] = useState([]);
+  // Selection state persists per product id, so navigating away and back restores it,
+  // and switching to a different product starts fresh instead of leaking state across products.
+  const [curSize,         setCurSize]         = usePersistedState(`mbimport_state_product_detail_${id}_size`, null);
+  const [curColour,       setCurColour]       = usePersistedState(`mbimport_state_product_detail_${id}_colour`, null);
+  const [curQty,          setCurQty]          = usePersistedState(`mbimport_state_product_detail_${id}_qty`, 1);
+  const [pendingVariants, setPendingVariants] = usePersistedState(`mbimport_state_product_detail_${id}_pending`, []);
   const [error, setError] = useState("");
   const [added, setAdded] = useState(false);
+
+  useScrollRestoration(`mbimport_scroll_product_${id}`, !loading);
 
   useEffect(() => {
     async function loadProduct() {
@@ -71,8 +77,9 @@ export default function ProductDetailPage() {
       if (data) {
         const mapped = mapProduct(data);
         setProduct(mapped);
-        setCurSize(mapped.sizes[0] ?? null);
-        setCurColour(mapped.colours[0] ?? null);
+        // Keep a restored selection if it's still valid for this product; otherwise default.
+        setCurSize(prev => (prev && mapped.sizes.includes(prev)) ? prev : (mapped.sizes[0] ?? null));
+        setCurColour(prev => (prev && mapped.colours.includes(prev)) ? prev : (mapped.colours[0] ?? null));
       }
       setLoading(false);
     }

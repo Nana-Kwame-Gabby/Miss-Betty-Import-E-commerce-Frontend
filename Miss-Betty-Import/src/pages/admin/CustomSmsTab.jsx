@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { SMS_MAX_CHARS as MAX_CHARS, smsSegments } from "../../lib/smsUtils";
 import { validateGhanaPhone, normalizeGhanaPhone, splitManualPhoneInput } from "../../lib/phoneUtils";
+import usePersistedState from "../../hooks/usePersistedState";
 
 const SEND_CONCURRENCY = 5;
 
@@ -26,11 +27,13 @@ async function settleInBatches(items, size, fn) {
 export default function CustomSmsTab() {
   const [customers,         setCustomers]         = useState([]);
   const [customerQuery,     setCustomerQuery]     = useState("");
-  const [selectedCustomers, setSelectedCustomers] = useState([]);
-  const [manualInput,       setManualInput]       = useState("");
-  const [manualNumbers,     setManualNumbers]     = useState([]); // [{ raw, normalized }]
+  // Recipient list + draft message persist across navigation (admin-only, tab-scoped —
+  // accepted that customer names/phone numbers sit in sessionStorage while composing).
+  const [selectedCustomers, setSelectedCustomers] = usePersistedState("mbimport_form_admin_custom_sms_draft_selected", []);
+  const [manualInput,       setManualInput]       = usePersistedState("mbimport_form_admin_custom_sms_draft_manual_input", "");
+  const [manualNumbers,     setManualNumbers]     = usePersistedState("mbimport_form_admin_custom_sms_draft_manual_numbers", []); // [{ raw, normalized }]
   const [manualError,       setManualError]       = useState(null);
-  const [message,           setMessage]           = useState("");
+  const [message,           setMessage]           = usePersistedState("mbimport_form_admin_custom_sms_draft_message", "");
   const [logs,               setLogs]             = useState([]);
   const [loading,           setLoading]           = useState(true);
   const [sending,           setSending]           = useState(false);

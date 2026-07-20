@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { SMS_MAX_CHARS as MAX_CHARS, smsSegments } from "../../lib/smsUtils";
+import usePersistedState from "../../hooks/usePersistedState";
 
 export default function BulkSmsTab() {
-  const [message,        setMessage]        = useState("");
+  const [message,        setMessage]        = usePersistedState("mbimport_form_admin_bulk_sms_draft", "");
   const [customerCount,  setCustomerCount]  = useState(null);
   const [campaigns,      setCampaigns]      = useState([]);
   const [loading,        setLoading]        = useState(true);

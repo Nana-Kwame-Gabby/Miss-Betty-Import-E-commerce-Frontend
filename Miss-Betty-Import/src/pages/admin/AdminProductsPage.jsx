@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import usePersistedState from "../../hooks/usePersistedState";
 
 const EMPTY_FORM = {
   product_name: "",
@@ -82,18 +83,22 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState([]);
   const [statuses, setStatuses] = useState([]);
 
-  // Upload form
-  const [form, setForm] = useState(EMPTY_FORM);
+  // Upload form — text/number fields persist across navigation (draft survives an
+  // accidental nav-away); image files are never persisted (not serializable, must be re-picked).
+  const [form, setForm] = usePersistedState("mbimport_form_admin_product_draft", EMPTY_FORM);
   const [imageFile, setImageFile]     = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageFile2, setImageFile2]   = useState(null);
   const [imagePreview2, setImagePreview2] = useState(null);
-  const [tiktokUrl, setTiktokUrl]     = useState("");
+  const [tiktokUrl, setTiktokUrl]     = usePersistedState("mbimport_form_admin_product_draft_tiktok", "");
   const [submitting, setSubmitting]   = useState(false);
   const [error, setError]             = useState("");
   const [success, setSuccess]         = useState("");
-  const [useSizePricing, setUseSizePricing] = useState(false);
-  const [sizePricingRows, setSizePricingRows] = useState([{ size: "", cost_price: "", profit: "", discount_price: "" }]);
+  const [useSizePricing, setUseSizePricing] = usePersistedState("mbimport_form_admin_product_draft_use_size_pricing", false);
+  const [sizePricingRows, setSizePricingRows] = usePersistedState(
+    "mbimport_form_admin_product_draft_size_pricing_rows",
+    [{ size: "", cost_price: "", profit: "", discount_price: "" }]
+  );
 
   // Edit modal
   const [editingProduct, setEditingProduct] = useState(null);

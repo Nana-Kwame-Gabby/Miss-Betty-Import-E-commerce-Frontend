@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
+import usePersistedState from "../hooks/usePersistedState";
 
 function ImagePickerField({ label, file, existingUrl, onChange, onClear }) {
   const inputRef = useRef(null);
@@ -53,7 +54,7 @@ const EMPTY_FORM = { productName: "", details: "" };
 
 export default function ProductRequestPage() {
   const { session } = useAuth();
-  const [form, setForm]         = useState(EMPTY_FORM);
+  const [form, setForm]         = usePersistedState("mbimport_form_product_request", EMPTY_FORM);
   const [imageFile, setImageFile] = useState(null);
   const [errors, setErrors]     = useState({});
   const [submitting, setSubmitting] = useState(false);

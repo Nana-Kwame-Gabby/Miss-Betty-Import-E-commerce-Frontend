@@ -67,10 +67,12 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    const userId = session?.user?.id;
+    if (userId) sessionStorage.removeItem(`mbimport_form_checkout_delivery_${userId}`);
     await supabase.auth.signOut();
   }
 
-  const isAdmin = session?.user?.user_metadata?.role === 'admin';
+  const isAdmin = session?.user?.app_metadata?.role === 'admin';
 
   return (
     <AuthContext.Provider value={{ session, user: session?.user ?? null, signIn, signOut, loading, isAdmin, checkingCustomer }}>

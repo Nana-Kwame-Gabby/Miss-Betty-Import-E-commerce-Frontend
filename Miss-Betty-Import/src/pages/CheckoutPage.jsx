@@ -5,6 +5,7 @@ import { useUser } from "../context/UserContext";
 import { useAuth } from "../context/AuthContext";
 import { useAppSettings } from "../context/AppSettingsContext";
 import { supabase } from "../lib/supabase";
+import usePersistedState from "../hooks/usePersistedState";
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Eastern", "Central",
@@ -49,9 +50,16 @@ export default function CheckoutPage() {
   const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
   const hasBlockedPreorders = ordersClosed && checkoutItems.some(i => isPreorder(i.product_status));
 
+  // Only region/town (the actually-editable fields) survive navigation, keyed per account
+  // so a shared device doesn't leak one user's unsubmitted delivery edits into another's session.
+  const [deliveryDraft, setDeliveryDraft] = usePersistedState(
+    session?.user?.id ? `mbimport_form_checkout_delivery_${session.user.id}` : "mbimport_form_checkout_delivery_anon",
+    { region: null, town: null }
+  );
   const [form, setForm] = useState({
     fullName: user.fullName, email: user.email, phone: user.phone,
-    region: user.deliveryRegion, town: user.deliveryTown,
+    region: deliveryDraft.region ?? user.deliveryRegion,
+    town: deliveryDraft.town ?? user.deliveryTown,
   });
   const [errors, setErrors] = useState({});
   const [submitting,   setSubmitting]   = useState(false);
@@ -68,7 +76,11 @@ export default function CheckoutPage() {
   }
 
   function handleChange(e) {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    if (name === "region" || name === "town") {
+      setDeliveryDraft(prev => ({ ...prev, [name]: value }));
+    }
     setErrors(prev => ({ ...prev, [e.target.name]: "" }));
   }
 

@@ -12,6 +12,8 @@ import ReviewsSection from "../components/ReviewsSection";
 import BottomNav from "../components/BottomNav";
 import { supabase } from "../lib/supabase";
 import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
+import usePersistedState from "../hooks/usePersistedState";
+import useScrollRestoration from "../hooks/useScrollRestoration";
 
 const CATEGORY_ICONS = {
   'Mother care items':               '👶',
@@ -613,9 +615,9 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
 export default function ShopPage() {
   const { totalItems } = useCart();
   const { ordersClosed, announcementMessage, promoActive, promoMessage } = useAppSettings();
-  const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [search, setSearch] = usePersistedState("mbimport_form_shop_filters_search", "");
+  const [activeCategory, setActiveCategory] = usePersistedState("mbimport_form_shop_filters_category", "All");
+  const [statusFilter, setStatusFilter] = usePersistedState("mbimport_form_shop_filters_status", "All");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [buyNowProduct, setBuyNowProduct] = useState(null);
   const [products, setProducts] = useState([]);
@@ -626,6 +628,8 @@ export default function ShopPage() {
   const categoryRef = useRef(null);
   const filterBarRef = useRef(null);
   const [filterBarHeight, setFilterBarHeight] = useState(0);
+
+  useScrollRestoration("mbimport_scroll_shop", !loadingProducts);
 
   useLayoutEffect(() => {
     const el = filterBarRef.current;
