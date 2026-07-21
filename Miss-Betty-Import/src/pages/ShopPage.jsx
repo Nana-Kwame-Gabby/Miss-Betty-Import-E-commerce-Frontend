@@ -507,6 +507,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
   const isTracked = (product.variantStock?.length ?? 0) > 0;
   const hasAnyStock = !isTracked || product.variantStock.some(r => r.stock_quantity > 0);
   const outOfStock = product.product_status === "Available" && isTracked && !hasAnyStock;
+  const totalStock = isTracked ? product.variantStock.reduce((s, r) => s + r.stock_quantity, 0) : null;
 
   function firstInStockVariant() {
     const sizes = product.sizes.length > 0 ? product.sizes : [null];
@@ -618,6 +619,9 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
             </span>
           )}
         </div>
+        {product.product_status === "Available" && isTracked && totalStock > 0 && (
+          <p className="text-xs font-semibold text-gray-500 mb-1.5">{totalStock} in stock</p>
+        )}
         <div className="flex gap-1.5">
           <button
             onClick={handleAdd}
@@ -696,6 +700,27 @@ export default function ShopPage() {
       setLoadingProducts(false);
     }
     loadData();
+  }, []);
+
+  // Live stock updates: a purchase decrements product_variant_stock server-side via a
+  // Postgres trigger (a plain UPDATE), so subscribing here keeps every card's displayed
+  // count current for every customer, without a page refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel('product_variant_stock_shop')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'product_variant_stock' },
+        (payload) => {
+          setProducts(prev => prev.map(p =>
+            p.id === payload.new.product_id
+              ? { ...p, variantStock: p.variantStock.map(r => r.id === payload.new.id ? payload.new : r) }
+              : p
+          ));
+        }
+      )
+      .subscribe();
+    return () => supabase.removeChannel(channel);
   }, []);
 
   const filtered = useMemo(() => {

@@ -88,6 +88,26 @@ export default function ProductDetailPage() {
     loadProduct();
   }, [id]);
 
+  // Live stock updates: a purchase decrements product_variant_stock server-side via a
+  // Postgres trigger (a plain UPDATE), so subscribing here keeps the displayed count
+  // current for every customer viewing this product, without a page refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`product_variant_stock_detail_${id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'product_variant_stock', filter: `product_id=eq.${id}` },
+        (payload) => {
+          setProduct(prev => prev ? {
+            ...prev,
+            variantStock: prev.variantStock.map(r => r.id === payload.new.id ? payload.new : r),
+          } : prev);
+        }
+      )
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [id]);
+
   const hasVariants = (product?.sizes?.length ?? 0) > 0 || (product?.colours?.length ?? 0) > 0;
 
   const curEntry        = product?.sizePricing && curSize
