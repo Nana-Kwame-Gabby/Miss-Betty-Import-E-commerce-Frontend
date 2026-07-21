@@ -1,4 +1,4 @@
-import { Fragment, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAppSettings } from "../context/AppSettingsContext";
@@ -35,18 +35,10 @@ function VariantAdder({ product, addToCart }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-[#F2AA25]/30 p-3 sm:p-4 mb-1">
+    <div className="bg-[#FFF9F0] rounded-xl border border-[#F2AA25]/30 p-3">
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-3">
-        <img
-          src={product.product_image_url}
-          alt={product.product_name}
-          className="w-10 h-10 object-cover rounded-xl flex-shrink-0"
-        />
-        <div>
-          <p className="text-xs font-bold text-[#1e2d3d] leading-tight">{product.product_name}</p>
-          <p className="text-[10px] text-[#F2AA25] font-semibold mt-0.5">Add a variant</p>
-        </div>
+        <p className="text-[11px] text-[#F2AA25] font-semibold">+ Add a variant</p>
       </div>
 
       {/* Size picker */}
@@ -142,22 +134,94 @@ function VariantAdder({ product, addToCart }) {
   );
 }
 
+// One card per product — every size/colour variant of that product currently in the
+// cart is listed as a compact row inside it, instead of each variant getting its own
+// separate card.
+function ProductGroupCard({ group, addToCart, updateQuantity, removeFromCart }) {
+  const { product, variants } = group;
+  const hasVariantOptions = (product.sizes?.length ?? 0) > 0 || (product.colours?.length ?? 0) > 0;
+  const groupTotal = variants.reduce((s, v) => s + v.unit_price * v.quantity, 0);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-2.5 sm:p-3">
+      <div className="flex gap-2.5 sm:gap-3 items-center mb-2">
+        <img
+          src={product.product_image_url}
+          alt={product.product_name}
+          className="w-14 h-[72px] sm:w-20 sm:h-24 object-cover rounded-xl flex-shrink-0"
+        />
+        <h3 className="font-semibold text-[#1e2d3d] truncate flex-1 min-w-0">{product.product_name}</h3>
+      </div>
+
+      <div className="divide-y divide-gray-100">
+        {variants.map(v => (
+          <div key={v.cartKey} className="py-2 first:pt-0 last:pb-0">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-sm text-gray-600 truncate">
+                {[v.size, v.colour].filter(Boolean).join(" · ") || "Standard"}
+              </span>
+              <button
+                onClick={() => removeFromCart(v.cartKey)}
+                className="text-red-400 hover:text-red-600 transition-colors p-1 flex-shrink-0"
+                aria-label="Remove item"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </button>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-gray-400 flex-shrink-0">GHS {v.unit_price.toLocaleString()} each</span>
+              <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-2 py-1 flex-shrink-0">
+                <button
+                  onClick={() => updateQuantity(v.cartKey, v.quantity - 1)}
+                  className="w-6 h-6 flex items-center justify-center font-bold text-[#1e2d3d] hover:text-[#F2AA25]"
+                >−</button>
+                <span className="w-6 text-center text-sm font-semibold">{v.quantity}</span>
+                <button
+                  onClick={() => updateQuantity(v.cartKey, v.quantity + 1)}
+                  className="w-6 h-6 flex items-center justify-center font-bold text-[#1e2d3d] hover:text-[#F2AA25]"
+                >+</button>
+              </div>
+              <span className="font-semibold text-[#1e2d3d] flex-shrink-0">
+                GHS {(v.unit_price * v.quantity).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {hasVariantOptions && (
+        <div className="mt-2">
+          <VariantAdder product={product} addToCart={addToCart} />
+        </div>
+      )}
+
+      <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-100">
+        <span className="text-sm font-semibold text-[#1e2d3d]">Total</span>
+        <span className="font-bold text-[#1e2d3d]">GHS {groupTotal.toLocaleString()}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, updateVariant, addToCart, subtotal, totalSavings } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, addToCart, subtotal, totalSavings } = useCart();
   const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
 
   const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
   const hasBlockedPreorders = ordersClosed && cartItems.some(i => isPreorder(i.product_status));
 
-  const productsWithVariants = useMemo(() => {
-    const seen = new Set();
-    return cartItems.filter(item => {
-      if (seen.has(item.id)) return false;
-      if (!item.sizes?.length && !item.colours?.length) return false;
-      seen.add(item.id);
-      return true;
+  // One group per product — every cart line (a distinct size/colour combination) for
+  // that product id is collected together so it can render as rows inside one card.
+  const groupedCartItems = useMemo(() => {
+    const map = new Map();
+    cartItems.forEach(item => {
+      if (!map.has(item.id)) map.set(item.id, { product: item, variants: [] });
+      map.get(item.id).variants.push(item);
     });
+    return Array.from(map.values());
   }, [cartItems]);
 
   if (cartItems.length === 0) {
@@ -186,114 +250,14 @@ export default function CartPage() {
         {/* Items list */}
         <div className="lg:col-span-2 flex flex-col gap-2 sm:gap-3">
 
-          {/* Add Variant sections — one per unique product with variants */}
-          {productsWithVariants.map(product => (
-            <VariantAdder key={product.id} product={product} addToCart={addToCart} />
-          ))}
-
-          {cartItems.map(item => (
-            <Fragment key={item.cartKey}>
-              {/* Cart item card */}
-              <div className="bg-white rounded-2xl shadow-sm p-2.5 sm:p-3 flex gap-2.5 sm:gap-3 items-start">
-                <img
-                  src={item.product_image_url}
-                  alt={item.product_name}
-                  className="w-14 h-[72px] sm:w-20 sm:h-24 object-cover rounded-xl flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-[#1e2d3d] truncate">{item.product_name}</h3>
-                  {item.sizes?.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {item.sizes.map(s => {
-                        const priceEntry = item.sizePricing?.find(sp => sp.size === s);
-                        const sizeRegular = priceEntry ? (priceEntry.selling_price ?? priceEntry.price ?? 0) : 0;
-                        const sizeHasDiscount = priceEntry && hasDiscount(priceEntry);
-                        const sizeEffective = priceEntry ? getEffectivePrice(priceEntry) : 0;
-                        return (
-                          <button
-                            key={s}
-                            onClick={() => updateVariant(item.cartKey, s, item.colour)}
-                            className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-colors leading-none ${
-                              item.size === s
-                                ? "bg-[#1e2d3d] text-white"
-                                : "border border-gray-300 text-gray-500 hover:border-[#1e2d3d]"
-                            }`}
-                          >
-                            <span className="block">{s}</span>
-                            {priceEntry && (
-                              sizeHasDiscount ? (
-                                <>
-                                  <span className="block text-[10px] font-semibold text-[#DC2626]">GHS {sizeEffective.toLocaleString()}</span>
-                                  <span className={`block text-[9px] font-normal line-through ${item.size === s ? "text-white/50" : "text-gray-300"}`}>GHS {sizeRegular.toLocaleString()}</span>
-                                </>
-                              ) : (
-                                <span className={`block text-[10px] font-normal ${item.size === s ? "text-white/70" : "text-gray-400"}`}>
-                                  GHS {sizeRegular.toLocaleString()}
-                                </span>
-                              )
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {item.colours?.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1.5 items-center">
-                      <span className="text-[11px] text-gray-400 font-medium">Colour:</span>
-                      {item.colours.map(c => (
-                        <button
-                          key={c}
-                          onClick={() => updateVariant(item.cartKey, item.size, c)}
-                          title={c}
-                          className={`w-5 h-5 rounded-full transition-all flex-shrink-0 ${
-                            item.colour === c
-                              ? "ring-2 ring-offset-1 ring-[#1e2d3d] scale-110"
-                              : "hover:scale-105"
-                          } ${c === "White" ? "border border-gray-200" : ""}`}
-                          style={{ backgroundColor: colourMap[c] || "#ccc" }}
-                        />
-                      ))}
-                      <span className="text-[11px] text-gray-500">{item.colour}</span>
-                    </div>
-                  )}
-                  <div className="flex items-baseline gap-1.5 mt-1 flex-wrap">
-                    <p className="text-[#DC2626] font-bold">GHS {item.unit_price.toLocaleString()}</p>
-                    {item.original_price != null && item.original_price > item.unit_price && (
-                      <span className="text-gray-400 text-xs line-through">GHS {item.original_price.toLocaleString()}</span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center gap-2 border border-gray-200 rounded-xl px-2 py-1">
-                      <button
-                        onClick={() => updateQuantity(item.cartKey, item.quantity - 1)}
-                        className="w-6 h-6 flex items-center justify-center font-bold text-[#1e2d3d] hover:text-[#F2AA25]"
-                      >−</button>
-                      <span className="w-8 text-center text-sm font-semibold">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.cartKey, item.quantity + 1)}
-                        className="w-6 h-6 flex items-center justify-center font-bold text-[#1e2d3d] hover:text-[#F2AA25]"
-                      >+</button>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <span className="font-bold text-[#1e2d3d]">
-                        GHS {(item.unit_price * item.quantity).toLocaleString()}
-                      </span>
-                      <button
-                        onClick={() => removeFromCart(item.cartKey)}
-                        className="text-red-400 hover:text-red-600 transition-colors p-1"
-                        aria-label="Remove item"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Fragment>
+          {groupedCartItems.map(group => (
+            <ProductGroupCard
+              key={group.product.id}
+              group={group}
+              addToCart={addToCart}
+              updateQuantity={updateQuantity}
+              removeFromCart={removeFromCart}
+            />
           ))}
         </div>
 
