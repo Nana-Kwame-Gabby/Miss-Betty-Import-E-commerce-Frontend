@@ -10,6 +10,7 @@ import NotificationBell from "../components/NotificationBell";
 import MediaCarousel from "../components/MediaCarousel";
 import ReviewsSection from "../components/ReviewsSection";
 import BottomNav from "../components/BottomNav";
+import CountdownBanner from "../components/CountdownBanner";
 import { supabase } from "../lib/supabase";
 import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
 import usePersistedState from "../hooks/usePersistedState";
@@ -815,6 +816,8 @@ export default function ShopPage() {
 
       {/* Fixed sub-header: announcement banner + filters */}
       <div ref={filterBarRef} className="fixed top-16 sm:top-[72px] left-0 right-0 z-30">
+        <CountdownBanner />
+
         {/* Promo alert banner */}
         {promoActive && promoMessage && (
           <div className="flex justify-center items-center py-2.5 bg-[#1e2d3d] overflow-hidden">
