@@ -19,6 +19,7 @@ function VariantAdder({ product, addToCart }) {
   const curPrice         = curHasDiscount ? curDiscountPrice : curRegularPrice;
   const curCostPrice     = curEntry?.cost_price ?? product.cost_price ?? 0;
   const curProfit        = curEntry?.profit     ?? product.profit     ?? 0;
+  const curRmbPrice      = curEntry?.rmb_price  ?? product.rmb_price  ?? 0;
 
   const canAdd = (!product.sizes?.length || curSize) && (!product.colours?.length || curColour);
 
@@ -27,7 +28,8 @@ function VariantAdder({ product, addToCart }) {
     addToCart(
       product, curQty, curSize, curColour,
       curPrice, curCostPrice, curProfit,
-      curHasDiscount ? curRegularPrice : null
+      curHasDiscount ? curRegularPrice : null,
+      curRmbPrice
     );
     setAdded(true);
     setCurQty(1);

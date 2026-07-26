@@ -34,12 +34,13 @@ export function CartProvider({ children }) {
     localStorage.setItem(storageKey, JSON.stringify(cartItems));
   }, [cartItems, storageKey]);
 
-  function addToCart(product, quantity, size, colour, overridePrice, sizeCostPrice, sizeProfit, sizeOriginalPrice) {
+  function addToCart(product, quantity, size, colour, overridePrice, sizeCostPrice, sizeProfit, sizeOriginalPrice, sizeRmbPrice) {
     const key          = `${product.id}-${size}-${colour}`;
     const unitPrice    = overridePrice     ?? product.unit_price;
     const costPrice    = sizeCostPrice     ?? product.cost_price ?? 0;
     const profit       = unitPrice - costPrice;
     const originalPrice = sizeOriginalPrice ?? null;
+    const rmbPrice     = sizeRmbPrice      ?? product.rmb_price ?? 0;
     setCartItems(prev => {
       const existing = prev.find(item => item.cartKey === key);
       if (existing) {
@@ -47,7 +48,7 @@ export function CartProvider({ children }) {
           item.cartKey === key ? { ...item, quantity: item.quantity + quantity } : item
         );
       }
-      return [...prev, { ...product, unit_price: unitPrice, cost_price: costPrice, profit, original_price: originalPrice, quantity, size, colour, cartKey: key }];
+      return [...prev, { ...product, unit_price: unitPrice, cost_price: costPrice, profit, original_price: originalPrice, rmb_price: rmbPrice, quantity, size, colour, cartKey: key }];
     });
   }
 
@@ -64,7 +65,7 @@ export function CartProvider({ children }) {
   function addMultipleToCart(variants) {
     setCartItems(prev => {
       let items = [...prev];
-      variants.forEach(({ product, size, colour, qty, price, costPrice, profit, originalPrice }) => {
+      variants.forEach(({ product, size, colour, qty, price, costPrice, profit, originalPrice, rmbPrice }) => {
         const key = `${product.id}-${size}-${colour}`;
         const existing = items.find(i => i.cartKey === key);
         if (existing) {
@@ -75,6 +76,7 @@ export function CartProvider({ children }) {
           items = [...items, {
             ...product, unit_price: price, cost_price: costPrice, profit: price - costPrice,
             original_price: originalPrice ?? null,
+            rmb_price: rmbPrice ?? 0,
             quantity: qty, size, colour, cartKey: key,
           }];
         }
@@ -96,6 +98,7 @@ export function CartProvider({ children }) {
       const newOriginalPrice = sizeEntry && hasDiscount(sizeEntry) ? (sizeEntry.selling_price ?? sizeEntry.price) : null;
       const newCostPrice    = sizeEntry?.cost_price ?? item.cost_price ?? 0;
       const newProfit       = newUnitPrice - newCostPrice;
+      const newRmbPrice     = sizeEntry?.rmb_price ?? item.rmb_price ?? 0;
 
       const existingAtNewKey = prev.find(i => i.cartKey === newKey);
       if (existingAtNewKey) {
@@ -111,7 +114,7 @@ export function CartProvider({ children }) {
         i.cartKey === cartKey
           ? { ...i, size: newSize, colour: newColour, cartKey: newKey,
               unit_price: newUnitPrice, original_price: newOriginalPrice,
-              cost_price: newCostPrice, profit: newProfit }
+              cost_price: newCostPrice, profit: newProfit, rmb_price: newRmbPrice }
           : i
       );
     });

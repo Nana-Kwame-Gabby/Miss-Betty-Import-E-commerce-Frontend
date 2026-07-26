@@ -34,7 +34,13 @@ function groupByProduct(rows) {
     const cl = row.colour || "—";
     const qty = Number(row.quantity ?? 1);
     if (!entry.sizeColourMap[sz]) entry.sizeColourMap[sz] = {};
-    entry.sizeColourMap[sz][cl] = (entry.sizeColourMap[sz][cl] ?? 0) + qty;
+    const existingCell = entry.sizeColourMap[sz][cl];
+    // rmb_price is a per-size procurement snapshot (not summed like qty) — carries the
+    // most recently seen value for this exact size/colour combination.
+    entry.sizeColourMap[sz][cl] = {
+      qty: (existingCell?.qty ?? 0) + qty,
+      rmb_price: row.rmb_price ?? existingCell?.rmb_price ?? null,
+    };
     entry.total_quantity += qty;
 
     const dedupeKey = `${row.customers?.customer_name ?? ""}::${row.delivery_town ?? ""}`;
@@ -114,10 +120,11 @@ export default function AdminOrdersPage() {
   function handleDownloadExcel() {
     const rows = filteredProducts.flatMap(row =>
       Object.entries(row.sizeColourMap).flatMap(([size, colourMap]) =>
-        Object.entries(colourMap).map(([colour, qty]) => ({
+        Object.entries(colourMap).map(([colour, cell]) => ({
           'Product Name':  row.product_name,
           'Size / Colour': `${size} / ${colour}`,
-          'Quantity':      qty,
+          'Quantity':      cell.qty,
+          'RMB Price':     cell.rmb_price ?? '',
         }))
       )
     );
@@ -208,7 +215,9 @@ export default function AdminOrdersPage() {
                             {Object.entries(row.sizeColourMap).map(([size, colourMap]) => (
                               <span key={size}>
                                 <span className="font-semibold text-[#1e2d3d]">{size}:</span>{" "}
-                                {Object.entries(colourMap).map(([colour, qty]) => `${colour} (${qty})`).join(", ")}
+                                {Object.entries(colourMap).map(([colour, cell]) =>
+                                  `${colour} (${cell.qty})${cell.rmb_price != null ? ` · ¥${Number(cell.rmb_price).toLocaleString()}` : ""}`
+                                ).join(", ")}
                               </span>
                             ))}
                           </div>

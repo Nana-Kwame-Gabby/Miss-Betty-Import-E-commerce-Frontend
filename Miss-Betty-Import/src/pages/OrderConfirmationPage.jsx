@@ -106,6 +106,7 @@ export default function OrderConfirmationPage() {
           unit_price:        item.unit_price,
           cost_price:        item.cost_price ?? 0,
           profit:            item.profit     ?? 0,
+          rmb_price:         item.rmb_price  ?? 0,
           size:              item.size,
           colour:            item.colour,
           status:            "Ordered",

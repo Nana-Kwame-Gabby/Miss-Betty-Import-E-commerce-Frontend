@@ -57,6 +57,7 @@ function mapProduct(p) {
     unit_price: Number(p.unit_price),
     cost_price: Number(p.cost_price ?? 0),
     profit:     Number(p.profit ?? 0),
+    rmb_price:  Number(p.rmb_price ?? 0), // admin-only procurement cost; never rendered on this customer-facing page
     discount_price,
     description: p.description ?? '',
     sizePricing,
@@ -154,6 +155,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   const curPrice        = curHasDiscount ? curDiscountPrice : curRegularPrice;
   const curCostPrice    = curEntry?.cost_price ?? product?.cost_price ?? 0;
   const curProfit       = curEntry?.profit     ?? product?.profit    ?? 0;
+  const curRmbPrice     = curEntry?.rmb_price  ?? product?.rmb_price ?? 0;
 
   const totalQty  = pendingVariants.reduce((s, v) => s + v.qty, 0);
   const totalCost = pendingVariants.reduce((s, v) => s + v.price * v.qty, 0);
@@ -178,6 +180,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
       return [...prev, {
         variantKey: vKey, size: curSize, colour: curColour,
         qty: curQty, price: curPrice, costPrice: curCostPrice, profit: curProfit,
+        rmbPrice: curRmbPrice,
         originalPrice: curHasDiscount ? curRegularPrice : null,
       }];
     });
@@ -189,6 +192,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
       pendingVariants.map(v => ({
         product, size: v.size, colour: v.colour,
         qty: v.qty, price: v.price, costPrice: v.costPrice, profit: v.profit,
+        rmbPrice: v.rmbPrice,
         originalPrice: v.originalPrice ?? null,
       }))
     );
@@ -207,7 +211,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
 
   function handleSimpleAdd() {
     const simpleOriginal = curHasDiscount ? curRegularPrice : null;
-    addToCart(product, curQty, null, null, curPrice, product.cost_price, product.profit, simpleOriginal);
+    addToCart(product, curQty, null, null, curPrice, product.cost_price, product.profit, simpleOriginal, product.rmb_price);
     setAdded(true);
     setTimeout(() => { setAdded(false); onClose(); }, 1500);
   }
@@ -219,6 +223,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
         buyNow: {
           product, quantity: curQty, size: null, colour: null,
           unitPrice: curPrice, costPrice: product.cost_price, sizeProfit: product.profit,
+          rmbPrice: product.rmb_price,
           originalPrice: curHasDiscount ? curRegularPrice : null,
         },
       },
@@ -530,10 +535,11 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
     const price     = sizeEntry ? getEffectivePrice(sizeEntry) : getEffectivePrice(product);
     const costP     = sizeEntry?.cost_price ?? product.cost_price ?? 0;
     const prof      = sizeEntry?.profit     ?? product.profit     ?? 0;
+    const rmbP      = sizeEntry?.rmb_price  ?? product.rmb_price  ?? 0;
     const origPrice = sizeEntry
       ? (hasDiscount(sizeEntry) ? (sizeEntry.selling_price ?? product.unit_price) : null)
       : (hasDiscount(product)   ? product.unit_price : null);
-    addToCart(product, 1, firstSize, firstColour, price, costP, prof, origPrice);
+    addToCart(product, 1, firstSize, firstColour, price, costP, prof, origPrice, rmbP);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   }
