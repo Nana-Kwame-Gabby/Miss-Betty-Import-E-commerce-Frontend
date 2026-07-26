@@ -32,11 +32,15 @@ function groupByProduct(rows) {
     const qty = Number(row.quantity ?? 1);
     if (!entry.sizeColourMap[sz]) entry.sizeColourMap[sz] = {};
     const existingCell = entry.sizeColourMap[sz][cl];
-    // rmb_price is a per-size procurement snapshot (not summed like qty) — carries the
-    // most recently seen value for this exact size/colour combination.
+    // rmb_price reflects the product's CURRENT procurement cost (not the order-time
+    // snapshot), so admins always see the latest value for this exact size.
+    const sp = row.products?.size_pricing;
+    const liveRmb = Array.isArray(sp) && sp.length > 0
+      ? (sp.find(s => s.size === row.size)?.rmb_price ?? null)
+      : (row.products?.rmb_price ?? null);
     entry.sizeColourMap[sz][cl] = {
       qty: (existingCell?.qty ?? 0) + qty,
-      rmb_price: row.rmb_price ?? existingCell?.rmb_price ?? null,
+      rmb_price: liveRmb,
     };
     entry.total_quantity += qty;
 
@@ -70,7 +74,7 @@ export default function AdminAvailableOrdersPage() {
     setLoading(true);
     const { data } = await supabase
       .from('orders')
-      .select('*, products(product_name, procurement_status, product_status(status_name)), customers(customer_name, telephone)')
+      .select('*, products(product_name, procurement_status, product_status(status_name), rmb_price, size_pricing), customers(customer_name, telephone)')
       .eq('deleted_by_admin', false)
       .order('created_at', { ascending: false });
 
@@ -82,6 +86,30 @@ export default function AdminAvailableOrdersPage() {
     setDeliveryRows(dr);
     setLoading(false);
   }
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('products_rmb_price_available')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'products' }, (payload) => {
+        setProductRows(prev => prev.map(r => {
+          if (r.product_id !== payload.new.product_id) return r;
+          const sp = payload.new.size_pricing;
+          const flatRmb = payload.new.rmb_price;
+          const newMap = {};
+          for (const [size, colourMap] of Object.entries(r.sizeColourMap)) {
+            const rmb = Array.isArray(sp) && sp.length > 0
+              ? (sp.find(s => s.size === size)?.rmb_price ?? null)
+              : (flatRmb ?? null);
+            newMap[size] = Object.fromEntries(
+              Object.entries(colourMap).map(([colour, cell]) => [colour, { ...cell, rmb_price: rmb }])
+            );
+          }
+          return { ...r, sizeColourMap: newMap };
+        }));
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, []);
 
   async function handleProcurementChange(productId, newStatus) {
     setUpdatingId(productId);
