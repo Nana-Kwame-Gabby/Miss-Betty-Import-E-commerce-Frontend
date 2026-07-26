@@ -1,5 +1,16 @@
 {
   "rewrites": [
+    {
+      "source": "/product/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|Twitterbot|TelegramBot|WhatsApp|Slackbot|LinkedInBot|Discordbot|Pinterest|redditbot|vkShare|SkypeUriPreview|Applebot|Googlebot|bingbot|W3C_Validator|Embedly|Iframely|bot|crawler|spider).*"
+        }
+      ],
+      "destination": "/api/product-preview?id=:id"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
