@@ -11,6 +11,7 @@ import MediaCarousel from "../components/MediaCarousel";
 import ReviewsSection from "../components/ReviewsSection";
 import BottomNav from "../components/BottomNav";
 import CountdownBanner from "../components/CountdownBanner";
+import ShareProductButton from "../components/ShareProductButton";
 import { supabase } from "../lib/supabase";
 import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
 import usePersistedState from "../hooks/usePersistedState";
@@ -578,6 +579,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
         >
           {outOfStock ? "Out of Stock" : product.product_status}
         </span>
+        <ShareProductButton productId={product.id} productName={product.product_name} />
         {product.product_image_url && (
           <>
             <button

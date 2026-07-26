@@ -1,5 +1,6 @@
 import "./App.css";
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useParams, useLocation } from "react-router-dom";
+import { setPostAuthRedirect } from "./utils/postAuthRedirect";
 import { CartProvider } from "./context/CartContext";
 import { UserProvider } from "./context/UserContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -63,12 +64,26 @@ function PublicOnlyRoute() {
 
 function ProtectedLayout() {
   const { session, loading, isAdmin, checkingCustomer } = useAuth();
+  const location = useLocation();
   if (loading || checkingCustomer) return <LoadingSpinner />;
   if (!session) {
+    setPostAuthRedirect(location.pathname + location.search);
     return <Navigate to={sessionStorage.getItem('oauth_denied') ? "/signup" : "/login"} replace />;
   }
   if (isAdmin) return <Navigate to="/admin" replace />;
   return <Outlet />;
+}
+
+// Canonical shareable product URL — routes an authenticated visitor straight to the
+// full purchase page, or an unauthenticated visitor to the public Home page with the
+// product pre-selected, without this component ever rendering its own UI.
+function ProductShareGateway() {
+  const { id } = useParams();
+  const { session, loading } = useAuth();
+  if (loading) return <LoadingSpinner />;
+  return session
+    ? <Navigate to={`/shop/${id}`} replace />
+    : <Navigate to={`/?product=${id}`} replace />;
 }
 
 function AdminGuard() {
@@ -95,6 +110,7 @@ function App() {
               <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
               <Route path="/terms" element={<TermsAndConditionsPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              <Route path="/product/:id" element={<ProductShareGateway />} />
               {/* Public-only — redirect to /shop if already logged in */}
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route element={<PublicOnlyRoute />}>

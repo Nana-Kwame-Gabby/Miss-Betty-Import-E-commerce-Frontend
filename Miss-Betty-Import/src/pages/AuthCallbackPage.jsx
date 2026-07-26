@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { consumePostAuthRedirect } from "../utils/postAuthRedirect";
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ export default function AuthCallbackPage() {
         sessionStorage.removeItem('pwd_reset');
         navigate("/reset-password", { replace: true });
       } else {
-        navigate("/shop", { replace: true });
+        navigate(consumePostAuthRedirect() ?? "/shop", { replace: true });
       }
     }
 

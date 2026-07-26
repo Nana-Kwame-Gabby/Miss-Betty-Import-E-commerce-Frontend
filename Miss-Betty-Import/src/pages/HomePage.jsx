@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { setPostAuthRedirect } from "../utils/postAuthRedirect";
+import ShareProductButton from "../components/ShareProductButton";
 import logo from "../assets/logo.png";
 import { colourMap } from "../data/mockData";
 import { useCart } from "../context/CartContext";
@@ -197,17 +199,19 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   }
 
   function handleAddAll() {
+    if (!session) { setPostAuthRedirect(`/shop/${product.id}`); navigate("/login"); return; }
     if (pendingVariants.length === 0) return;
     commitToCart(() => { setAdded(true); setTimeout(() => { setAdded(false); onClose(); }, 1500); });
   }
 
   function handleCheckout() {
-    if (!session) { navigate("/login"); return; }
+    if (!session) { setPostAuthRedirect(`/shop/${product.id}`); navigate("/login"); return; }
     if (blockedByPreorder || pendingVariants.length === 0) return;
     commitToCart(() => navigate("/checkout"));
   }
 
   function handleSimpleAdd() {
+    if (!session) { setPostAuthRedirect(`/shop/${product.id}`); navigate("/login"); return; }
     addToCart(product, curQty, null, null, curPrice, product.cost_price, product.profit,
       curHasDiscount ? curRegularPrice : null, product.rmb_price);
     setAdded(true);
@@ -215,7 +219,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   }
 
   function handleSimpleBuyNow() {
-    if (!session) { navigate("/login"); return; }
+    if (!session) { setPostAuthRedirect(`/shop/${product.id}`); navigate("/login"); return; }
     if (blockedByPreorder) return;
     navigate("/checkout", {
       state: {
@@ -562,6 +566,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
         >
           {outOfStock ? "Out of Stock" : product.product_status}
         </span>
+        <ShareProductButton productId={product.id} productName={product.product_name} />
         {product.product_image_url && (
           <>
             <button
@@ -657,8 +662,19 @@ export default function HomePage() {
   const categoryRef = useRef(null);
   const filterBarRef = useRef(null);
   const [filterBarHeight, setFilterBarHeight] = useState(0);
+  const [searchParams] = useSearchParams();
 
   useScrollRestoration("mbimport_scroll_home", !loadingProducts);
+
+  // Auto-open a product's modal when arriving via a shared /product/:id link
+  // (the public gateway routes unauthenticated visitors here as /?product=<id>).
+  useEffect(() => {
+    const sharedId = searchParams.get('product');
+    if (sharedId && products.length > 0) {
+      const match = products.find(p => String(p.id) === sharedId);
+      if (match) setSelectedProduct(match);
+    }
+  }, [searchParams, products]);
 
   useLayoutEffect(() => {
     const el = filterBarRef.current;

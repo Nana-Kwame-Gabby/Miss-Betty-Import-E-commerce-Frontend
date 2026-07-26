@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { supabase } from "../lib/supabase";
+import { consumePostAuthRedirect } from "../utils/postAuthRedirect";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function LoginPage() {
       return;
     }
 
-    navigate("/shop");
+    navigate(consumePostAuthRedirect() ?? "/shop");
   }
 
   return (
