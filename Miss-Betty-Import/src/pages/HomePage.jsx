@@ -918,10 +918,6 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
-
-              <p className="text-gray-400 text-sm">
-                {loadingProducts ? 'Loading…' : `${filtered.length} ${filtered.length === 1 ? "product" : "products"} found`}
-              </p>
             </div>
 
             <div className="flex gap-2">
