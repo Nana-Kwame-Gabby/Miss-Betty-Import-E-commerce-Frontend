@@ -13,7 +13,8 @@ import ReviewsSection from "../components/ReviewsSection";
 import AccountDropdown from "../components/AccountDropdown";
 import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
 import BottomNav from "../components/BottomNav";
-import CountdownBanner from "../components/CountdownBanner";
+import CountdownDisplay from "../components/CountdownBanner";
+import useActiveCountdown from "../hooks/useActiveCountdown";
 import usePersistedState from "../hooks/usePersistedState";
 import useScrollRestoration from "../hooks/useScrollRestoration";
 
@@ -663,6 +664,7 @@ export default function HomePage() {
   const filterBarRef = useRef(null);
   const [filterBarHeight, setFilterBarHeight] = useState(0);
   const [searchParams] = useSearchParams();
+  const countdownData = useActiveCountdown();
 
   useScrollRestoration("mbimport_scroll_home", !loadingProducts);
 
@@ -917,10 +919,12 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <CountdownBanner />
+              <div className="hidden sm:block">
+                <CountdownDisplay data={countdownData} stacked={false} />
+              </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {["All", "Available", "Pre-order"].map(s => (
                 <button
                   key={s}
@@ -934,6 +938,9 @@ export default function HomePage() {
                   {s}
                 </button>
               ))}
+              <div className="flex sm:hidden ml-auto">
+                <CountdownDisplay data={countdownData} stacked={true} />
+              </div>
             </div>
           </div>
         </div>
