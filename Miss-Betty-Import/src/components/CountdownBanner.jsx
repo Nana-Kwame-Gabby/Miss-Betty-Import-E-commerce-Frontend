@@ -10,13 +10,10 @@ function breakdown(remainingMs) {
   return { days, hours, minutes, seconds };
 }
 
-function TimeBox({ value, label }) {
+function CompactBox({ value }) {
   return (
-    <div className="flex flex-col items-center">
-      <div className="bg-[#F2AA25] text-[#1e2d3d] font-extrabold rounded-lg px-2 py-1 sm:px-3 sm:py-1.5 text-base sm:text-xl leading-none min-w-[2.5rem] sm:min-w-[3.25rem] text-center">
-        {String(value).padStart(2, "0")}
-      </div>
-      <span className="text-[9px] sm:text-[10px] text-white/70 font-semibold uppercase tracking-wide mt-1">{label}</span>
+    <div className="bg-[#F2AA25] text-[#1e2d3d] font-extrabold rounded px-1.5 py-0.5 text-[10px] sm:text-xs leading-none min-w-[1.4rem] text-center">
+      {String(value).padStart(2, "0")}
     </div>
   );
 }
@@ -84,16 +81,16 @@ export default function CountdownBanner() {
   const { days, hours, minutes, seconds } = breakdown(endMs - effectiveNow);
 
   return (
-    <div className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-3 bg-[#1e2d3d] overflow-hidden">
-      <p className="text-white font-bold text-xs sm:text-sm text-center truncate max-w-full">{countdown.title}</p>
-      <div className="flex items-center gap-1.5 sm:gap-2.5">
-        <TimeBox value={days} label="Days" />
-        <span className="text-[#F2AA25] font-bold text-base sm:text-xl pb-3">:</span>
-        <TimeBox value={hours} label="Hrs" />
-        <span className="text-[#F2AA25] font-bold text-base sm:text-xl pb-3">:</span>
-        <TimeBox value={minutes} label="Min" />
-        <span className="text-[#F2AA25] font-bold text-base sm:text-xl pb-3">:</span>
-        <TimeBox value={seconds} label="Sec" />
+    <div className="flex items-center gap-1.5 bg-[#1e2d3d] rounded-full pl-3 pr-2 py-1 shrink-0 max-w-full">
+      <span className="text-white font-semibold text-[10px] sm:text-xs truncate max-w-[4rem] sm:max-w-[8rem]">{countdown.title}</span>
+      <div className="flex items-center gap-0.5">
+        <CompactBox value={days} />
+        <span className="text-[#F2AA25] text-[10px] font-bold">:</span>
+        <CompactBox value={hours} />
+        <span className="text-[#F2AA25] text-[10px] font-bold">:</span>
+        <CompactBox value={minutes} />
+        <span className="text-[#F2AA25] text-[10px] font-bold">:</span>
+        <CompactBox value={seconds} />
       </div>
     </div>
   );

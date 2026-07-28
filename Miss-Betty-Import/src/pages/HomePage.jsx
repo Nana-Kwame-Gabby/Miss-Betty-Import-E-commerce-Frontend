@@ -835,8 +835,6 @@ export default function HomePage() {
 
       {/* Fixed sub-header: announcement banner + filters */}
       <div ref={filterBarRef} className="fixed top-16 sm:top-[72px] left-0 right-0 z-30">
-        <CountdownBanner />
-
         {/* Promo alert banner */}
         {promoActive && promoMessage && (
           <div className="flex justify-center items-center py-2.5 bg-[#1e2d3d] overflow-hidden">
@@ -918,6 +916,8 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
+
+              <CountdownBanner />
             </div>
 
             <div className="flex gap-2">
