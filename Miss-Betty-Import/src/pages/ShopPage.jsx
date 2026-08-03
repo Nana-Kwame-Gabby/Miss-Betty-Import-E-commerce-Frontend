@@ -384,7 +384,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
                 </div>
               )}
 
-              {/* Qty + Add Variant */}
+              {/* Qty + Add */}
               <div className="flex items-center gap-2 mb-3">
                 <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
                   <button onClick={() => setCurQty(q => Math.max(1, q - 1))} className="px-3 py-2 text-gray-500 hover:bg-gray-50 font-bold text-lg leading-none">−</button>
@@ -396,7 +396,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
                   disabled={!canAddVariant}
                   className="flex-1 bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-[#1e2d3d] font-semibold text-xs py-2 rounded-xl transition-colors"
                 >
-                  + Add Variant
+                  + Add
                 </button>
               </div>
 

@@ -372,7 +372,7 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* Qty + Add Variant */}
+              {/* Qty + Add */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex items-center gap-2">
                   <button onClick={() => setCurQty(q => Math.max(1, q - 1))} className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center font-bold text-[#1e2d3d] hover:border-[#F2AA25] transition-colors">−</button>
@@ -384,7 +384,7 @@ export default function ProductDetailPage() {
                   disabled={!canAddVariant || curOutOfStock}
                   className="flex-1 bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-[#1e2d3d] font-semibold text-sm py-2 rounded-xl transition-colors"
                 >
-                  {curOutOfStock ? "Out of Stock" : "+ Add Variant"}
+                  {curOutOfStock ? "Out of Stock" : "+ Add"}
                 </button>
               </div>
 

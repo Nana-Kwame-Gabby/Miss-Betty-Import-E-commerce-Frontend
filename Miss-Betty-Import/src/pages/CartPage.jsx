@@ -105,7 +105,7 @@ function VariantAdder({ product, addToCart }) {
         </div>
       )}
 
-      {/* Qty + Add Variant button */}
+      {/* Qty + Add button */}
       <div className="flex items-center gap-1.5">
         <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
           <button
@@ -129,7 +129,7 @@ function VariantAdder({ product, addToCart }) {
               : "bg-gray-100 text-gray-400 cursor-not-allowed"
           }`}
         >
-          {added ? "✓ Added to cart!" : `Add Variant · GHS ${curPrice.toLocaleString()}`}
+          {added ? "✓ Added to cart!" : `Add · GHS ${curPrice.toLocaleString()}`}
         </button>
       </div>
     </div>
