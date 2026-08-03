@@ -6,8 +6,8 @@ import { colourMap } from "../data/mockData";
 import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
 
 function VariantAdder({ product, addToCart }) {
-  const [curSize,   setCurSize]   = useState(product.sizes?.[0]   ?? null);
-  const [curColour, setCurColour] = useState(product.colours?.[0] ?? null);
+  const [curSize,   setCurSize]   = useState(null);
+  const [curColour, setCurColour] = useState(null);
   const [curQty,    setCurQty]    = useState(1);
   const [added,     setAdded]     = useState(false);
 

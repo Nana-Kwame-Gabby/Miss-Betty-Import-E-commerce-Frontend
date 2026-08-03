@@ -140,8 +140,8 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
 
   const hasVariants = product.sizes.length > 0 || product.colours.length > 0;
 
-  const [curSize,         setCurSize]         = useState(product.sizes[0]   ?? null);
-  const [curColour,       setCurColour]       = useState(product.colours[0] ?? null);
+  const [curSize,         setCurSize]         = useState(null);
+  const [curColour,       setCurColour]       = useState(null);
   const [curQty,          setCurQty]          = useState(1);
   const [pendingVariants, setPendingVariants] = useState([]);
   const [added,           setAdded]           = useState(false);
@@ -519,6 +519,10 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
   function handleAdd(e) {
     e.stopPropagation();
     if (outOfStock) return;
+    if (product.sizes.length > 0 || product.colours.length > 0) {
+      onSelect(product); // require the customer to choose a variant in the picker
+      return;
+    }
     const { size: firstSize, colour: firstColour } = firstInStockVariant();
     const sizeEntry = product.sizePricing?.find(sp => sp.size === firstSize) ?? null;
     const price     = sizeEntry ? getEffectivePrice(sizeEntry) : getEffectivePrice(product);

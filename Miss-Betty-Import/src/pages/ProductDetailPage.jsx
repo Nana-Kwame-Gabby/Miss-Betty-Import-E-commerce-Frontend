@@ -80,9 +80,10 @@ export default function ProductDetailPage() {
       if (data) {
         const mapped = mapProduct(data);
         setProduct(mapped);
-        // Keep a restored selection if it's still valid for this product; otherwise default.
-        setCurSize(prev => (prev && mapped.sizes.includes(prev)) ? prev : (mapped.sizes[0] ?? null));
-        setCurColour(prev => (prev && mapped.colours.includes(prev)) ? prev : (mapped.colours[0] ?? null));
+        // Keep a restored selection if it's still valid for this product; otherwise
+        // leave unselected — never auto-pick a variant on the customer's behalf.
+        setCurSize(prev => (prev && mapped.sizes.includes(prev)) ? prev : null);
+        setCurColour(prev => (prev && mapped.colours.includes(prev)) ? prev : null);
       }
       setLoading(false);
     }
