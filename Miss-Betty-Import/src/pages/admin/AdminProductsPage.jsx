@@ -731,7 +731,7 @@ export default function AdminProductsPage() {
 
           <div>
             <label className={labelClass}>Colours <span className="text-gray-400 font-normal">(comma-separated, optional)</span></label>
-            <input name="colours" value={form.colours} onChange={handleChange} placeholder="Red,Blue,White" className={inputClass} />
+            <input name="colours" value={form.colours} onChange={handleChange} placeholder="Red,Blue,White" maxLength={200} className={inputClass} />
           </div>
 
           <div className="sm:col-span-2">
@@ -1190,7 +1190,7 @@ export default function AdminProductsPage() {
 
                 <div>
                   <label className={labelClass}>Colours <span className="text-gray-400 font-normal">(comma-separated)</span></label>
-                  <input name="colours" value={editForm.colours} onChange={handleEditChange} placeholder="Red,Blue,White" className={inputClass} />
+                  <input name="colours" value={editForm.colours} onChange={handleEditChange} placeholder="Red,Blue,White" maxLength={200} className={inputClass} />
                 </div>
 
                 <div className="sm:col-span-2">
