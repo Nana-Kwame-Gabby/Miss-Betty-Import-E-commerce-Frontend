@@ -63,6 +63,7 @@ function groupByProduct(rows) {
 export default function AdminAvailableOrdersPage() {
   const [productRows, setProductRows] = useState([]);
   const [deliveryRows, setDeliveryRows] = useState([]);
+  const [orderIds, setOrderIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -84,6 +85,7 @@ export default function AdminAvailableOrdersPage() {
     const { productRows: pr, deliveryRows: dr } = groupByProduct(availableRows);
     setProductRows(pr);
     setDeliveryRows(dr);
+    setOrderIds(availableRows.map(r => r.order_id));
     setLoading(false);
   }
 
@@ -121,15 +123,17 @@ export default function AdminAvailableOrdersPage() {
   }
 
   async function handleDeleteAll() {
+    if (orderIds.length === 0) return;
     setDeleting(true);
     const [{ error: ordErr }, { error: invErr }] = await Promise.all([
-      supabase.from('orders').update({ deleted_by_admin: true }).eq('deleted_by_admin', false),
-      supabase.from('invoices').update({ deleted_by_admin: true }).eq('deleted_by_admin', false),
+      supabase.from('orders').update({ deleted_by_admin: true }).in('order_id', orderIds),
+      supabase.from('invoices').update({ deleted_by_admin: true }).in('invoice_id', orderIds),
     ]);
     const error = ordErr || invErr;
     if (!error) {
       setProductRows([]);
       setDeliveryRows([]);
+      setOrderIds([]);
       setConfirmDelete(false);
     } else {
       alert('Delete failed. Please try again.');
