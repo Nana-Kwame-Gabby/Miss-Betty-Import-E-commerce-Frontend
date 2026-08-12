@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import * as XLSX from 'xlsx';
+import { useSelectedOrderPeriod } from "../../hooks/useSelectedOrderPeriod";
+import PeriodSwitcher from "../../components/PeriodSwitcher";
 
 function buildFeeGroups(rows, existingFees) {
   const groupMap = {};
@@ -60,13 +62,14 @@ function buildFeeGroups(rows, existingFees) {
 }
 
 export default function AdminShippingFeesPage() {
+  const { periods, activePeriod, selectedId, selectPeriod, loading: periodsLoading } = useSelectedOrderPeriod();
   const [feeGroups, setFeeGroups] = useState([]);
   const [feeInputs, setFeeInputs] = useState({});
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState(null);
   const [expandedKeys, setExpandedKeys] = useState(new Set());
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { if (selectedId != null) loadData(); }, [selectedId]);
 
   async function loadData() {
     setLoading(true);
@@ -75,8 +78,9 @@ export default function AdminShippingFeesPage() {
         .from('orders')
         .select('product_id, size, quantity, shipping_fee_paid, created_at, products(product_name, product_status(status_name)), customers(customer_name)')
         .eq('deleted_by_admin', false)
+        .eq('order_period_id', selectedId)
         .order('created_at', { ascending: false }),
-      supabase.from('product_size_shipping_fees').select('*'),
+      supabase.from('product_size_shipping_fees').select('*').eq('order_period_id', selectedId),
     ]);
 
     const groups = buildFeeGroups(data ?? [], existingFees);
@@ -122,8 +126,8 @@ export default function AdminShippingFeesPage() {
     await supabase
       .from('product_size_shipping_fees')
       .upsert(
-        { product_id: productId, size: sizeRaw, shipping_fee: 0, dismissed_at: new Date().toISOString() },
-        { onConflict: 'product_id,size' }
+        { order_period_id: selectedId, product_id: productId, size: sizeRaw, shipping_fee: 0, dismissed_at: new Date().toISOString() },
+        { onConflict: 'order_period_id,product_id,size' }
       );
     setFeeGroups(prev => prev.filter(g =>
       !(g.product_id === productId && g.size === sizeDisplay)
@@ -139,8 +143,8 @@ export default function AdminShippingFeesPage() {
     await supabase
       .from('product_size_shipping_fees')
       .upsert(
-        { product_id: productId, size: sizeRaw, shipping_fee: parsed, dismissed_at: null },
-        { onConflict: 'product_id,size' }
+        { order_period_id: selectedId, product_id: productId, size: sizeRaw, shipping_fee: parsed, dismissed_at: null },
+        { onConflict: 'order_period_id,product_id,size' }
       );
     setFeeGroups(prev => prev.map(g =>
       g.product_id === productId && g.size === sizeDisplay ? { ...g, shipping_fee: parsed } : g
@@ -150,7 +154,10 @@ export default function AdminShippingFeesPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Shipping Fees</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+        <h1 className="text-xl font-bold text-[#1e2d3d]">Shipping Fees</h1>
+        <PeriodSwitcher periods={periods} selectedId={selectedId} activeId={activePeriod?.id} onChange={selectPeriod} loading={periodsLoading} />
+      </div>
       <p className="text-sm text-gray-400 mb-6">Set shipping fees per product and size</p>
 
       {loading ? (

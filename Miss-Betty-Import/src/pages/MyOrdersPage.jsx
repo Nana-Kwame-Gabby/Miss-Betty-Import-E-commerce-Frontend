@@ -49,8 +49,46 @@ export default function MyOrdersPage() {
   const [reviewedSet,  setReviewedSet]  = useState(new Set());
   const [customerId,   setCustomerId]   = useState(null);
 
+  async function refreshOrders(customerId) {
+    const [{ data }, { data: existingReviews }] = await Promise.all([
+      supabase
+        .from('orders')
+        .select('*, products(product_name)')
+        .eq('customer_id', customerId)
+        .eq('deleted_by_customer', false)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('reviews')
+        .select('product_id, order_id')
+        .eq('customer_id', customerId),
+    ]);
+
+    setReviewedSet(new Set(
+      (existingReviews ?? []).map(r => `${r.product_id}::${r.order_id}`)
+    ));
+
+    const grouped = groupByOrderId(data ?? []);
+
+    // Auto-confirm orders delivered more than 72 hours ago
+    const now = Date.now();
+    const overdueIds = grouped
+      .filter(o =>
+        o.status === 'Delivered' &&
+        o.delivered_at &&
+        now - new Date(o.delivered_at).getTime() > 72 * 60 * 60 * 1000
+      )
+      .map(o => o.order_id);
+
+    if (overdueIds.length > 0) {
+      await supabase.from('orders').update({ status: 'Received' }).in('order_id', overdueIds);
+      setOrders(grouped.map(o => overdueIds.includes(o.order_id) ? { ...o, status: 'Received' } : o));
+    } else {
+      setOrders(grouped);
+    }
+  }
+
   useEffect(() => {
-    async function loadOrders() {
+    async function init() {
       const { data: cust } = await supabase
         .from('customers')
         .select('customer_id')
@@ -59,46 +97,23 @@ export default function MyOrdersPage() {
 
       if (!cust) { setLoading(false); return; }
       setCustomerId(cust.customer_id);
-
-      const [{ data }, { data: existingReviews }] = await Promise.all([
-        supabase
-          .from('orders')
-          .select('*, products(product_name)')
-          .eq('customer_id', cust.customer_id)
-          .eq('deleted_by_customer', false)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('reviews')
-          .select('product_id, order_id')
-          .eq('customer_id', cust.customer_id),
-      ]);
-
-      setReviewedSet(new Set(
-        (existingReviews ?? []).map(r => `${r.product_id}::${r.order_id}`)
-      ));
-
-      const grouped = groupByOrderId(data ?? []);
-
-      // Auto-confirm orders delivered more than 72 hours ago
-      const now = Date.now();
-      const overdueIds = grouped
-        .filter(o =>
-          o.status === 'Delivered' &&
-          o.delivered_at &&
-          now - new Date(o.delivered_at).getTime() > 72 * 60 * 60 * 1000
-        )
-        .map(o => o.order_id);
-
-      if (overdueIds.length > 0) {
-        await supabase.from('orders').update({ status: 'Received' }).in('order_id', overdueIds);
-        setOrders(grouped.map(o => overdueIds.includes(o.order_id) ? { ...o, status: 'Received' } : o));
-      } else {
-        setOrders(grouped);
-      }
+      await refreshOrders(cust.customer_id);
       setLoading(false);
     }
-    loadOrders();
+    init();
   }, [session]);
+
+  // Reflect admin edits (status change, shipping fee, etc.) live, regardless of
+  // how old the order's order period is.
+  useEffect(() => {
+    if (!customerId) return;
+    const channel = supabase
+      .channel(`my_orders_realtime_${customerId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `customer_id=eq.${customerId}` },
+        () => refreshOrders(customerId))
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [customerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleConfirmReceipt(orderId) {
     await supabase.from('orders').update({ status: 'Received' }).eq('order_id', orderId);

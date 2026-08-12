@@ -98,6 +98,10 @@ export default function OrderConfirmationPage() {
       const saved = JSON.parse(sessionStorage.getItem(key) || "null");
 
       if (saved) {
+        const { data: activePeriodRows } = await supabase
+          .from("order_periods").select("id").eq("is_active", true).limit(1);
+        const activePeriodId = activePeriodRows?.[0]?.id ?? null;
+
         const orderRows = saved.items.map(item => ({
           order_id:          urlOrderId,
           customer_id:       saved.customerId,
@@ -113,6 +117,7 @@ export default function OrderConfirmationPage() {
           delivery_region:   saved.form.region,
           delivery_town:     saved.form.town,
           can_edit_delivery: true,
+          order_period_id:   activePeriodId,
         }));
 
         const invoiceRows = saved.items.map(item => ({
@@ -124,6 +129,7 @@ export default function OrderConfirmationPage() {
           quantity:      item.quantity,
           unit_price:    item.unit_price,
           total:         item.unit_price * item.quantity,
+          order_period_id: activePeriodId,
         }));
 
         // Double-check idempotency before inserting

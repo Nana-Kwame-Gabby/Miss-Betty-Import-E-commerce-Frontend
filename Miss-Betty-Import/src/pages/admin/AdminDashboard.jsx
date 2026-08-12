@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useAppSettings } from "../../context/AppSettingsContext";
 import * as XLSX from 'xlsx';
+import { useSelectedOrderPeriod } from "../../hooks/useSelectedOrderPeriod";
+import PeriodSwitcher from "../../components/PeriodSwitcher";
 
 function StatCard({ title, value, icon, color, loading }) {
   return (
@@ -22,6 +24,7 @@ function StatCard({ title, value, icon, color, loading }) {
 }
 
 export default function AdminDashboard() {
+  const { periods, activePeriod, selectedId, selectPeriod, loading: periodsLoading } = useSelectedOrderPeriod();
   const { ordersClosed, announcementMessage, toggleOrdersClosed, updateAnnouncementMessage } = useAppSettings();
   const [toggling, setToggling]         = useState(false);
   const [localMessage, setLocalMessage] = useState(announcementMessage);
@@ -86,6 +89,8 @@ export default function AdminDashboard() {
   }
 
   useEffect(() => {
+    if (selectedId == null) return;
+
     async function loadStats() {
       const [
         { count: products },
@@ -97,14 +102,15 @@ export default function AdminDashboard() {
         { data: allFeeData },
       ] = await Promise.all([
         supabase.from('products').select('product_id', { count: 'exact', head: true }),
-        supabase.from('orders').select('order_id', { count: 'exact', head: true }).eq('deleted_by_admin', false),
+        supabase.from('orders').select('order_id', { count: 'exact', head: true }).eq('deleted_by_admin', false).eq('order_period_id', selectedId),
         supabase.from('customers').select('customer_id', { count: 'exact', head: true }),
-        supabase.from('invoices').select('total').eq('deleted_by_admin', false),
+        supabase.from('invoices').select('total').eq('deleted_by_admin', false).eq('order_period_id', selectedId),
         supabase.from('shipping_fee_payments')
           .select('customer_id, amount_paid, paid_at, product_id, size, customers(customer_name), products(product_name)')
+          .eq('order_period_id', selectedId)
           .order('paid_at', { ascending: false }),
-        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit, shipping_fee, shipping_fee_paid, customers(customer_name), products(product_name, product_status(status_name))').eq('deleted_by_admin', false),
-        supabase.from('product_size_shipping_fees').select('product_id, size, shipping_fee'),
+        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit, shipping_fee, shipping_fee_paid, customers(customer_name), products(product_name, product_status(status_name))').eq('deleted_by_admin', false).eq('order_period_id', selectedId),
+        supabase.from('product_size_shipping_fees').select('product_id, size, shipping_fee').eq('order_period_id', selectedId),
       ]);
 
       const revenue = (invoiceData ?? []).reduce((sum, r) => sum + Number(r.total ?? 0), 0);
@@ -215,11 +221,12 @@ export default function AdminDashboard() {
       setLoading(false);
     }
     loadStats();
-  }, []);
+  }, [selectedId]);
 
   async function handleDeleteAll() {
+    if (selectedId == null) return;
     setDeleting(true);
-    const { error } = await supabase.from('shipping_fee_payments').delete().gte('id', 1);
+    const { error } = await supabase.from('shipping_fee_payments').delete().eq('order_period_id', selectedId);
     if (!error) {
       setPaymentRows([]);
       setCustomerShippingData(prev => prev.map(c => ({
@@ -260,7 +267,10 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Dashboard</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+        <h1 className="text-xl font-bold text-[#1e2d3d]">Dashboard</h1>
+        <PeriodSwitcher periods={periods} selectedId={selectedId} activeId={activePeriod?.id} onChange={selectPeriod} loading={periodsLoading} />
+      </div>
       <p className="text-sm text-gray-400 mb-4">Overview of your store</p>
 
       {/* Pre-Order Control */}

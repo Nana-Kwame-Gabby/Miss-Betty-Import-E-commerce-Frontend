@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import * as XLSX from 'xlsx';
+import { useSelectedOrderPeriod } from "../../hooks/useSelectedOrderPeriod";
+import PeriodSwitcher from "../../components/PeriodSwitcher";
 
 const STATUS_OPTIONS = ["Ordered", "Processing", "Delivered", "Cancelled"];
 const STATUS_COLORS = {
@@ -139,6 +141,7 @@ function InvoiceModal({ invoice, onClose }) {
 }
 
 export default function AdminInvoicesPage() {
+  const { periods, activePeriod, selectedId, selectPeriod, loading: periodsLoading } = useSelectedOrderPeriod();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -148,9 +151,14 @@ export default function AdminInvoicesPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    if (selectedId == null) return;
+
     async function loadInvoices() {
       const [{ data: rawData }, { data: orderRows }, { data: productData }] = await Promise.all([
-        supabase.from('invoices').select('*').order('date', { ascending: false }),
+        supabase.from('invoices').select('*')
+          .eq('deleted_by_admin', false)
+          .eq('order_period_id', selectedId)
+          .order('date', { ascending: false }),
         supabase.from('orders').select('order_id, status, customer_id, customers(customer_name)').order('order_id'),
         supabase.from('products').select('product_name, product_status(status_name)'),
       ]);
@@ -182,7 +190,7 @@ export default function AdminInvoicesPage() {
       setLoading(false);
     }
     loadInvoices();
-  }, []);
+  }, [selectedId]);
 
   async function handleStatusChange(invoiceId, newStatus) {
     setUpdatingId(invoiceId);
@@ -199,8 +207,9 @@ export default function AdminInvoicesPage() {
   }
 
   async function handleDeleteAll() {
+    if (selectedId == null) return;
     setDeleting(true);
-    const { error } = await supabase.from('invoices').delete().gte('id', 1);
+    const { error } = await supabase.from('invoices').delete().eq('order_period_id', selectedId);
     if (!error) {
       setInvoices([]);
       setSelected(null);
@@ -236,7 +245,10 @@ export default function AdminInvoicesPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Invoices</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+        <h1 className="text-xl font-bold text-[#1e2d3d]">Invoices</h1>
+        <PeriodSwitcher periods={periods} selectedId={selectedId} activeId={activePeriod?.id} onChange={selectPeriod} loading={periodsLoading} />
+      </div>
       <p className="text-sm text-gray-400 mb-4">All customer invoices — update order status here</p>
 
       {/* Search bar + Download */}

@@ -3,13 +3,15 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 
-function groupOrdersByProductSize(orders, feeMap) {
+function groupOrdersByProductSize(orders, feeMap, periodNameMap) {
   const groups = {};
   for (const o of orders) {
     if (o.products?.product_status?.status_name === 'Available') continue;
-    const key = `${o.product_id}::${o.size ?? ''}`;
+    const key = `${o.order_period_id}::${o.product_id}::${o.size ?? ''}`;
     if (!groups[key]) {
       groups[key] = {
+        orderPeriodId: o.order_period_id,
+        periodName: periodNameMap[o.order_period_id] ?? null,
         productId: o.product_id,
         productName: o.products?.product_name ?? `Product #${o.product_id}`,
         size: o.size ?? null,
@@ -22,7 +24,7 @@ function groupOrdersByProductSize(orders, feeMap) {
     groups[key].totalQty += Number(o.quantity ?? 1);
   }
   return Object.values(groups).map(g => {
-    const feePerItem = feeMap[`${g.productId}::${g.size ?? ''}`] ?? 0;
+    const feePerItem = feeMap[`${g.orderPeriodId}::${g.productId}::${g.size ?? ''}`] ?? 0;
     return {
       ...g,
       feePerItem,
@@ -42,6 +44,27 @@ export default function ShippingFeePage() {
   const [shpMsg, setShpMsg]     = useState(null);
   const redirectHandled         = useRef(false);
 
+  async function refreshGroups(customerId) {
+    const [{ data: orderData }, { data: feeData }, { data: periodData }] = await Promise.all([
+      supabase.from('orders')
+        .select('*, products(product_name, product_status(status_name))')
+        .eq('customer_id', customerId)
+        .eq('shipping_fee_paid', false)
+        .order('created_at', { ascending: false }),
+      supabase.from('product_size_shipping_fees').select('*'),
+      supabase.from('order_periods').select('id, name'),
+    ]);
+
+    const feeMap = {};
+    (feeData ?? []).forEach(r => {
+      feeMap[`${r.order_period_id}::${r.product_id}::${r.size ?? ''}`] = Number(r.shipping_fee ?? 0);
+    });
+    const periodNameMap = {};
+    (periodData ?? []).forEach(p => { periodNameMap[p.id] = p.name; });
+
+    setGroups(groupOrdersByProductSize(orderData ?? [], feeMap, periodNameMap));
+  }
+
   useEffect(() => {
     async function init() {
       const shpRef    = searchParams.get("shpRef");
@@ -53,14 +76,17 @@ export default function ShippingFeePage() {
         const saved = JSON.parse(sessionStorage.getItem(key) || "null");
 
         if (shpStatus === "success" && saved) {
-          // 1. Snapshot fees for only this product's orders in the group
+          // 1. Snapshot fees for only this product's orders in the group, using the
+          // rate for the specific period this group's orders were placed in — a
+          // later period's rate for the same product/size must never leak in here.
           const [{ data: unsnapshot }, { data: currentFees }] = await Promise.all([
             supabase.from('orders')
               .select('order_id, product_id, size')
               .in('order_id', saved.orderIds)
               .is('shipping_fee', null)
               .eq('product_id', saved.productId),
-            supabase.from('product_size_shipping_fees').select('*'),
+            supabase.from('product_size_shipping_fees').select('*')
+              .eq('order_period_id', saved.orderPeriodId),
           ]);
 
           const snapMap = {};
@@ -79,12 +105,13 @@ export default function ShippingFeePage() {
             })
           );
 
-          // 2. Insert payment linked to the specific product+size
+          // 2. Insert payment linked to the specific product+size+period
           await supabase.from('shipping_fee_payments').insert({
             customer_id: saved.customerId,
             amount_paid: saved.amount,
             product_id:  saved.productId,
             size:        saved.size,
+            order_period_id: saved.orderPeriodId,
           });
 
           // 3. Mark only this product+size's orders as paid (not all orders in the batch)
@@ -122,26 +149,33 @@ export default function ShippingFeePage() {
       setCustId(cust.customer_id);
 
       // Load unpaid orders + fee rates
-      const [{ data: orderData }, { data: feeData }] = await Promise.all([
-        supabase.from('orders')
-          .select('*, products(product_name, product_status(status_name))')
-          .eq('customer_id', cust.customer_id)
-          .eq('shipping_fee_paid', false)
-          .order('created_at', { ascending: false }),
-        supabase.from('product_size_shipping_fees').select('*'),
-      ]);
-
-      const feeMap = {};
-      (feeData ?? []).forEach(r => {
-        feeMap[`${r.product_id}::${r.size ?? ''}`] = Number(r.shipping_fee ?? 0);
-      });
-
-      setGroups(groupOrdersByProductSize(orderData ?? [], feeMap));
+      await refreshGroups(cust.customer_id);
       setLoading(false);
     }
 
     init();
   }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Live-reflect admin edits: a status/fee change on this customer's orders, or any
+  // shipping-fee-rate change (including on a period closed months ago), refetches
+  // and regroups without the customer needing to reload the page.
+  useEffect(() => {
+    if (!custId) return;
+    const ordersChannel = supabase
+      .channel(`shipping_fees_orders_${custId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `customer_id=eq.${custId}` },
+        () => refreshGroups(custId))
+      .subscribe();
+    const ratesChannel = supabase
+      .channel('shipping_fees_rates_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'product_size_shipping_fees' },
+        () => refreshGroups(custId))
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(ratesChannel);
+    };
+  }, [custId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handlePayGroup(group) {
     const groupKey = `${group.productId}::${group.size ?? ''}`;
@@ -157,6 +191,7 @@ export default function ShippingFeePage() {
       productId:  group.productId,
       size:       group.size,
       orderIds:   group.orderIds,
+      orderPeriodId: group.orderPeriodId,
     }));
 
     const { data: fnData } = await supabase.functions.invoke("initiate-payment", {
@@ -260,7 +295,10 @@ export default function ShippingFeePage() {
               const isPaying = paying === groupKey;
               return (
                 <tr key={groupKey} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
-                  <td className="px-4 py-3 font-semibold text-[#1e2d3d]">{group.productName}</td>
+                  <td className="px-4 py-3 font-semibold text-[#1e2d3d]">
+                    {group.productName}
+                    {group.periodName && <span className="block text-xs font-normal text-gray-400">{group.periodName}</span>}
+                  </td>
                   <td className="px-4 py-3 text-gray-500">{group.sizeDisplay}</td>
                   <td className="px-4 py-3 text-gray-600">{group.totalQty}</td>
                   <td className="px-4 py-3 font-semibold text-[#1e2d3d]">
@@ -324,7 +362,10 @@ export default function ShippingFeePage() {
           return (
             <div key={groupKey} className="bg-white rounded-2xl shadow-sm p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-[#1e2d3d] text-sm">{group.productName}</span>
+                <span className="font-bold text-[#1e2d3d] text-sm">
+                  {group.productName}
+                  {group.periodName && <span className="block text-xs font-normal text-gray-400">{group.periodName}</span>}
+                </span>
                 {hasFee ? (
                   <span className="text-xs font-bold text-white bg-[#F2AA25] px-2.5 py-1 rounded-full">
                     GHS {group.totalFee.toLocaleString()}

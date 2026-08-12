@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import * as XLSX from 'xlsx';
+import { useSelectedOrderPeriod } from "../../hooks/useSelectedOrderPeriod";
+import PeriodSwitcher from "../../components/PeriodSwitcher";
 
 const PROCUREMENT_OPTIONS = ["Ordered", "Not Ordered"];
 const PROCUREMENT_COLORS = {
@@ -64,6 +66,7 @@ function groupByProduct(rows) {
 }
 
 export default function AdminOrdersPage() {
+  const { periods, activePeriod, selectedId, selectPeriod, loading: periodsLoading } = useSelectedOrderPeriod();
   const [productRows, setProductRows] = useState([]);
   const [deliveryRows, setDeliveryRows] = useState([]);
   const [orderIds, setOrderIds] = useState([]);
@@ -73,7 +76,7 @@ export default function AdminOrdersPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => { loadOrders(); }, []);
+  useEffect(() => { if (selectedId != null) loadOrders(); }, [selectedId]);
 
   async function loadOrders() {
     setLoading(true);
@@ -81,6 +84,7 @@ export default function AdminOrdersPage() {
       .from('orders')
       .select('*, products(product_name, procurement_status, product_status(status_name), rmb_price, size_pricing), customers(customer_name, telephone)')
       .eq('deleted_by_admin', false)
+      .eq('order_period_id', selectedId)
       .order('created_at', { ascending: false });
 
     const preOrderRows = (data ?? []).filter(
@@ -168,7 +172,10 @@ export default function AdminOrdersPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Pre-Order Goods</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+        <h1 className="text-xl font-bold text-[#1e2d3d]">Pre-Order Goods</h1>
+        <PeriodSwitcher periods={periods} selectedId={selectedId} activeId={activePeriod?.id} onChange={selectPeriod} loading={periodsLoading} />
+      </div>
       <p className="text-sm text-gray-400 mb-6">Manage pre-order product orders</p>
 
       {loading ? (

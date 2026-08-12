@@ -27,6 +27,7 @@ import MyOrdersPage from "./pages/MyOrdersPage";
 import ShippingFeePage from "./pages/ShippingFeePage";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminOrderPeriodsPage from "./pages/admin/AdminOrderPeriodsPage";
 import AdminProductsPage from "./pages/admin/AdminProductsPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminInvoicesPage from "./pages/admin/AdminInvoicesPage";
@@ -123,6 +124,7 @@ function App() {
               <Route element={<AdminGuard />}>
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/order-periods" element={<AdminOrderPeriodsPage />} />
                   <Route path="/admin/products" element={<AdminProductsPage />} />
                   <Route path="/admin/orders" element={<AdminOrdersPage />} />
                   <Route path="/admin/invoices" element={<AdminInvoicesPage />} />

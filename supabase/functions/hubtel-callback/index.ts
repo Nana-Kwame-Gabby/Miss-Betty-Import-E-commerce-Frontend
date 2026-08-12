@@ -75,6 +75,11 @@ Deno.serve(async (req) => {
             const form = p.form_data;
             const items = p.items;
 
+            const activePeriodRows = await dbFetch(supabaseUrl, supabaseKey,
+              `/order_periods?is_active=eq.true&select=id&limit=1`);
+            const activePeriodId = Array.isArray(activePeriodRows) && activePeriodRows.length
+              ? activePeriodRows[0].id : null;
+
             const orderRows = items.map(item => ({
               order_id:          orderId,
               customer_id:       p.customer_id,
@@ -90,6 +95,7 @@ Deno.serve(async (req) => {
               delivery_region:   form.region,
               delivery_town:     form.town,
               can_edit_delivery: true,
+              order_period_id:   activePeriodId,
             }));
 
             const invoiceRows = items.map(item => ({
@@ -101,6 +107,7 @@ Deno.serve(async (req) => {
               quantity:      item.quantity,
               unit_price:    item.unit_price,
               total:         item.unit_price * item.quantity,
+              order_period_id: activePeriodId,
             }));
 
             await dbFetch(supabaseUrl, supabaseKey, "/orders", "POST", orderRows);
