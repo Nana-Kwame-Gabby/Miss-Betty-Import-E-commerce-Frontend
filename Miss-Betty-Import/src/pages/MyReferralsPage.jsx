@@ -13,35 +13,50 @@ export default function MyReferralsPage() {
   const [copied, setCopied] = useState(false);
 
   async function refreshCoupons(custId) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('coupons')
       .select('*')
       .eq('customer_id', custId)
       .order('created_at', { ascending: false });
+    if (error) console.error('[MyReferralsPage] coupons fetch failed:', error.message);
     setCoupons(data ?? []);
+  }
+
+  async function refreshReferrals(custId) {
+    const { data: refRows, error } = await supabase
+      .from('referrals')
+      .select('id, referred_customer_id, referral_code_used, created_at')
+      .eq('referrer_customer_id', custId)
+      .order('created_at', { ascending: false });
+    if (error) console.error('[MyReferralsPage] referrals fetch failed:', error.message);
+
+    const referredIds = [...new Set((refRows ?? []).map(r => r.referred_customer_id))];
+    const { data: referredCustomers, error: custErr } = referredIds.length
+      ? await supabase.from('customers').select('customer_id, customer_name').in('customer_id', referredIds)
+      : { data: [], error: null };
+    if (custErr) console.error('[MyReferralsPage] referred-customer names fetch failed:', custErr.message);
+
+    const nameById = Object.fromEntries((referredCustomers ?? []).map(c => [c.customer_id, c.customer_name]));
+    setReferrals((refRows ?? []).map(r => ({ ...r, customer_name: nameById[r.referred_customer_id] ?? null })));
   }
 
   useEffect(() => {
     async function init() {
-      const { data: cust } = await supabase
+      const { data: cust, error } = await supabase
         .from('customers')
         .select('customer_id, referral_code')
         .eq('auth_id', session.user.id)
         .single();
+      if (error) console.error('[MyReferralsPage] customer lookup failed:', error.message);
 
       if (!cust) { setLoading(false); return; }
       setCustomerId(cust.customer_id);
       setReferralCode(cust.referral_code ?? "");
 
-      const [, { data: refRows }] = await Promise.all([
+      await Promise.all([
         refreshCoupons(cust.customer_id),
-        supabase
-          .from('referrals')
-          .select('created_at, customers!referrals_referred_customer_id_fkey(customer_name)')
-          .eq('referrer_customer_id', cust.customer_id)
-          .order('created_at', { ascending: false }),
+        refreshReferrals(cust.customer_id),
       ]);
-      setReferrals(refRows ?? []);
       setLoading(false);
     }
     init();
@@ -80,6 +95,7 @@ export default function MyReferralsPage() {
 
   const availableCoupons = coupons.filter(c => c.status === 'available');
   const usedCoupons      = coupons.filter(c => c.status === 'used');
+  const availableTotal   = availableCoupons.reduce((s, c) => s + Number(c.amount), 0);
 
   if (loading) {
     return (
@@ -92,6 +108,20 @@ export default function MyReferralsPage() {
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
       <h1 className="text-lg sm:text-xl font-bold text-[#1e2d3d] mb-3 sm:mb-5">My Referrals & Coupons</h1>
+
+      {/* Headline stats */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-white rounded-2xl shadow-sm p-4 text-center">
+          <p className="text-2xl font-bold text-[#1e2d3d]">{referrals.length}</p>
+          <p className="text-xs text-gray-400 font-medium mt-0.5">Successful Referrals</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-4 text-center">
+          <p className="text-2xl font-bold text-green-600">{availableCoupons.length}</p>
+          <p className="text-xs text-gray-400 font-medium mt-0.5">
+            Available Coupons {availableCoupons.length > 0 && `(GHS ${availableTotal.toLocaleString()})`}
+          </p>
+        </div>
+      </div>
 
       {/* Referral code + share link */}
       <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
@@ -165,9 +195,9 @@ export default function MyReferralsPage() {
           <p className="text-sm text-gray-400">Nobody has signed up with your code yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {referrals.map((r, i) => (
-              <div key={i} className="flex items-center justify-between text-sm">
-                <span className="text-[#1e2d3d] font-medium">{r.customers?.customer_name ?? "—"}</span>
+            {referrals.map(r => (
+              <div key={r.id} className="flex items-center justify-between text-sm">
+                <span className="text-[#1e2d3d] font-medium">{r.customer_name ?? "—"}</span>
                 <span className="text-xs text-gray-400">
                   {new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                 </span>
