@@ -54,6 +54,7 @@ export function AuthProvider({ children }) {
         email: u.email,
         telephone: u.user_metadata?.phone || '',
         auth_id: u.id,
+        referred_by_code: u.user_metadata?.referral_code || null,
       });
       setCheckingCustomer(false);
     }

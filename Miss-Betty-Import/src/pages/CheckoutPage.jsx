@@ -88,6 +88,32 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [applyCoupon, setApplyCoupon] = useState(false);
+
+  useEffect(() => {
+    async function loadCoupons() {
+      if (!session?.user?.id) return;
+      const { data: cust } = await supabase
+        .from('customers')
+        .select('customer_id')
+        .eq('auth_id', session.user.id)
+        .single();
+      if (!cust) return;
+      const { data } = await supabase
+        .from('coupons')
+        .select('id')
+        .eq('customer_id', cust.customer_id)
+        .eq('status', 'available');
+      setAvailableCoupons(data ?? []);
+    }
+    loadCoupons();
+  }, [session]);
+
+  const couponEligible = checkoutSubtotal > 3000 && availableCoupons.length > 0;
+  const discountAmount = applyCoupon && couponEligible ? 100 : 0;
+  const finalTotal      = checkoutSubtotal - discountAmount;
+
   function validate() {
     const e = {};
     if (!form.region) e.region = "Please select a region.";
@@ -120,6 +146,12 @@ export default function CheckoutPage() {
   }
 
   function handleIframeClose() {
+    if (paymentInProgress?.couponId && paymentInProgress?.customerId) {
+      supabase.rpc('release_coupon', {
+        p_coupon_id:   paymentInProgress.couponId,
+        p_customer_id: paymentInProgress.customerId,
+      }).catch(() => {});
+    }
     setPaymentInProgress(null); // explicit cancel
     setIframeLoaded(false);
   }
@@ -132,6 +164,9 @@ export default function CheckoutPage() {
     setSubmitting(true);
     setSubmitError("");
 
+    let couponId = null;
+    let custId   = null;
+
     try {
       // 1. Get customer_id
       const { data: cust, error: custError } = await supabase
@@ -141,6 +176,7 @@ export default function CheckoutPage() {
         .single();
 
       if (custError || !cust) throw new Error("Could not find your account. Please try again.");
+      custId = cust.customer_id;
 
       // Best-effort stock check: catch "sold out since it was added to cart" before spending
       // a Hubtel call. Advisory only — nothing is locked/reserved here, so it doesn't fully
@@ -165,6 +201,22 @@ export default function CheckoutPage() {
       const uid     = crypto.randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase();
       const orderId = `ORD-${new Date().getFullYear()}-${uid}`;
 
+      // 2b. Claim a coupon before payment (not just once it's confirmed) so it can't be
+      //     double-spent by a second, near-simultaneous checkout.
+      let discount = 0;
+      if (applyCoupon && couponEligible) {
+        const { data: claimed } = await supabase.rpc('claim_coupon', {
+          p_customer_id: cust.customer_id,
+          p_order_id:    orderId,
+          p_order_total: checkoutSubtotal,
+        });
+        if (claimed) {
+          couponId = claimed;
+          discount = 100;
+        }
+      }
+      const payAmount = checkoutSubtotal - discount;
+
       // 3. Call Hubtel via edge function
       const returnUrl       = `${window.location.origin}/order-confirmation?orderId=${orderId}&status=success`;
       const cancellationUrl = `${window.location.origin}/order-confirmation?orderId=${orderId}&status=cancelled`;
@@ -172,7 +224,7 @@ export default function CheckoutPage() {
       const { data: fnData } = await supabase.functions.invoke('initiate-payment', {
         body: {
           orderId,
-          amount: checkoutSubtotal,
+          amount: payAmount,
           description: `Miss Betty Import — ${orderId}`,
           returnUrl,
           cancellationUrl,
@@ -201,10 +253,12 @@ export default function CheckoutPage() {
       }));
 
       const { error: pendingError } = await supabase.from('pending_orders').insert({
-        order_id:    orderId,
-        customer_id: cust.customer_id,
-        form_data:   form,
-        items:       pendingItems,
+        order_id:        orderId,
+        customer_id:     cust.customer_id,
+        form_data:       form,
+        items:           pendingItems,
+        coupon_id:       couponId,
+        discount_amount: discount,
       });
       if (pendingError) throw new Error("Could not save order. Please try again.");
 
@@ -218,9 +272,18 @@ export default function CheckoutPage() {
 
       // 5. Open Hubtel checkout in iframe overlay
       setIframeLoaded(false);
-      setPaymentInProgress({ orderId, iframeUrl: fnData.checkoutUrl, savedAt: Date.now() });
+      setPaymentInProgress({
+        orderId,
+        iframeUrl:  fnData.checkoutUrl,
+        savedAt:    Date.now(),
+        couponId,
+        customerId: cust.customer_id,
+      });
       setSubmitting(false);
     } catch (err) {
+      if (couponId && custId) {
+        await supabase.rpc('release_coupon', { p_coupon_id: couponId, p_customer_id: custId }).catch(() => {});
+      }
       setSubmitError(err.message);
       setSubmitting(false);
     }
@@ -351,13 +414,37 @@ export default function CheckoutPage() {
                   <span>− GHS {checkoutSavings.toLocaleString()}</span>
                 </div>
               )}
+              {availableCoupons.length > 0 && (
+                <label className={`flex items-center justify-between gap-2 text-sm mb-2 ${couponEligible ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}`}>
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={applyCoupon}
+                      disabled={!couponEligible}
+                      onChange={e => setApplyCoupon(e.target.checked)}
+                      className="accent-[#F2AA25]"
+                    />
+                    Apply 1 coupon ({availableCoupons.length} available)
+                  </span>
+                  <span className="text-green-600 font-semibold">− GHS 100</span>
+                </label>
+              )}
+              {availableCoupons.length > 0 && !couponEligible && (
+                <p className="text-xs text-gray-400 mb-2">Coupons can only be used on orders above GHS 3,000.</p>
+              )}
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-green-600 text-sm font-semibold mb-2">
+                  <span>Coupon discount</span>
+                  <span>− GHS {discountAmount.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm text-gray-500 mb-4">
                 <span>Delivery</span>
                 <span className="text-green-600 font-medium">To be confirmed</span>
               </div>
               <div className="flex justify-between font-bold text-[#1e2d3d] text-base">
                 <span>Total</span>
-                <span className="text-[#DC2626]">GHS {checkoutSubtotal.toLocaleString()}</span>
+                <span className="text-[#DC2626]">GHS {finalTotal.toLocaleString()}</span>
               </div>
             </div>
           </div>

@@ -24,6 +24,7 @@ import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import MyOrdersPage from "./pages/MyOrdersPage";
+import MyReferralsPage from "./pages/MyReferralsPage";
 import ShippingFeePage from "./pages/ShippingFeePage";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -38,6 +39,7 @@ import AdminAvailableOrdersPage from "./pages/admin/AdminAvailableOrdersPage";
 import AdminPromoAlertPage from "./pages/admin/AdminPromoAlertPage";
 import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
 import AdminCountdownTimersPage from "./pages/admin/AdminCountdownTimersPage";
+import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import ProductRequestPage from "./pages/ProductRequestPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
@@ -135,6 +137,7 @@ function App() {
                   <Route path="/admin/promo-alert" element={<AdminPromoAlertPage />} />
                   <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
                   <Route path="/admin/countdown-timers" element={<AdminCountdownTimersPage />} />
+                  <Route path="/admin/coupons" element={<AdminCouponsPage />} />
                 </Route>
               </Route>
 
@@ -148,6 +151,7 @@ function App() {
                   <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
                   <Route path="/my-orders" element={<MyOrdersPage />} />
+                  <Route path="/my-referrals" element={<MyReferralsPage />} />
                   <Route path="/shipping-fees" element={<ShippingFeePage />} />
                   <Route path="/product-requests" element={<ProductRequestPage />} />
                 </Route>

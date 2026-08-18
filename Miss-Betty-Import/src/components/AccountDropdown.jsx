@@ -57,6 +57,13 @@ export default function AccountDropdown() {
             <span>📦</span> Orders
           </Link>
           <Link
+            to="/my-referrals"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
+          >
+            <span>🎁</span> Referrals & Coupons
+          </Link>
+          <Link
             to="/product-requests"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"

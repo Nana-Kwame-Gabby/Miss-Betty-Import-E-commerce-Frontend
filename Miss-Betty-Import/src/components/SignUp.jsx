@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { supabase } from "../lib/supabase";
 import { consumePostAuthRedirect } from "../utils/postAuthRedirect";
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [referralCode, setReferralCode] = useState(searchParams.get("ref") ?? "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -50,7 +52,7 @@ export default function SignUp() {
       email,
       password,
       options: {
-        data: { full_name: fullName, phone },
+        data: { full_name: fullName, phone, referral_code: referralCode.trim() || null },
       },
     });
 
@@ -144,6 +146,11 @@ export default function SignUp() {
           <div className="w-full mb-4">
             <label className={labelClass}>Confirm Password</label>
             <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter your password" className={inputClass} />
+          </div>
+
+          <div className="w-full mb-4">
+            <label className={labelClass}>Referral Code <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input type="text" value={referralCode} onChange={e => setReferralCode(e.target.value.toUpperCase())} placeholder="e.g. AB12CD34" className={inputClass} />
           </div>
 
           {error && (

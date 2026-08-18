@@ -35,11 +35,18 @@ export default function OrderConfirmationPage() {
         .eq("order_id", orderId);
       if (!orderRows?.length) return null;
 
-      const { data: custRows } = await supabase
-        .from("customers")
-        .select("customer_name, email, telephone")
-        .eq("customer_id", orderRows[0].customer_id)
-        .single();
+      const [{ data: custRows }, { data: pendingRows }] = await Promise.all([
+        supabase
+          .from("customers")
+          .select("customer_name, email, telephone")
+          .eq("customer_id", orderRows[0].customer_id)
+          .single(),
+        supabase
+          .from("pending_orders")
+          .select("discount_amount")
+          .eq("order_id", orderId)
+          .limit(1),
+      ]);
 
       const items = orderRows.map(r => ({
         cartKey:           String(r.id),
@@ -62,6 +69,7 @@ export default function OrderConfirmationPage() {
         },
         items,
         subtotal: items.reduce((s, i) => s + i.unit_price * i.quantity, 0),
+        discount: Number(pendingRows?.[0]?.discount_amount ?? 0),
         orderId,
       };
     }
@@ -146,8 +154,11 @@ export default function OrderConfirmationPage() {
         keys.length ? removeCartKeys(keys) : clearCart();
         sessionStorage.removeItem(key);
 
+        const { data: pendingDiscountRows } = await supabase
+          .from("pending_orders").select("discount_amount").eq("order_id", urlOrderId).limit(1);
+        const discount = Number(pendingDiscountRows?.[0]?.discount_amount ?? 0);
         const subtotal = saved.items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
-        setOrderData({ form: saved.form, items: saved.items, subtotal, orderId: urlOrderId });
+        setOrderData({ form: saved.form, items: saved.items, subtotal, discount, orderId: urlOrderId });
         setPhase("ready");
       } else {
         // No sessionStorage either — order may have been created by callback after
@@ -244,7 +255,7 @@ export default function OrderConfirmationPage() {
     );
   }
 
-  const { form, items, subtotal, orderId } = orderData;
+  const { form, items, subtotal, discount = 0, orderId } = orderData;
 
   return (
     <div className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
@@ -284,9 +295,17 @@ export default function OrderConfirmationPage() {
             </div>
           ))}
         </div>
-        <div className="border-t border-gray-100 pt-3 flex justify-between font-bold text-[#1e2d3d]">
-          <span>Total</span>
-          <span className="text-[#DC2626]">GHS {subtotal.toLocaleString()}</span>
+        <div className="border-t border-gray-100 pt-3">
+          {discount > 0 && (
+            <div className="flex justify-between text-green-600 text-sm font-semibold mb-2">
+              <span>Coupon discount</span>
+              <span>− GHS {discount.toLocaleString()}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold text-[#1e2d3d]">
+            <span>Total</span>
+            <span className="text-[#DC2626]">GHS {(subtotal - discount).toLocaleString()}</span>
+          </div>
         </div>
       </div>
 

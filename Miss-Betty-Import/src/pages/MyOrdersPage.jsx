@@ -69,9 +69,23 @@ export default function MyOrdersPage() {
 
     const grouped = groupByOrderId(data ?? []);
 
+    // A coupon discount is tracked on pending_orders (one row per checkout session), not
+    // on individual order rows — fold it in here so the displayed total always matches
+    // what was actually paid.
+    const orderIds = grouped.map(o => o.order_id);
+    const { data: discountRows } = orderIds.length
+      ? await supabase.from('pending_orders').select('order_id, discount_amount').in('order_id', orderIds)
+      : { data: [] };
+    const discountMap = Object.fromEntries((discountRows ?? []).map(r => [r.order_id, Number(r.discount_amount ?? 0)]));
+    const groupedWithDiscount = grouped.map(o => ({
+      ...o,
+      discount: discountMap[o.order_id] ?? 0,
+      total: o.total - (discountMap[o.order_id] ?? 0),
+    }));
+
     // Auto-confirm orders delivered more than 72 hours ago
     const now = Date.now();
-    const overdueIds = grouped
+    const overdueIds = groupedWithDiscount
       .filter(o =>
         o.status === 'Delivered' &&
         o.delivered_at &&
@@ -81,9 +95,9 @@ export default function MyOrdersPage() {
 
     if (overdueIds.length > 0) {
       await supabase.from('orders').update({ status: 'Received' }).in('order_id', overdueIds);
-      setOrders(grouped.map(o => overdueIds.includes(o.order_id) ? { ...o, status: 'Received' } : o));
+      setOrders(groupedWithDiscount.map(o => overdueIds.includes(o.order_id) ? { ...o, status: 'Received' } : o));
     } else {
-      setOrders(grouped);
+      setOrders(groupedWithDiscount);
     }
   }
 
@@ -211,6 +225,9 @@ export default function MyOrdersPage() {
                 </td>
                 <td className="px-3 py-3 font-bold text-[#1e2d3d] whitespace-nowrap">
                   GHS {order.total.toLocaleString()}
+                  {order.discount > 0 && (
+                    <span className="block text-[10px] font-semibold text-green-600">Coupon applied</span>
+                  )}
                 </td>
                 <td className="px-3 py-3">
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyles[order.status] || "bg-gray-100 text-gray-600"}`}>
@@ -293,7 +310,12 @@ export default function MyOrdersPage() {
             </div>
             <div className="border-t border-gray-100 pt-2 flex justify-between items-center">
               <span className="text-xs text-gray-500">Total</span>
-              <span className="font-bold text-[#1e2d3d] text-sm">GHS {order.total.toLocaleString()}</span>
+              <span className="font-bold text-[#1e2d3d] text-sm">
+                GHS {order.total.toLocaleString()}
+                {order.discount > 0 && (
+                  <span className="block text-[10px] font-semibold text-green-600 text-right">Coupon applied</span>
+                )}
+              </span>
             </div>
             {order.status === 'Delivered' && (
               <button
