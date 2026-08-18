@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { supabase } from "../lib/supabase";
 import { consumePostAuthRedirect } from "../utils/postAuthRedirect";
+import usePersistedState from "../hooks/usePersistedState";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -12,7 +13,8 @@ export default function SignUp() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [referralCode, setReferralCode] = useState(searchParams.get("ref") ?? "");
+  const [referralCode, setReferralCode] = usePersistedState("mbimport_form_signup_referral_code", searchParams.get("ref") ?? "");
+  const [codeStatus, setCodeStatus] = useState(null); // null | "checking" | "valid" | "invalid"
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -24,6 +26,14 @@ export default function SignUp() {
       setOauthDenied(true);
     }
   }, []);
+
+  async function handleReferralCodeBlur() {
+    const code = referralCode.trim();
+    if (!code) { setCodeStatus(null); return; }
+    setCodeStatus("checking");
+    const { data } = await supabase.rpc('validate_referral_code', { p_code: code });
+    setCodeStatus(data ? "valid" : "invalid");
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -75,6 +85,7 @@ export default function SignUp() {
       return;
     }
 
+    sessionStorage.removeItem("mbimport_form_signup_referral_code");
     navigate(consumePostAuthRedirect() ?? "/shop");
   }
 
@@ -150,7 +161,25 @@ export default function SignUp() {
 
           <div className="w-full mb-4">
             <label className={labelClass}>Referral Code <span className="text-gray-400 font-normal">(optional)</span></label>
-            <input type="text" value={referralCode} onChange={e => setReferralCode(e.target.value.toUpperCase())} placeholder="e.g. AB12CD34" className={inputClass} />
+            <input
+              type="text"
+              value={referralCode}
+              onChange={e => { setReferralCode(e.target.value.toUpperCase()); setCodeStatus(null); }}
+              onBlur={handleReferralCodeBlur}
+              placeholder="e.g. AB12CD34"
+              className={inputClass}
+            />
+            {codeStatus === "checking" && (
+              <p className="text-xs text-gray-400 mt-1">Checking…</p>
+            )}
+            {codeStatus === "valid" && (
+              <p className="text-xs text-green-600 mt-1">✓ Valid referral code</p>
+            )}
+            {codeStatus === "invalid" && (
+              <p className="text-xs text-amber-600 mt-1">
+                This code doesn't exist — you can still sign up, but no referral will be credited.
+              </p>
+            )}
           </div>
 
           {error && (
