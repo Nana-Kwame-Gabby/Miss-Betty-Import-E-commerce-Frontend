@@ -268,6 +268,7 @@ export default function CheckoutPage() {
         orderId,
         form,
         items: pendingItems,
+        couponId,
       }));
 
       // 5. Open Hubtel checkout in iframe overlay

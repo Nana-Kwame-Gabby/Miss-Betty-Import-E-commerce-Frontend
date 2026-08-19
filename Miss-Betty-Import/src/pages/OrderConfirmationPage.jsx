@@ -22,6 +22,41 @@ export default function OrderConfirmationPage() {
   const [phase, setPhase]         = useState(initialPhase);
   const [orderData, setOrderData] = useState(state || null);
   const ranRef = useRef(false);
+  const releaseRanRef = useRef(false);
+
+  // Coupon is only ever spent once the order actually exists — confirm here rather
+  // than at checkout submission time. Idempotent server-side, safe to call more than
+  // once (e.g. redundantly alongside the hubtel-callback webhook's own confirm call).
+  async function confirmCouponIfPresent(couponId, orderId) {
+    if (!couponId) return;
+    await supabase.rpc('confirm_coupon_usage', { p_coupon_id: couponId, p_order_id: orderId }).catch(() => {});
+  }
+
+  // Hubtel's own cancel/fail redirect lands directly on these phases — nothing else
+  // runs for them, so this is the only place a coupon reserved for a payment that
+  // never completed inside Hubtel's UI (as opposed to our own Cancel button) gets
+  // released back to available.
+  useEffect(() => {
+    if (phase !== "cancelled" && phase !== "failed") return;
+    if (releaseRanRef.current) return;
+    releaseRanRef.current = true;
+
+    async function releaseIfReserved() {
+      const { data: pendingRows } = await supabase
+        .from("pending_orders")
+        .select("coupon_id, customer_id")
+        .eq("order_id", urlOrderId)
+        .limit(1);
+      const pending = pendingRows?.[0];
+      if (pending?.coupon_id) {
+        await supabase.rpc('release_coupon', {
+          p_coupon_id:   pending.coupon_id,
+          p_customer_id: pending.customer_id,
+        }).catch(() => {});
+      }
+    }
+    releaseIfReserved();
+  }, [phase, urlOrderId]);
 
   useEffect(() => {
     if (phase !== "processing") return;
@@ -90,11 +125,12 @@ export default function OrderConfirmationPage() {
 
       if (dbOrder) {
         const { data: pendingRows } = await supabase
-          .from("pending_orders").select("items").eq("order_id", urlOrderId).limit(1);
+          .from("pending_orders").select("items, coupon_id").eq("order_id", urlOrderId).limit(1);
         const keys = (pendingRows?.[0]?.items || [])
           .map(i => i.cartKey).filter(k => k && !k.startsWith("buynow-"));
         keys.length ? removeCartKeys(keys) : clearCart();
         sessionStorage.removeItem(`pending_order_${urlOrderId}`);
+        await confirmCouponIfPresent(pendingRows?.[0]?.coupon_id, urlOrderId);
         setOrderData(dbOrder);
         setPhase("ready");
         return;
@@ -153,6 +189,7 @@ export default function OrderConfirmationPage() {
           .map(i => i.cartKey).filter(k => k && !k.startsWith("buynow-"));
         keys.length ? removeCartKeys(keys) : clearCart();
         sessionStorage.removeItem(key);
+        await confirmCouponIfPresent(saved.couponId, urlOrderId);
 
         const { data: pendingDiscountRows } = await supabase
           .from("pending_orders").select("discount_amount").eq("order_id", urlOrderId).limit(1);
@@ -166,10 +203,11 @@ export default function OrderConfirmationPage() {
         const finalCheck = await fetchOrderFromDB(urlOrderId);
         if (finalCheck) {
           const { data: pendingRows } = await supabase
-            .from("pending_orders").select("items").eq("order_id", urlOrderId).limit(1);
+            .from("pending_orders").select("items, coupon_id").eq("order_id", urlOrderId).limit(1);
           const keys = (pendingRows?.[0]?.items || [])
             .map(i => i.cartKey).filter(k => k && !k.startsWith("buynow-"));
           keys.length ? removeCartKeys(keys) : clearCart();
+          await confirmCouponIfPresent(pendingRows?.[0]?.coupon_id, urlOrderId);
           setOrderData(finalCheck);
           setPhase("ready");
         } else {

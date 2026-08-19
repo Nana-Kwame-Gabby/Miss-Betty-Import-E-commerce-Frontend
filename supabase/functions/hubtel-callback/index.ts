@@ -116,6 +116,13 @@ Deno.serve(async (req) => {
               `/pending_orders?order_id=eq.${encodeURIComponent(orderId)}`,
               "PATCH", { processed_at: new Date().toISOString() });
 
+            if (p.coupon_id) {
+              await dbFetch(supabaseUrl, supabaseKey, "/rpc/confirm_coupon_usage", "POST", {
+                p_coupon_id: p.coupon_id,
+                p_order_id: orderId,
+              });
+            }
+
             console.log("[hubtel-callback] Order created:", orderId);
           } else {
             console.warn("[hubtel-callback] No pending_order found for:", orderId);
