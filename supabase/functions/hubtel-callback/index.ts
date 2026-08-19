@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
               cost_price:        item.cost_price  ?? 0,
               profit:            item.profit      ?? 0,
               rmb_price:         item.rmb_price   ?? 0,
+              misc_amount:       item.misc_amount ?? 0,
               size:              item.size   ?? null,
               colour:            item.colour ?? null,
               status:            "Ordered",

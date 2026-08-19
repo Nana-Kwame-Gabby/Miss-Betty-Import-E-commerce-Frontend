@@ -7,6 +7,7 @@ const EMPTY_FORM = {
   category_id: "",
   cost_price: "",
   profit: "",
+  misc_amount: "",
   rmb_price: "",
   discount_price: "",
   status_id: "",
@@ -119,7 +120,7 @@ export default function AdminProductsPage() {
   const [useSizePricing, setUseSizePricing] = usePersistedState("mbimport_form_admin_product_draft_use_size_pricing", false);
   const [sizePricingRows, setSizePricingRows] = usePersistedState(
     "mbimport_form_admin_product_draft_size_pricing_rows",
-    [{ size: "", cost_price: "", profit: "", rmb_price: "", discount_price: "" }]
+    [{ size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }]
   );
   const [stockRows, setStockRows] = usePersistedState(
     "mbimport_form_admin_product_draft_stock_rows",
@@ -142,7 +143,7 @@ export default function AdminProductsPage() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError]           = useState("");
   const [editUseSizePricing, setEditUseSizePricing] = useState(false);
-  const [editSizePricingRows, setEditSizePricingRows] = useState([{ size: "", cost_price: "", profit: "", rmb_price: "", discount_price: "" }]);
+  const [editSizePricingRows, setEditSizePricingRows] = useState([{ size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }]);
   const [editStockRows, setEditStockRows] = useState([{ size: "", colour: "", stock_quantity: "" }]);
 
   useEffect(() => {
@@ -213,17 +214,20 @@ export default function AdminProductsPage() {
       ]);
       const videoUrl = tiktokUrl.trim() || null;
 
-      const cost_price = Number(form.cost_price);
-      const profit     = Number(form.profit || 0);
+      const cost_price  = Number(form.cost_price);
+      const profit      = Number(form.profit || 0);
+      const misc_amount = Number(form.misc_amount || 0);
 
       const size_pricing = useSizePricing && validRows.length > 0
         ? validRows.map(r => {
-            const sp = Number(r.cost_price) + Number(r.profit);
+            const rowMisc = Number(r.misc_amount || 0);
+            const sp = Number(r.cost_price) + Number(r.profit) + rowMisc;
             const discAmt = r.discount_price !== "" ? Number(r.discount_price) : 0;
             const dp = discAmt > 0 && discAmt <= Number(r.profit)
-              ? Number(r.cost_price) + (Number(r.profit) - discAmt) : null;
+              ? Number(r.cost_price) + (Number(r.profit) - discAmt) + rowMisc : null;
             return {
               size: r.size.trim(), cost_price: Number(r.cost_price), profit: Number(r.profit),
+              misc_amount: rowMisc,
               rmb_price: r.rmb_price !== "" ? Number(r.rmb_price) : null,
               selling_price: sp, discount_price: dp,
             };
@@ -231,7 +235,7 @@ export default function AdminProductsPage() {
         : null;
       const unit_price = size_pricing
         ? Math.min(...size_pricing.map(r => r.selling_price))
-        : cost_price + profit;
+        : cost_price + profit + misc_amount;
       const sizeValue = size_pricing
         ? size_pricing.map(r => r.size).join(',')
         : (form.sizes.trim() || null);
@@ -241,13 +245,14 @@ export default function AdminProductsPage() {
         setSubmitting(false);
         return;
       }
-      const simpleDiscountPrice = discountAmount > 0 ? cost_price + (profit - discountAmount) : null;
+      const simpleDiscountPrice = discountAmount > 0 ? cost_price + (profit - discountAmount) + misc_amount : null;
 
       const { data: insertedProduct, error: insertError } = await supabase.from("products").insert({
         product_name: form.product_name.trim(),
         category_id: Number(form.category_id),
         cost_price,
         profit,
+        misc_amount,
         rmb_price: form.rmb_price !== "" ? Number(form.rmb_price) : null,
         unit_price,
         discount_price: simpleDiscountPrice,
@@ -292,7 +297,7 @@ export default function AdminProductsPage() {
       setImageFile2(null);   setImagePreview2(null);
       setTiktokUrl("");
       setUseSizePricing(false);
-      setSizePricingRows([{ size: "", cost_price: "", profit: "", rmb_price: "", discount_price: "" }]);
+      setSizePricingRows([{ size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }]);
       setStockRows([{ size: "", colour: "", stock_quantity: "" }]);
       loadAll();
       setTimeout(() => setSuccess(""), 4000);
@@ -345,6 +350,7 @@ export default function AdminProductsPage() {
       category_id:    String(product.category_id ?? ""),
       cost_price:     String(product.cost_price ?? ""),
       profit:         String(product.profit ?? ""),
+      misc_amount:    String(product.misc_amount ?? ""),
       rmb_price:      String(product.rmb_price ?? ""),
       discount_price: (product.discount_price != null && product.unit_price != null)
         ? String(+(product.unit_price - product.discount_price).toFixed(2))
@@ -372,6 +378,7 @@ export default function AdminProductsPage() {
         size:          r.size,
         cost_price:    String(r.cost_price    ?? ""),
         profit:        String(r.profit        ?? ""),
+        misc_amount:   String(r.misc_amount   ?? ""),
         rmb_price:     String(r.rmb_price      ?? ""),
         discount_price: (r.discount_price != null && r.selling_price != null)
           ? String(+(r.selling_price - r.discount_price).toFixed(2))
@@ -379,7 +386,7 @@ export default function AdminProductsPage() {
       })));
     } else {
       setEditUseSizePricing(false);
-      setEditSizePricingRows([{ size: "", cost_price: "", profit: "", rmb_price: "", discount_price: "" }]);
+      setEditSizePricingRows([{ size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }]);
     }
   }
 
@@ -390,7 +397,7 @@ export default function AdminProductsPage() {
     setEditTiktokUrl("");
     setEditError("");
     setEditUseSizePricing(false);
-    setEditSizePricingRows([{ size: "", cost_price: "", profit: "", rmb_price: "", discount_price: "" }]);
+    setEditSizePricingRows([{ size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }]);
     setEditStockRows([{ size: "", colour: "", stock_quantity: "" }]);
   }
 
@@ -424,17 +431,20 @@ export default function AdminProductsPage() {
       ]);
       const videoUrl = editTiktokUrl.trim() || editingProduct.product_video_url || null;
 
-      const cost_price = Number(editForm.cost_price);
-      const profit     = Number(editForm.profit || 0);
+      const cost_price  = Number(editForm.cost_price);
+      const profit      = Number(editForm.profit || 0);
+      const misc_amount = Number(editForm.misc_amount || 0);
 
       const size_pricing = editUseSizePricing && validEditRows.length > 0
         ? validEditRows.map(r => {
-            const sp = Number(r.cost_price) + Number(r.profit);
+            const rowMisc = Number(r.misc_amount || 0);
+            const sp = Number(r.cost_price) + Number(r.profit) + rowMisc;
             const discAmt = r.discount_price !== "" ? Number(r.discount_price) : 0;
             const dp = discAmt > 0 && discAmt <= Number(r.profit)
-              ? Number(r.cost_price) + (Number(r.profit) - discAmt) : null;
+              ? Number(r.cost_price) + (Number(r.profit) - discAmt) + rowMisc : null;
             return {
               size: r.size.trim(), cost_price: Number(r.cost_price), profit: Number(r.profit),
+              misc_amount: rowMisc,
               rmb_price: r.rmb_price !== "" ? Number(r.rmb_price) : null,
               selling_price: sp, discount_price: dp,
             };
@@ -442,7 +452,7 @@ export default function AdminProductsPage() {
         : null;
       const unit_price = size_pricing
         ? Math.min(...size_pricing.map(r => r.selling_price))
-        : cost_price + profit;
+        : cost_price + profit + misc_amount;
       const sizeValue = size_pricing
         ? size_pricing.map(r => r.size).join(',')
         : (editForm.sizes.trim() || null);
@@ -452,7 +462,7 @@ export default function AdminProductsPage() {
         setEditSubmitting(false);
         return;
       }
-      const simpleDiscountPrice = discountAmount > 0 ? cost_price + (profit - discountAmount) : null;
+      const simpleDiscountPrice = discountAmount > 0 ? cost_price + (profit - discountAmount) + misc_amount : null;
 
       const { error: updateError } = await supabase.from("products")
         .update({
@@ -460,6 +470,7 @@ export default function AdminProductsPage() {
           category_id: Number(editForm.category_id),
           cost_price,
           profit,
+          misc_amount,
           rmb_price: editForm.rmb_price !== "" ? Number(editForm.rmb_price) : null,
           unit_price,
           discount_price: editUseSizePricing ? null : simpleDiscountPrice,
@@ -547,19 +558,24 @@ export default function AdminProductsPage() {
           </div>
 
           <div>
+            <label className={labelClass}>Miscellaneous Amount (GHS)</label>
+            <input name="misc_amount" type="number" min="0" step="0.01" value={form.misc_amount} onChange={handleChange} placeholder="0.00" className={inputClass} />
+          </div>
+
+          <div>
             <label className={labelClass}>RMB Price (¥) <span className="text-gray-400 font-normal">(internal only, optional)</span></label>
             <input name="rmb_price" type="number" min="0" step="0.01" value={form.rmb_price} onChange={handleChange} placeholder="0.00" className={inputClass} />
           </div>
 
-          {!useSizePricing && (form.cost_price || form.profit) && (
+          {!useSizePricing && (form.cost_price || form.profit || form.misc_amount) && (
             <div className="sm:col-span-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-4 py-2.5">
               Selling Price:{" "}
               <span className="font-bold text-[#1e2d3d]">
-                GHS {(Number(form.cost_price || 0) + Number(form.profit || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                GHS {(Number(form.cost_price || 0) + Number(form.profit || 0) + Number(form.misc_amount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               {form.discount_price && Number(form.discount_price) > 0 && Number(form.discount_price) <= Number(form.profit || 0) && (
                 <span className="ml-2 text-green-700 font-bold">
-                  → Discounted: GHS {(Number(form.cost_price || 0) + Number(form.profit || 0) - Number(form.discount_price)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  → Discounted: GHS {(Number(form.cost_price || 0) + Number(form.profit || 0) + Number(form.misc_amount || 0) - Number(form.discount_price)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               )}
               {form.discount_price && Number(form.discount_price) > Number(form.profit || 0) && (
@@ -633,22 +649,23 @@ export default function AdminProductsPage() {
 
             {useSizePricing ? (
               <div className="space-y-2">
-                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
+                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
                   <span>Size Name</span>
                   <span>Cost Price (GHS)</span>
                   <span>Profit (GHS)</span>
+                  <span>Misc. Amount (GHS)</span>
                   <span>RMB Price (¥)</span>
                   <span>Selling Price</span>
                   <span>Discount Amt</span>
                   <span />
                 </div>
                 {sizePricingRows.map((row, i) => {
-                  const selling = (Number(row.cost_price) || 0) + (Number(row.profit) || 0);
+                  const selling = (Number(row.cost_price) || 0) + (Number(row.profit) || 0) + (Number(row.misc_amount) || 0);
                   const discAmt = Number(row.discount_price) || 0;
                   const validSizeDiscount = discAmt > 0 && discAmt <= (Number(row.profit) || 0);
                   const discountedSelling = validSizeDiscount ? selling - discAmt : null;
                   return (
-                    <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 items-center">
+                    <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 items-center">
                       <input
                         value={row.size}
                         onChange={e => setSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, size: e.target.value } : r))}
@@ -670,6 +687,15 @@ export default function AdminProductsPage() {
                         step="0.01"
                         value={row.profit}
                         onChange={e => setSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, profit: e.target.value } : r))}
+                        placeholder="0.00"
+                        className={inputClass}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={row.misc_amount}
+                        onChange={e => setSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, misc_amount: e.target.value } : r))}
                         placeholder="0.00"
                         className={inputClass}
                       />
@@ -712,14 +738,14 @@ export default function AdminProductsPage() {
                 })}
                 <button
                   type="button"
-                  onClick={() => setSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "", rmb_price: "", discount_price: "" }])}
+                  onClick={() => setSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }])}
                   className="text-xs font-semibold text-[#F2AA25] hover:text-amber-600 transition-colors mt-1"
                 >+ Add Size</button>
                 {sizePricingRows.some(r => r.size.trim() && r.cost_price !== "" && r.profit !== "") && (
                   <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2">
                     Prices shown to customers:{" "}
                     <span className="font-semibold text-[#1e2d3d]">
-                      From GHS {Math.min(...sizePricingRows.filter(r => r.cost_price !== "" && r.profit !== "").map(r => Number(r.cost_price) + Number(r.profit))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      From GHS {Math.min(...sizePricingRows.filter(r => r.cost_price !== "" && r.profit !== "").map(r => Number(r.cost_price) + Number(r.profit) + Number(r.misc_amount || 0))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </p>
                 )}
@@ -878,6 +904,7 @@ export default function AdminProductsPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Final Price</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Cost Price</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Profit</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Misc. Amount</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">RMB Price</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Stock</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Status</th>
@@ -904,6 +931,7 @@ export default function AdminProductsPage() {
                     <td className="px-4 py-3 font-semibold text-[#F2AA25]">GHS {Number(p.unit_price).toLocaleString()}</td>
                     <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">GHS {Number(p.cost_price ?? 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">GHS {Number(p.profit ?? 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">GHS {Number(p.misc_amount ?? 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">
                       {p.rmb_price != null ? `¥${Number(p.rmb_price).toLocaleString()}` : (p.size_pricing?.length ? "Per size" : "—")}
                     </td>
@@ -1005,19 +1033,24 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div>
+                  <label className={labelClass}>Miscellaneous Amount (GHS)</label>
+                  <input name="misc_amount" type="number" min="0" step="0.01" value={editForm.misc_amount} onChange={handleEditChange} className={inputClass} />
+                </div>
+
+                <div>
                   <label className={labelClass}>RMB Price (¥) <span className="text-gray-400 font-normal">(internal only, optional)</span></label>
                   <input name="rmb_price" type="number" min="0" step="0.01" value={editForm.rmb_price} onChange={handleEditChange} className={inputClass} />
                 </div>
 
-                {!editUseSizePricing && (editForm.cost_price || editForm.profit) && (
+                {!editUseSizePricing && (editForm.cost_price || editForm.profit || editForm.misc_amount) && (
                   <div className="sm:col-span-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-4 py-2.5">
                     Selling Price:{" "}
                     <span className="font-bold text-[#1e2d3d]">
-                      GHS {(Number(editForm.cost_price || 0) + Number(editForm.profit || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      GHS {(Number(editForm.cost_price || 0) + Number(editForm.profit || 0) + Number(editForm.misc_amount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     {editForm.discount_price && Number(editForm.discount_price) > 0 && Number(editForm.discount_price) <= Number(editForm.profit || 0) && (
                       <span className="ml-2 text-green-700 font-bold">
-                        → Discounted: GHS {(Number(editForm.cost_price || 0) + Number(editForm.profit || 0) - Number(editForm.discount_price)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        → Discounted: GHS {(Number(editForm.cost_price || 0) + Number(editForm.profit || 0) + Number(editForm.misc_amount || 0) - Number(editForm.discount_price)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     )}
                     {editForm.discount_price && Number(editForm.discount_price) > Number(editForm.profit || 0) && (
@@ -1093,21 +1126,23 @@ export default function AdminProductsPage() {
 
                   {editUseSizePricing ? (
                     <div className="space-y-2">
-                      <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
+                      <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
                         <span>Size Name</span>
                         <span>Cost Price (GHS)</span>
                         <span>Profit (GHS)</span>
+                        <span>Misc. Amount (GHS)</span>
+                        <span>RMB Price (¥)</span>
                         <span>Selling Price</span>
                         <span>Discount Amt</span>
                         <span />
                       </div>
                       {editSizePricingRows.map((row, i) => {
-                        const selling = (Number(row.cost_price) || 0) + (Number(row.profit) || 0);
+                        const selling = (Number(row.cost_price) || 0) + (Number(row.profit) || 0) + (Number(row.misc_amount) || 0);
                         const discAmt = Number(row.discount_price) || 0;
                         const validSizeDiscount = discAmt > 0 && discAmt <= (Number(row.profit) || 0);
                         const discountedSelling = validSizeDiscount ? selling - discAmt : null;
                         return (
-                          <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 items-center">
+                          <div key={i} className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 items-center">
                             <input
                               value={row.size}
                               onChange={e => setEditSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, size: e.target.value } : r))}
@@ -1129,6 +1164,15 @@ export default function AdminProductsPage() {
                               step="0.01"
                               value={row.profit}
                               onChange={e => setEditSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, profit: e.target.value } : r))}
+                              placeholder="0.00"
+                              className={inputClass}
+                            />
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={row.misc_amount}
+                              onChange={e => setEditSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, misc_amount: e.target.value } : r))}
                               placeholder="0.00"
                               className={inputClass}
                             />
@@ -1171,14 +1215,14 @@ export default function AdminProductsPage() {
                       })}
                       <button
                         type="button"
-                        onClick={() => setEditSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "", rmb_price: "", discount_price: "" }])}
+                        onClick={() => setEditSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }])}
                         className="text-xs font-semibold text-[#F2AA25] hover:text-amber-600 transition-colors mt-1"
                       >+ Add Size</button>
                       {editSizePricingRows.some(r => r.size.trim() && r.cost_price !== "" && r.profit !== "") && (
                         <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2">
                           Prices shown to customers:{" "}
                           <span className="font-semibold text-[#1e2d3d]">
-                            From GHS {Math.min(...editSizePricingRows.filter(r => r.cost_price !== "" && r.profit !== "").map(r => Number(r.cost_price) + Number(r.profit))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            From GHS {Math.min(...editSizePricingRows.filter(r => r.cost_price !== "" && r.profit !== "").map(r => Number(r.cost_price) + Number(r.profit) + Number(r.misc_amount || 0))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </p>
                       )}

@@ -38,7 +38,7 @@ export default function AdminDashboard() {
     await updateAnnouncementMessage(localMessage);
     setSavingMessage(false);
   }
-  const [stats, setStats] = useState({ products: 0, orders: 0, customers: 0, revenue: 0, shippingCollected: 0, totalCostPrice: 0, totalProfit: 0 });
+  const [stats, setStats] = useState({ products: 0, orders: 0, customers: 0, revenue: 0, shippingCollected: 0, totalCostPrice: 0, totalProfit: 0, totalMiscAmount: 0 });
   const [paymentRows, setPaymentRows] = useState([]);
   const [custTotals, setCustTotals] = useState({});
   const [productCustTotals, setProductCustTotals] = useState({});
@@ -109,7 +109,7 @@ export default function AdminDashboard() {
           .select('customer_id, amount_paid, paid_at, product_id, size, customers(customer_name), products(product_name)')
           .eq('order_period_id', selectedId)
           .order('paid_at', { ascending: false }),
-        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit, shipping_fee, shipping_fee_paid, customers(customer_name), products(product_name, product_status(status_name))').eq('deleted_by_admin', false).eq('order_period_id', selectedId),
+        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit, misc_amount, shipping_fee, shipping_fee_paid, customers(customer_name), products(product_name, product_status(status_name))').eq('deleted_by_admin', false).eq('order_period_id', selectedId),
         supabase.from('product_size_shipping_fees').select('product_id, size, shipping_fee').eq('order_period_id', selectedId),
       ]);
 
@@ -122,13 +122,15 @@ export default function AdminDashboard() {
       });
       const totalByCustomer = {};
       const totalByProductCust = {};
-      let totalCostPrice = 0;
-      let totalProfit    = 0;
+      let totalCostPrice  = 0;
+      let totalProfit     = 0;
+      let totalMiscAmount = 0;
       (allOrderData ?? []).forEach(o => {
         const isAvailable = o.products?.product_status?.status_name === 'Available';
         const qty = Number(o.quantity ?? 1);
-        totalCostPrice += Number(o.cost_price ?? 0) * qty;
-        totalProfit    += Number(o.profit     ?? 0) * qty;
+        totalCostPrice  += Number(o.cost_price  ?? 0) * qty;
+        totalProfit     += Number(o.profit      ?? 0) * qty;
+        totalMiscAmount += Number(o.misc_amount ?? 0) * qty;
 
         if (isAvailable) return;
 
@@ -213,7 +215,7 @@ export default function AdminDashboard() {
         };
       });
 
-      setStats({ products: products ?? 0, orders: orders ?? 0, customers: customers ?? 0, revenue, shippingCollected, totalCostPrice, totalProfit });
+      setStats({ products: products ?? 0, orders: orders ?? 0, customers: customers ?? 0, revenue, shippingCollected, totalCostPrice, totalProfit, totalMiscAmount });
       setPaymentRows(enriched);
       setCustTotals(totalByCustomer);
       setProductCustTotals(totalByProductCust);
@@ -519,6 +521,17 @@ export default function AdminDashboard() {
           icon={
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+            </svg>
+          }
+        />
+        <StatCard
+          title="Total Misc. Amount"
+          value={`GHS ${stats.totalMiscAmount.toLocaleString()}`}
+          loading={loading}
+          color="bg-pink-50"
+          icon={
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
             </svg>
           }
         />

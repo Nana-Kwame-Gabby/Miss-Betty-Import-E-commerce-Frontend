@@ -36,6 +36,7 @@ function mapProduct(p) {
     cost_price: Number(p.cost_price ?? 0),
     profit:     Number(p.profit ?? 0),
     rmb_price:  Number(p.rmb_price ?? 0), // admin-only procurement cost; never rendered on this customer-facing page
+    misc_amount: Number(p.misc_amount ?? 0), // admin-only; never rendered on this customer-facing page
     discount_price,
     description: p.description ?? '',
     sizePricing,
@@ -122,6 +123,7 @@ export default function ProductDetailPage() {
   const curCostPrice     = curEntry?.cost_price ?? product?.cost_price ?? 0;
   const curProfit        = curEntry?.profit     ?? product?.profit    ?? 0;
   const curRmbPrice      = curEntry?.rmb_price  ?? product?.rmb_price ?? 0;
+  const curMiscAmount    = curEntry?.misc_amount ?? product?.misc_amount ?? 0;
 
   const totalQty  = pendingVariants.reduce((s, v) => s + v.qty, 0);
   const totalCost = pendingVariants.reduce((s, v) => s + v.price * v.qty, 0);
@@ -172,7 +174,7 @@ export default function ProductDetailPage() {
       return [...prev, {
         variantKey: vKey, size: curSize, colour: curColour,
         qty: curQty, price: curPrice, costPrice: curCostPrice, profit: curProfit,
-        rmbPrice: curRmbPrice,
+        rmbPrice: curRmbPrice, miscAmount: curMiscAmount,
         originalPrice: curHasDiscount ? curRegularPrice : null,
       }];
     });
@@ -185,7 +187,7 @@ export default function ProductDetailPage() {
       pendingVariants.map(v => ({
         product, size: v.size, colour: v.colour,
         qty: v.qty, price: v.price, costPrice: v.costPrice, profit: v.profit,
-        rmbPrice: v.rmbPrice,
+        rmbPrice: v.rmbPrice, miscAmount: v.miscAmount,
         originalPrice: v.originalPrice ?? null,
       }))
     );
@@ -212,7 +214,7 @@ export default function ProductDetailPage() {
   function handleSimpleAdd() {
     if (curOutOfStock) return;
     const simpleOriginal = curHasDiscount ? curRegularPrice : null;
-    addToCart(product, curQty, null, null, curPrice, product.cost_price, product.profit, simpleOriginal, product.rmb_price);
+    addToCart(product, curQty, null, null, curPrice, product.cost_price, product.profit, simpleOriginal, product.rmb_price, product.misc_amount);
     setAdded(true);
     setTimeout(() => setAdded(false), 2500);
   }
@@ -224,7 +226,7 @@ export default function ProductDetailPage() {
         buyNow: {
           product, quantity: curQty, size: null, colour: null,
           unitPrice: curPrice, costPrice: product.cost_price, sizeProfit: product.profit,
-          rmbPrice: product.rmb_price,
+          rmbPrice: product.rmb_price, miscAmount: product.misc_amount,
           originalPrice: curHasDiscount ? curRegularPrice : null,
         },
       },
