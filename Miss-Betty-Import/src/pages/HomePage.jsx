@@ -675,18 +675,27 @@ export default function HomePage() {
   const categoryRef = useRef(null);
   const filterBarRef = useRef(null);
   const [filterBarHeight, setFilterBarHeight] = useState(0);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const countdownData = useActiveCountdown();
 
   useScrollRestoration("mbimport_scroll_home", !loadingProducts);
 
   // Auto-open a product's modal when arriving via a shared /product/:id link
   // (the public gateway routes unauthenticated visitors here as /?product=<id>).
+  // Keyed by id (not a one-shot flag) so re-opens are skipped once a given shared
+  // product has been shown/dismissed, but a different shared link can still open —
+  // without this, every realtime product_variant_stock update anywhere in the store
+  // changes `products`' reference and would otherwise silently reopen the modal the
+  // visitor just closed, trapping them instead of letting them browse the Home page.
+  const handledSharedIdRef = useRef(null);
   useEffect(() => {
     const sharedId = searchParams.get('product');
-    if (sharedId && products.length > 0) {
+    if (sharedId && sharedId !== handledSharedIdRef.current && products.length > 0) {
       const match = products.find(p => String(p.id) === sharedId);
-      if (match) setSelectedProduct(match);
+      if (match) {
+        setSelectedProduct(match);
+        handledSharedIdRef.current = sharedId;
+      }
     }
   }, [searchParams, products]);
 
@@ -1004,7 +1013,13 @@ export default function HomePage() {
       </main>
 
       {selectedProduct && (
-        <ProductDetailModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+        <ProductDetailModal
+          product={selectedProduct}
+          onClose={() => {
+            setSelectedProduct(null);
+            if (searchParams.get('product')) setSearchParams({}, { replace: true });
+          }}
+        />
       )}
       {buyNowProduct && (
         <ProductDetailModal product={buyNowProduct} onClose={() => setBuyNowProduct(null)} buyNow />
