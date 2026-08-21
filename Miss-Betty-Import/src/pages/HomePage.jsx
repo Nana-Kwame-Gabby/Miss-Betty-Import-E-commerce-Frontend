@@ -574,7 +574,12 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
         >
           {outOfStock ? "Out of Stock" : product.product_status}
         </span>
-        <ShareProductButton productId={product.id} productName={product.product_name} />
+        <ShareProductButton
+          productId={product.id}
+          productName={product.product_name}
+          productPrice={getEffectivePrice(product)}
+          isFromPrice={!!product.sizePricing}
+        />
         {product.product_image_url && (
           <>
             <button

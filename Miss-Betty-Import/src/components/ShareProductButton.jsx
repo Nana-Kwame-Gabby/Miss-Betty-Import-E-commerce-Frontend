@@ -1,15 +1,17 @@
 import { useState } from "react";
 
-export default function ShareProductButton({ productId, productName, positionClassName = "top-2 left-2" }) {
+export default function ShareProductButton({ productId, productName, productPrice, isFromPrice = false, positionClassName = "top-2 left-2" }) {
   const [copied, setCopied] = useState(false);
 
   async function handleShare(e) {
     e.stopPropagation();
     const url = `${window.location.origin}/product/${productId}`;
+    const priceLine = `Price: ${isFromPrice ? "From " : ""}GHS ${Number(productPrice ?? 0).toLocaleString()}`;
+    const message = `Product Name: ${productName}\n${priceLine}\nLink: ${url}`;
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: productName, url });
+        await navigator.share({ title: productName, text: message });
       } catch {
         // user cancelled the share sheet — nothing to do
       }
@@ -17,7 +19,7 @@ export default function ShareProductButton({ productId, productName, positionCla
     }
 
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(message);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -39,7 +41,7 @@ export default function ShareProductButton({ productId, productName, positionCla
       </button>
       {copied && (
         <span className="absolute top-full left-0 mt-1 whitespace-nowrap bg-[#1e2d3d] text-white text-[10px] font-semibold px-2 py-1 rounded-md shadow-sm">
-          Link copied!
+          Copied!
         </span>
       )}
     </div>
