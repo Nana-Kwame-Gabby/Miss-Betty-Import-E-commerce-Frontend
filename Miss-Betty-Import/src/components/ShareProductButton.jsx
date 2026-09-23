@@ -8,7 +8,7 @@ export default function ShareProductButton({ productId, productName, productPric
     const url = `${window.location.origin}/product/${productId}`;
     // ~text~ renders as strikethrough in WhatsApp and stays readable elsewhere
     const saleSuffix = originalPrice != null
-      ? ` (was ~GHS ${Number(originalPrice).toLocaleString()}~) – SALE`
+      ? ` (was ~GHS ${Number(originalPrice).toLocaleString()}~)`
       : "";
     const priceLine = `Price: ${isFromPrice ? "From " : ""}GHS ${Number(productPrice ?? 0).toLocaleString()}${saleSuffix}`;
     const message = `Product Name: ${productName}\n${priceLine}\nLink: ${url}`;
