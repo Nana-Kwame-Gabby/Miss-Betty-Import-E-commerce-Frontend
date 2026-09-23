@@ -591,6 +591,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
           productId={product.id}
           productName={product.product_name}
           productPrice={getEffectivePrice(product)}
+          originalPrice={hasDiscount(product) ? product.unit_price : null}
           isFromPrice={!!product.sizePricing}
         />
         {product.product_image_url && (

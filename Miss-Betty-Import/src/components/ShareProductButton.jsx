@@ -1,12 +1,16 @@
 import { useState } from "react";
 
-export default function ShareProductButton({ productId, productName, productPrice, isFromPrice = false, positionClassName = "top-2 left-2" }) {
+export default function ShareProductButton({ productId, productName, productPrice, originalPrice = null, isFromPrice = false, positionClassName = "top-2 left-2" }) {
   const [copied, setCopied] = useState(false);
 
   async function handleShare(e) {
     e.stopPropagation();
     const url = `${window.location.origin}/product/${productId}`;
-    const priceLine = `Price: ${isFromPrice ? "From " : ""}GHS ${Number(productPrice ?? 0).toLocaleString()}`;
+    // ~text~ renders as strikethrough in WhatsApp and stays readable elsewhere
+    const saleSuffix = originalPrice != null
+      ? ` (was ~GHS ${Number(originalPrice).toLocaleString()}~) – SALE`
+      : "";
+    const priceLine = `Price: ${isFromPrice ? "From " : ""}GHS ${Number(productPrice ?? 0).toLocaleString()}${saleSuffix}`;
     const message = `Product Name: ${productName}\n${priceLine}\nLink: ${url}`;
 
     if (navigator.share) {
