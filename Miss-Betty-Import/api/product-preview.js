@@ -1,25 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
-import { getEffectivePrice, hasDiscount } from "../src/lib/priceUtils.js";
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
-// Mirrors mapProduct() on the Shop/Home pages: size-priced products use the
-// lowest size discount, others use the product-level discount.
-function priceLine(p) {
-  const sizes = Array.isArray(p.size_pricing) && p.size_pricing.length > 0 ? p.size_pricing : null;
-  const sizeDiscounts = (sizes ?? []).filter(r => r.discount_price != null).map(r => Number(r.discount_price));
-  const priced = {
-    unit_price: Number(p.unit_price ?? 0),
-    discount_price: sizes
-      ? (sizeDiscounts.length ? Math.min(...sizeDiscounts) : null)
-      : (p.discount_price != null ? Number(p.discount_price) : null),
-  };
-  const current = `${sizes ? "From " : ""}GHS ${getEffectivePrice(priced).toLocaleString()}`;
-  return hasDiscount(priced)
-    ? `${current} (was GHS ${priced.unit_price.toLocaleString()}) – SALE`
-    : current;
 }
 
 export default async function handler(req, res) {
@@ -28,14 +10,13 @@ export default async function handler(req, res) {
 
   const { data: product } = await supabase
     .from("products")
-    .select("product_name, product_image_url, description, unit_price, discount_price, size_pricing")
+    .select("product_name, product_image_url, description")
     .eq("product_id", id)
     .single();
 
   const title = product?.product_name ?? "Miss Betty Import";
   const image = product?.product_image_url ?? "https://www.missbettyimport.com/logo.png";
-  const baseDescription = product?.description || "Shop quality imported products on Miss Betty Import.";
-  const description = product ? `${priceLine(product)} · ${baseDescription}` : baseDescription;
+  const description = product?.description || "Shop quality imported products on Miss Betty Import.";
   const url = `https://www.missbettyimport.com/product/${id}`;
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
