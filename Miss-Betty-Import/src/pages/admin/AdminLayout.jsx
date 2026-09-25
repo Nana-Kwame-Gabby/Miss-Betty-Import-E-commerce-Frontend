@@ -90,7 +90,7 @@ export default function AdminLayout() {
 
   async function handleSignOut() {
     await signOut();
-    navigate("/");
+    navigate("/login", { replace: true });
   }
 
   const linkClass = ({ isActive }) =>
@@ -111,8 +111,8 @@ export default function AdminLayout() {
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+      {/* Nav — scrolls on its own so a long menu never pushes Sign Out off-screen */}
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 flex flex-col gap-1">
         {navItems.map(item => (
           <NavLink key={item.to} to={item.to} end={item.end} className={linkClass} onClick={() => setMobileOpen(false)}>
             {item.icon}
@@ -147,7 +147,7 @@ export default function AdminLayout() {
       {mobileOpen && (
         <div className="fixed inset-0 z-40 flex lg:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <aside className="relative z-50 flex flex-col w-56 bg-[#1e2d3d]">
+          <aside className="relative z-50 flex flex-col w-56 h-full bg-[#1e2d3d]">
             {sidebar}
           </aside>
         </div>
