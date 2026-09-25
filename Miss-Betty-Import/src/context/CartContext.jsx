@@ -5,34 +5,123 @@ import { supabase } from "../lib/supabase";
 
 const CartContext = createContext();
 
+const CACHE_PREFIX    = "mbimport_cart_";          // per-device copy for instant display on load
+const MIGRATED_PREFIX = "mbimport_cart_migrated_"; // set once this device's old local cart is merged
+const SAVE_DELAY_MS   = 400;
+
+function readLocal(key, fallback) {
+  try {
+    const v = localStorage.getItem(key);
+    return v == null ? fallback : JSON.parse(v);
+  } catch {
+    return fallback;
+  }
+}
+
+function writeLocal(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+}
+
+// Key-order-independent JSON: Postgres jsonb reorders object keys, so plain
+// JSON.stringify can't tell our own saved cart apart from a real remote change.
+function stableJson(value) {
+  return JSON.stringify(value, (_, v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+      : v
+  );
+}
+
+// Merge a device's pre-sync local cart into the account cart. Same variant on both:
+// keep the larger quantity rather than adding them, so nothing is doubled.
+function mergeCarts(accountItems, localItems) {
+  const byKey = new Map(accountItems.map(i => [i.cartKey, i]));
+  for (const item of localItems) {
+    const existing = byKey.get(item.cartKey);
+    byKey.set(item.cartKey, existing
+      ? { ...existing, quantity: Math.max(existing.quantity, item.quantity) }
+      : item);
+  }
+  return [...byKey.values()];
+}
+
 export function CartProvider({ children }) {
   const { user } = useAuth();
-  const storageKey = user ? `mbimport_cart_${user.id}` : null;
-  const prevStorageKeyRef = useRef(null);
+  const userId = user?.id ?? null;
   const [cartItems, setCartItems] = useState([]);
+  // userId whose cart has been loaded from the database; saving waits for this so an
+  // empty/cached cart never overwrites the account cart before it has been read.
+  const [loadedFor, setLoadedFor] = useState(null);
+  const lastSyncedRef = useRef(null); // stableJson of the cart as last read from / written to the DB
 
-  // Load cart from localStorage when the user changes (login / logout)
+  // Load the account cart from the database on login (cached copy shows meanwhile).
   useEffect(() => {
-    if (!storageKey) { setCartItems([]); return; }
-    try {
-      const saved = localStorage.getItem(storageKey);
-      setCartItems(saved ? JSON.parse(saved) : []);
-    } catch {
-      setCartItems([]);
-    }
-  }, [storageKey]);
+    lastSyncedRef.current = null;
+    setLoadedFor(null);
+    if (!userId) { setCartItems([]); return; }
 
-  // Persist cart to localStorage on every change.
-  // Skip the first run after storageKey changes so we don't overwrite the
-  // stored cart with the stale empty state before the load effect re-renders.
+    const cached = readLocal(CACHE_PREFIX + userId, []);
+    setCartItems(cached);
+
+    let cancelled = false;
+    supabase.from("carts").select("items").eq("user_id", userId).maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn("[cart] could not load account cart:", error.message);
+          return;
+        }
+        const accountItems = Array.isArray(data?.items) ? data.items : [];
+        let items = accountItems;
+        // One-time per device: fold in the cart this browser kept before carts synced.
+        if (!readLocal(MIGRATED_PREFIX + userId, false)) {
+          items = mergeCarts(accountItems, cached);
+          writeLocal(MIGRATED_PREFIX + userId, true);
+        }
+        lastSyncedRef.current = stableJson(accountItems);
+        setCartItems(items);
+        setLoadedFor(userId);
+      });
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  // Save every change to the account (debounced) and to the device cache.
   useEffect(() => {
-    if (!storageKey) return;
-    if (prevStorageKeyRef.current !== storageKey) {
-      prevStorageKeyRef.current = storageKey;
-      return;
-    }
-    localStorage.setItem(storageKey, JSON.stringify(cartItems));
-  }, [cartItems, storageKey]);
+    if (!userId || loadedFor !== userId) return;
+    writeLocal(CACHE_PREFIX + userId, cartItems);
+    const json = stableJson(cartItems);
+    if (json === lastSyncedRef.current) return;
+    const timer = setTimeout(async () => {
+      lastSyncedRef.current = json;
+      const { error } = await supabase.from("carts").upsert({
+        user_id: userId, items: cartItems, updated_at: new Date().toISOString(),
+      });
+      if (error) {
+        console.warn("[cart] could not save account cart:", error.message);
+        lastSyncedRef.current = null; // retry on the next change
+      }
+    }, SAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [cartItems, userId, loadedFor]);
+
+  // Live updates from the customer's other devices.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`cart_${userId}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "carts", filter: `user_id=eq.${userId}` },
+        payload => {
+          const items = payload.new?.items;
+          if (!Array.isArray(items)) return;
+          const json = stableJson(items);
+          if (json === lastSyncedRef.current) return; // our own save echoing back
+          lastSyncedRef.current = json;
+          setCartItems(items);
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
 
   function addToCart(product, quantity, size, colour, overridePrice, sizeCostPrice, sizeProfit, sizeOriginalPrice, sizeRmbPrice, sizeMiscAmount) {
     const key          = `${product.id}-${size}-${colour}`;
@@ -49,7 +138,7 @@ export function CartProvider({ children }) {
           item.cartKey === key ? { ...item, quantity: item.quantity + quantity } : item
         );
       }
-      return [...prev, { ...product, unit_price: unitPrice, cost_price: costPrice, profit, original_price: originalPrice, rmb_price: rmbPrice, misc_amount: miscAmount, quantity, size, colour, cartKey: key }];
+      return [...prev, { ...product, unit_price: unitPrice, cost_price: costPrice, profit, original_price: originalPrice, rmb_price: rmbPrice, misc_amount: miscAmount, quantity, size, colour, cartKey: key, added_at: new Date().toISOString() }];
     });
   }
 
@@ -79,7 +168,7 @@ export function CartProvider({ children }) {
             original_price: originalPrice ?? null,
             rmb_price: rmbPrice ?? 0,
             misc_amount: miscAmount ?? 0,
-            quantity: qty, size, colour, cartKey: key,
+            quantity: qty, size, colour, cartKey: key, added_at: new Date().toISOString(),
           }];
         }
       });
@@ -135,37 +224,42 @@ export function CartProvider({ children }) {
 
   // On login, clean up any cart items that were successfully purchased (server-side callback
   // may have created the order before the customer reached the confirmation page).
+  // Runs once the account cart has loaded. An item is only removed if it was added before
+  // that order was placed, so a variant re-added after buying it stays in the cart.
   useEffect(() => {
-    if (!storageKey || !user) return;
+    if (!userId || loadedFor !== userId) return;
 
-    const cleanedKey = `mbimport_cleaned_orders_${user.id}`;
-    const alreadyCleaned = JSON.parse(localStorage.getItem(cleanedKey) || '[]');
+    const cleanedKey = `mbimport_cleaned_orders_${userId}`;
+    const alreadyCleaned = readLocal(cleanedKey, []);
 
     supabase
       .from('pending_orders')
-      .select('order_id, items')
+      .select('order_id, items, created_at')
       .not('processed_at', 'is', null)
       .then(({ data }) => {
         if (!data?.length) return;
         const fresh = data.filter(p => !alreadyCleaned.includes(p.order_id));
         if (!fresh.length) return;
 
-        const keysToRemove = [];
+        const purchasedAt = {}; // cartKey -> latest time an order containing it was placed
         fresh.forEach(p =>
           (p.items || []).forEach(item => {
-            if (item.cartKey && !item.cartKey.startsWith('buynow-'))
-              keysToRemove.push(item.cartKey);
+            if (!item.cartKey || item.cartKey.startsWith('buynow-')) return;
+            if (!purchasedAt[item.cartKey] || p.created_at > purchasedAt[item.cartKey])
+              purchasedAt[item.cartKey] = p.created_at;
           })
         );
 
-        if (keysToRemove.length) removeCartKeys(keysToRemove);
+        setCartItems(prev => prev.filter(item => {
+          const orderedAt = purchasedAt[item.cartKey];
+          if (!orderedAt) return true;
+          // Items saved before carts had timestamps are treated as already purchased.
+          return item.added_at != null && new Date(item.added_at) > new Date(orderedAt);
+        }));
 
-        localStorage.setItem(
-          cleanedKey,
-          JSON.stringify([...alreadyCleaned, ...fresh.map(p => p.order_id)])
-        );
+        writeLocal(cleanedKey, [...alreadyCleaned, ...fresh.map(p => p.order_id)]);
       });
-  }, [storageKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, loadedFor]);
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cartItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
