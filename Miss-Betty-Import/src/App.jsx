@@ -42,6 +42,7 @@ import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
 import AdminCountdownTimersPage from "./pages/admin/AdminCountdownTimersPage";
 import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 import AdminLayout from "./pages/admin/AdminLayout";
+import ChatWidget from "./components/ChatWidget";
 import ProductRequestPage from "./pages/ProductRequestPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 
@@ -159,6 +160,7 @@ function App() {
                 </Route>
               </Route>
             </Routes>
+            <ChatWidget />
           </Router>
         </CartProvider>
         </NotificationProvider>

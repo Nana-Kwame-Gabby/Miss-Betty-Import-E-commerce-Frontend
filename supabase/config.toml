@@ -46,5 +46,9 @@ enable_confirmations = false
 [functions.initiate-payment]
 verify_jwt = true
 
+# Open to visitors too; the function reads the caller's JWT itself when present.
+[functions.ai-chat]
+verify_jwt = false
+
 [functions.verify-payment]
 verify_jwt = true
