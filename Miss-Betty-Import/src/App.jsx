@@ -36,6 +36,7 @@ import AdminShippingFeesPage from "./pages/admin/AdminShippingFeesPage";
 import AdminProductRequestsPage from "./pages/admin/AdminProductRequestsPage";
 import AdminSmsMessagingPage from "./pages/admin/AdminSmsMessagingPage";
 import AdminAvailableOrdersPage from "./pages/admin/AdminAvailableOrdersPage";
+import AdminAvailableDashboard from "./pages/admin/AdminAvailableDashboard";
 import AdminPromoAlertPage from "./pages/admin/AdminPromoAlertPage";
 import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
 import AdminCountdownTimersPage from "./pages/admin/AdminCountdownTimersPage";
@@ -134,6 +135,7 @@ function App() {
                   <Route path="/admin/product-requests" element={<AdminProductRequestsPage />} />
                   <Route path="/admin/bulk-sms" element={<AdminSmsMessagingPage />} />
                   <Route path="/admin/available-orders" element={<AdminAvailableOrdersPage />} />
+                  <Route path="/admin/available-dashboard" element={<AdminAvailableDashboard />} />
                   <Route path="/admin/promo-alert" element={<AdminPromoAlertPage />} />
                   <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
                   <Route path="/admin/countdown-timers" element={<AdminCountdownTimersPage />} />
