@@ -7,6 +7,7 @@ import { useAppSettings } from "../context/AppSettingsContext";
 import { supabase } from "../lib/supabase";
 import usePersistedState from "../hooks/usePersistedState";
 import { getVariantImage } from "../lib/variantImage";
+import { getItemProfit } from "../lib/priceUtils";
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Eastern", "Central",
@@ -39,7 +40,6 @@ export default function CheckoutPage() {
         unit_price:     buyNowData.unitPrice  ?? buyNowData.product.unit_price,
         original_price: buyNowData.originalPrice ?? null,
         cost_price:     buyNowData.costPrice  ?? buyNowData.product.cost_price ?? 0,
-        profit:         buyNowData.sizeProfit ?? buyNowData.product.profit     ?? 0,
         rmb_price:      buyNowData.rmbPrice   ?? buyNowData.product.rmb_price  ?? 0,
         misc_amount:    buyNowData.miscAmount ?? buyNowData.product.misc_amount ?? 0,
         quantity:       buyNowData.quantity,
@@ -251,7 +251,7 @@ export default function CheckoutPage() {
         unit_price:        item.unit_price,
         original_price:    item.original_price ?? null,
         cost_price:        item.cost_price  ?? 0,
-        profit:            item.profit      ?? 0,
+        profit:            getItemProfit(item),
         rmb_price:         item.rmb_price   ?? 0,
         misc_amount:       item.misc_amount ?? 0,
         quantity:          item.quantity,

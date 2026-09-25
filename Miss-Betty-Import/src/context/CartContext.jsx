@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef } from "react";
-import { hasDiscount, getEffectivePrice } from "../lib/priceUtils";
+import { hasDiscount, getEffectivePrice, getItemProfit } from "../lib/priceUtils";
 import { useAuth } from "./AuthContext";
 import { supabase } from "../lib/supabase";
 
@@ -38,10 +38,10 @@ export function CartProvider({ children }) {
     const key          = `${product.id}-${size}-${colour}`;
     const unitPrice    = overridePrice     ?? product.unit_price;
     const costPrice    = sizeCostPrice     ?? product.cost_price ?? 0;
-    const profit       = unitPrice - costPrice;
     const originalPrice = sizeOriginalPrice ?? null;
     const rmbPrice     = sizeRmbPrice      ?? product.rmb_price ?? 0;
     const miscAmount   = sizeMiscAmount    ?? product.misc_amount ?? 0;
+    const profit       = getItemProfit({ unit_price: unitPrice, cost_price: costPrice, misc_amount: miscAmount });
     setCartItems(prev => {
       const existing = prev.find(item => item.cartKey === key);
       if (existing) {
@@ -75,7 +75,7 @@ export function CartProvider({ children }) {
           );
         } else {
           items = [...items, {
-            ...product, unit_price: price, cost_price: costPrice, profit: price - costPrice,
+            ...product, unit_price: price, cost_price: costPrice, profit: getItemProfit({ unit_price: price, cost_price: costPrice, misc_amount: miscAmount ?? 0 }),
             original_price: originalPrice ?? null,
             rmb_price: rmbPrice ?? 0,
             misc_amount: miscAmount ?? 0,
@@ -99,9 +99,9 @@ export function CartProvider({ children }) {
       const newUnitPrice    = sizeEntry ? getEffectivePrice(sizeEntry) : item.unit_price;
       const newOriginalPrice = sizeEntry && hasDiscount(sizeEntry) ? (sizeEntry.selling_price ?? sizeEntry.price) : null;
       const newCostPrice    = sizeEntry?.cost_price ?? item.cost_price ?? 0;
-      const newProfit       = newUnitPrice - newCostPrice;
       const newRmbPrice     = sizeEntry?.rmb_price ?? item.rmb_price ?? 0;
       const newMiscAmount   = sizeEntry?.misc_amount ?? item.misc_amount ?? 0;
+      const newProfit       = getItemProfit({ unit_price: newUnitPrice, cost_price: newCostPrice, misc_amount: newMiscAmount });
 
       const existingAtNewKey = prev.find(i => i.cartKey === newKey);
       if (existingAtNewKey) {

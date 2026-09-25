@@ -109,11 +109,15 @@ export default function AdminDashboard() {
           .select('customer_id, amount_paid, paid_at, product_id, size, customers(customer_name), products(product_name)')
           .eq('order_period_id', selectedId)
           .order('paid_at', { ascending: false }),
-        supabase.from('orders').select('customer_id, product_id, size, quantity, cost_price, profit, misc_amount, shipping_fee, shipping_fee_paid, customers(customer_name), products(product_name, product_status(status_name))').eq('deleted_by_admin', false).eq('order_period_id', selectedId),
+        supabase.from('orders').select('customer_id, product_id, size, quantity, unit_price, status, cost_price, profit, misc_amount, shipping_fee, shipping_fee_paid, customers(customer_name), products(product_name, product_status(status_name))').eq('deleted_by_admin', false).eq('order_period_id', selectedId),
         supabase.from('product_size_shipping_fees').select('product_id, size, shipping_fee').eq('order_period_id', selectedId),
       ]);
 
-      const revenue = (invoiceData ?? []).reduce((sum, r) => sum + Number(r.total ?? 0), 0);
+      // Cancelled orders earn nothing: leave them out of revenue and the cost/profit/misc breakdown.
+      const cancelledRevenue = (allOrderData ?? [])
+        .filter(o => o.status === 'Cancelled')
+        .reduce((sum, o) => sum + Number(o.unit_price ?? 0) * Number(o.quantity ?? 1), 0);
+      const revenue = (invoiceData ?? []).reduce((sum, r) => sum + Number(r.total ?? 0), 0) - cancelledRevenue;
       const shippingCollected = (paymentData ?? []).reduce((sum, r) => sum + Number(r.amount_paid ?? 0), 0);
 
       const feeMap = {};
@@ -128,9 +132,11 @@ export default function AdminDashboard() {
       (allOrderData ?? []).forEach(o => {
         const isAvailable = o.products?.product_status?.status_name === 'Available';
         const qty = Number(o.quantity ?? 1);
-        totalCostPrice  += Number(o.cost_price  ?? 0) * qty;
-        totalProfit     += Number(o.profit      ?? 0) * qty;
-        totalMiscAmount += Number(o.misc_amount ?? 0) * qty;
+        if (o.status !== 'Cancelled') {
+          totalCostPrice  += Number(o.cost_price  ?? 0) * qty;
+          totalProfit     += Number(o.profit      ?? 0) * qty;
+          totalMiscAmount += Number(o.misc_amount ?? 0) * qty;
+        }
 
         if (isAvailable) return;
 
