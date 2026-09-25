@@ -101,6 +101,140 @@ function buildStockRows(sizesStr, coloursStr, existingRows = []) {
   });
 }
 
+const splitList = str => str.split(",").map(s => s.trim()).filter(Boolean);
+
+// Variant images are edited as a flat map keyed "colour:Red" | "size:S" | "combo:S|Red",
+// each value either an already-uploaded URL string or a pending { file, preview }.
+function flattenVariantImages(variantImages) {
+  const flat = {};
+  for (const [name, url] of Object.entries(variantImages?.colours ?? {})) flat[`colour:${name}`] = url;
+  for (const [name, url] of Object.entries(variantImages?.sizes   ?? {})) flat[`size:${name}`]   = url;
+  for (const [name, url] of Object.entries(variantImages?.combos  ?? {})) flat[`combo:${name}`]  = url;
+  return flat;
+}
+
+// Uploads pending files and builds the products.variant_images value, dropping entries
+// for sizes/colours that no longer exist on the product. Returns null when empty.
+async function buildVariantImages(flat, sizes, colours) {
+  const entries = Object.entries(flat).filter(([key]) => {
+    const [kind, name] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
+    if (kind === "colour") return colours.includes(name);
+    if (kind === "size")   return sizes.includes(name);
+    const [size, colour] = name.split("|");
+    return sizes.includes(size) && colours.includes(colour);
+  });
+  const uploaded = await Promise.all(entries.map(async ([key, v]) =>
+    [key, typeof v === "string" ? v : await uploadFile(v.file, "images/variants/", "product-images")]
+  ));
+  const result = {};
+  const group = { colour: "colours", size: "sizes", combo: "combos" };
+  for (const [key, url] of uploaded) {
+    const kind = key.slice(0, key.indexOf(":"));
+    (result[group[kind]] ??= {})[key.slice(key.indexOf(":") + 1)] = url;
+  }
+  return Object.keys(result).length > 0 ? result : null;
+}
+
+function VariantImagesEditor({ sizes, colours, value, onChange }) {
+  const [showCombos, setShowCombos] = useState(false);
+  if (sizes.length === 0 && colours.length === 0) return null;
+
+  function setImage(key, v) {
+    onChange(prev => {
+      const next = { ...prev };
+      if (v == null) delete next[key]; else next[key] = v;
+      return next;
+    });
+  }
+
+  function tile(key, label) {
+    const v   = value[key];
+    const src = typeof v === "string" ? v : v?.preview;
+    return (
+      <div key={key} className="border border-gray-200 rounded-xl p-2 flex flex-col items-center gap-1.5 min-w-0">
+        <span className="text-[11px] font-semibold text-[#1e2d3d] truncate max-w-full" title={label}>{label}</span>
+        {src ? (
+          <div className="relative">
+            <img src={src} alt={label} className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
+            <button
+              type="button"
+              onClick={() => setImage(key, null)}
+              title="Remove image"
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
+            >×</button>
+          </div>
+        ) : (
+          <div className="w-16 h-16 rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-gray-300 text-[10px]">
+            No image
+          </div>
+        )}
+        <label className="cursor-pointer">
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={e => {
+              const file = e.target.files[0];
+              if (file) setImage(key, { file, preview: URL.createObjectURL(file) });
+              e.target.value = "";
+            }}
+          />
+          <span className="block bg-gray-100 hover:bg-gray-200 text-[#1e2d3d] font-semibold text-[11px] px-2.5 py-1 rounded-lg transition-colors">
+            {src ? "Replace" : "Choose"}
+          </span>
+        </label>
+      </div>
+    );
+  }
+
+  const gridClass = "grid grid-cols-2 sm:grid-cols-4 gap-2";
+  const groupLabel = "text-xs font-semibold text-gray-500 mb-1.5";
+  const combos = sizes.flatMap(size => colours.map(colour => ({ size, colour })));
+  const comboCount = combos.filter(({ size, colour }) => value[`combo:${size}|${colour}`]).length;
+
+  return (
+    <div className="sm:col-span-2">
+      <p className="text-xs font-bold text-[#1e2d3d] mb-1 uppercase tracking-wide">
+        Variant Images <span className="text-gray-400 font-normal normal-case">(optional)</span>
+      </p>
+      <p className="text-xs text-gray-400 mb-3">
+        Customers see the most specific image available: colour + size → colour → size → main image.
+      </p>
+      <div className="space-y-3">
+        {colours.length > 0 && (
+          <div>
+            <p className={groupLabel}>By colour</p>
+            <div className={gridClass}>{colours.map(c => tile(`colour:${c}`, c))}</div>
+          </div>
+        )}
+        {sizes.length > 0 && (
+          <div>
+            <p className={groupLabel}>By size</p>
+            <div className={gridClass}>{sizes.map(s => tile(`size:${s}`, s))}</div>
+          </div>
+        )}
+        {combos.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowCombos(s => !s)}
+              className="text-xs font-semibold text-[#F2AA25] hover:text-amber-600 transition-colors"
+            >
+              {showCombos ? "Hide" : "Show"} {combos.length} colour + size combinations
+              {comboCount > 0 && ` (${comboCount} with images)`}
+            </button>
+            {showCombos && (
+              <div className={`${gridClass} mt-2`}>
+                {combos.map(({ size, colour }) => tile(`combo:${size}|${colour}`, `${colour} · ${size}`))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -122,6 +256,8 @@ export default function AdminProductsPage() {
     "mbimport_form_admin_product_draft_size_pricing_rows",
     [{ size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }]
   );
+  // Variant image files can't be persisted in the draft, same as the main images.
+  const [variantImages, setVariantImages] = useState({});
   const [stockRows, setStockRows] = usePersistedState(
     "mbimport_form_admin_product_draft_stock_rows",
     [{ size: "", colour: "", stock_quantity: "" }]
@@ -145,6 +281,7 @@ export default function AdminProductsPage() {
   const [editUseSizePricing, setEditUseSizePricing] = useState(false);
   const [editSizePricingRows, setEditSizePricingRows] = useState([{ size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }]);
   const [editStockRows, setEditStockRows] = useState([{ size: "", colour: "", stock_quantity: "" }]);
+  const [editVariantImages, setEditVariantImages] = useState({});
 
   useEffect(() => {
     setEditStockRows(prev => buildStockRows(editForm.sizes, editForm.colours, prev));
@@ -246,6 +383,11 @@ export default function AdminProductsPage() {
         return;
       }
       const simpleDiscountPrice = discountAmount > 0 ? cost_price + (profit - discountAmount) + misc_amount : null;
+      const variant_images = await buildVariantImages(
+        variantImages,
+        size_pricing ? size_pricing.map(r => r.size) : splitList(form.sizes),
+        splitList(form.colours)
+      );
 
       const { data: insertedProduct, error: insertError } = await supabase.from("products").insert({
         product_name: form.product_name.trim(),
@@ -264,6 +406,7 @@ export default function AdminProductsPage() {
         size:   sizeValue,
         colour: form.colours.trim() || null,
         size_pricing,
+        variant_images,
         estimated_shipping_fee_min: form.estimated_shipping_fee_min ? Number(form.estimated_shipping_fee_min) : null,
         estimated_shipping_fee_max: form.estimated_shipping_fee_max ? Number(form.estimated_shipping_fee_max) : null,
       }).select("product_id, product_name").single();
@@ -299,6 +442,7 @@ export default function AdminProductsPage() {
       setUseSizePricing(false);
       setSizePricingRows([{ size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }]);
       setStockRows([{ size: "", colour: "", stock_quantity: "" }]);
+      setVariantImages({});
       loadAll();
       setTimeout(() => setSuccess(""), 4000);
     } catch (err) {
@@ -326,6 +470,7 @@ export default function AdminProductsPage() {
       const imgPaths = [
         getStoragePath(product.product_image_url,   'product-images'),
         getStoragePath(product.product_image_url_2, 'product-images'),
+        ...Object.values(flattenVariantImages(product.variant_images)).map(url => getStoragePath(url, 'product-images')),
       ].filter(Boolean);
       if (imgPaths.length) {
         await supabase.storage.from('product-images').remove(imgPaths);
@@ -366,6 +511,7 @@ export default function AdminProductsPage() {
     setEditImageFile2(null);   setEditImagePreview2(null);
     setEditTiktokUrl(product.product_video_url ?? "");
     setEditError("");
+    setEditVariantImages(flattenVariantImages(product.variant_images));
     setEditStockRows(buildStockRows(
       product.size ?? "",
       product.colour ?? "",
@@ -399,6 +545,7 @@ export default function AdminProductsPage() {
     setEditUseSizePricing(false);
     setEditSizePricingRows([{ size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }]);
     setEditStockRows([{ size: "", colour: "", stock_quantity: "" }]);
+    setEditVariantImages({});
   }
 
   function handleEditChange(e) {
@@ -463,6 +610,11 @@ export default function AdminProductsPage() {
         return;
       }
       const simpleDiscountPrice = discountAmount > 0 ? cost_price + (profit - discountAmount) + misc_amount : null;
+      const variant_images = await buildVariantImages(
+        editVariantImages,
+        size_pricing ? size_pricing.map(r => r.size) : splitList(editForm.sizes),
+        splitList(editForm.colours)
+      );
 
       const { error: updateError } = await supabase.from("products")
         .update({
@@ -482,6 +634,7 @@ export default function AdminProductsPage() {
           size:   sizeValue,
           colour: editForm.colours.trim() || null,
           size_pricing,
+          variant_images,
           estimated_shipping_fee_min: editForm.estimated_shipping_fee_min ? Number(editForm.estimated_shipping_fee_min) : null,
           estimated_shipping_fee_max: editForm.estimated_shipping_fee_max ? Number(editForm.estimated_shipping_fee_max) : null,
         })
@@ -785,6 +938,13 @@ export default function AdminProductsPage() {
               ))}
             </div>
           </div>
+
+          <VariantImagesEditor
+            sizes={useSizePricing ? sizePricingRows.map(r => r.size.trim()).filter(Boolean) : splitList(form.sizes)}
+            colours={splitList(form.colours)}
+            value={variantImages}
+            onChange={setVariantImages}
+          />
 
           <div className="sm:col-span-2">
             <label className={labelClass}>Description</label>
@@ -1262,6 +1422,13 @@ export default function AdminProductsPage() {
                     ))}
                   </div>
                 </div>
+
+                <VariantImagesEditor
+                  sizes={editUseSizePricing ? editSizePricingRows.map(r => r.size.trim()).filter(Boolean) : splitList(editForm.sizes)}
+                  colours={splitList(editForm.colours)}
+                  value={editVariantImages}
+                  onChange={setEditVariantImages}
+                />
 
                 <div className="sm:col-span-2">
                   <label className={labelClass}>Description</label>

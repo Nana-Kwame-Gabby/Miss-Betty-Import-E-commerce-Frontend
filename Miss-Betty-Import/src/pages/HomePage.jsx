@@ -9,6 +9,7 @@ import { useAuth } from "../context/AuthContext";
 import { useAppSettings } from "../context/AppSettingsContext";
 import { supabase } from "../lib/supabase";
 import MediaCarousel from "../components/MediaCarousel";
+import { getVariantImage } from "../lib/variantImage";
 import ReviewsSection from "../components/ReviewsSection";
 import AccountDropdown from "../components/AccountDropdown";
 import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
@@ -70,6 +71,7 @@ function mapProduct(p) {
     estimated_shipping_fee_min: p.estimated_shipping_fee_min ?? null,
     estimated_shipping_fee_max: p.estimated_shipping_fee_max ?? null,
     variantStock: p.product_variant_stock ?? [],
+    variant_images: p.variant_images ?? null,
   };
 }
 
@@ -158,6 +160,8 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   const curProfit        = curEntry?.profit     ?? product?.profit    ?? 0;
   const curRmbPrice      = curEntry?.rmb_price  ?? product?.rmb_price ?? 0;
   const curMiscAmount    = curEntry?.misc_amount ?? product?.misc_amount ?? 0;
+  // Photo for the current selection (exact size+colour → colour → size); null = main images only.
+  const variantImg      = getVariantImage(product?.variant_images, curSize, curColour);
 
   const totalQty  = pendingVariants.reduce((s, v) => s + v.qty, 0);
   const totalCost = pendingVariants.reduce((s, v) => s + v.price * v.qty, 0);
@@ -265,8 +269,9 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
             heightClass="h-48 sm:h-64"
             name={product.product_name}
             media={[
-              { type: "image", url: product.product_image_url },
-              { type: "image", url: product.product_image_url_2 },
+              { type: "image", url: variantImg },
+              { type: "image", url: product.product_image_url   === variantImg ? null : product.product_image_url },
+              { type: "image", url: product.product_image_url_2 === variantImg ? null : product.product_image_url_2 },
               { type: "tiktok", url: product.product_video_url },
             ]}
           />

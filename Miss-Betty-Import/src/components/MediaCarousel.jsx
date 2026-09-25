@@ -85,6 +85,16 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
   const [lightbox, setLightbox] = useState(false);
   const [autoKey,  setAutoKey]  = useState(0); // bumped on manual nav to reset the timer
 
+  // When the first slide changes (e.g. the customer picked a colour/size with its own
+  // photo), jump back to it so the new image shows immediately.
+  const firstUrl = items[0]?.url;
+  const [prevFirstUrl, setPrevFirstUrl] = useState(firstUrl);
+  if (firstUrl !== prevFirstUrl) {
+    setPrevFirstUrl(firstUrl);
+    setIdx(0);
+    setAutoKey(k => k + 1);
+  }
+
   // Auto-slide: runs every SLIDE_INTERVAL ms unless hovered.
   // autoKey dependency means any manual navigation resets the countdown.
   useEffect(() => {
@@ -120,7 +130,7 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
 
   if (items.length === 0) return <ImagePlaceholder heightClass={heightClass} />;
 
-  const item     = items[idx];
+  const item     = items[idx] ?? items[0];
   const btnClass = "bg-black/50 hover:bg-black/75 text-white rounded-lg p-1.5 transition-colors flex items-center justify-center";
 
   return (

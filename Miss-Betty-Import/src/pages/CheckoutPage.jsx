@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { useAppSettings } from "../context/AppSettingsContext";
 import { supabase } from "../lib/supabase";
 import usePersistedState from "../hooks/usePersistedState";
+import { getVariantImage } from "../lib/variantImage";
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Eastern", "Central",
@@ -16,6 +17,11 @@ const ghanaRegions = [
 // How long a persisted in-progress Hubtel payment is trusted before we treat it as
 // stale/expired rather than attempting to reopen it.
 const PAYMENT_RESUME_TTL_MS = 15 * 60 * 1000;
+
+// Photo of the exact variant bought, falling back to the main product image.
+function itemImage(item) {
+  return getVariantImage(item.variant_images, item.size, item.colour) || item.product_image_url;
+}
 
 export default function CheckoutPage() {
   const { cartItems, subtotal, totalSavings } = useCart();
@@ -241,7 +247,7 @@ export default function CheckoutPage() {
       const pendingItems = checkoutItems.map(item => ({
         id:                item.id,
         product_name:      item.product_name,
-        product_image_url: item.product_image_url || "",
+        product_image_url: itemImage(item) || "",
         unit_price:        item.unit_price,
         original_price:    item.original_price ?? null,
         cost_price:        item.cost_price  ?? 0,
@@ -393,8 +399,8 @@ export default function CheckoutPage() {
             <div className="flex flex-col gap-2 mb-2.5">
               {checkoutItems.map(item => (
                 <div key={item.cartKey} className="flex items-start gap-3">
-                  {item.product_image_url ? (
-                    <img src={item.product_image_url} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl flex-shrink-0" />
+                  {itemImage(item) ? (
+                    <img src={itemImage(item)} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl flex-shrink-0" />
                   ) : (
                     <div className="w-10 h-12 bg-gray-100 rounded-xl flex-shrink-0" />
                   )}
