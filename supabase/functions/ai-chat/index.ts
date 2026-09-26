@@ -421,6 +421,9 @@ Deno.serve(async (req) => {
   const convo: Anthropic.MessageParam[] = [...messages];
   let inputTokens = 0;
   let outputTokens = 0;
+  // Text can arrive in several rounds (e.g. a sentence, then product cards, then the details),
+  // so every round's text is kept.
+  const replyParts: string[] = [];
   let reply = "";
 
   try {
@@ -449,10 +452,11 @@ Deno.serve(async (req) => {
       const text = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === "text")
         .map(b => b.text).join("\n").trim();
+      if (text) replyParts.push(text);
       const toolUses = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
 
       if (response.stop_reason !== "tool_use" || toolUses.length === 0) {
-        reply = text || (response.stop_reason === "max_tokens"
+        reply = replyParts.join("\n\n") || (response.stop_reason === "max_tokens"
           ? "Sorry, that answer got too long. Could you ask a more specific question?"
           : "");
         break;
