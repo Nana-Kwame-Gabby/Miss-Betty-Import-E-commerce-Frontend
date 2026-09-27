@@ -21,14 +21,17 @@ const WELCOME = {
   content: "Hi! I'm **Betty**, the Miss Betty Import assistant. I can help you find products, explain how ordering, payment and delivery work, and check your orders. What can I help you with?",
 };
 
-// Attention nudge on the chat button: first after 5s, then every 12s, at most 5 per page
-// load, and never again once the customer has opened the chat this session.
+// Attention nudge on the chat button: first 4s after arriving on a page, then every 10s,
+// up to 6 per page. Paused while the chat is open; once the customer has used the chat
+// this session it keeps going, but only every 30s.
 const OPENED_KEY = "mbimport_ai_chat_opened";
 const CHIMED_KEY = "mbimport_ai_chat_chimed";
 const SOUND_KEY = "mbimport_ai_chat_sound";
-const NUDGE_FIRST_MS = 5000;
-const NUDGE_EVERY_MS = 12000;
-const NUDGE_MAX = 5;
+const NUDGE_FIRST_MS = 4000;
+const NUDGE_EVERY_MS = 10000;
+const NUDGE_EVERY_AFTER_USE_MS = 30000;
+const NUDGE_MAX_PER_PAGE = 6;
+const NUDGE_DURATION_MS = 1300; // matches the 1.2s pop + small buffer so each pop restarts cleanly
 
 const readStore = (store, key) => { try { return window[store].getItem(key); } catch { return null; } };
 const writeStore = (store, key, value) => { try { window[store].setItem(key, value); } catch { /* storage unavailable */ } };
@@ -148,7 +151,7 @@ export default function ChatWidget() {
   const listRef = useRef(null);
   const inputRef = useRef(null);
   const audioRef = useRef(null);      // AudioContext, created on the visitor's first tap/keypress
-  const nudgeCountRef = useRef(0);    // nudges shown since this page load
+  const lastNudgePathRef = useRef(null); // page the nudge schedule last started on
   const soundOnRef = useRef(soundOn);
   const hidden = HIDDEN_PREFIXES.some(p => pathname.startsWith(p));
 
@@ -191,28 +194,36 @@ export default function ChatWidget() {
     };
   }, []);
 
-  // Periodic attention nudge (and at most one chime per session) until the chat is opened.
+  // Periodic attention nudge. Restarts on every page (the site is a single-page app, so
+  // navigation isn't a reload), pauses while the chat is open, and slows down once the
+  // customer has used the chat. Reduced-motion users get a glow instead of movement (CSS).
+  // At most one chime per session.
   useEffect(() => {
-    if (open || hidden || readStore("sessionStorage", OPENED_KEY)) return;
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (open || hidden) return;
+    const newPage = lastNudgePathRef.current !== pathname;
+    lastNudgePathRef.current = pathname;
+    const every = readStore("sessionStorage", OPENED_KEY) ? NUDGE_EVERY_AFTER_USE_MS : NUDGE_EVERY_MS;
+    let count = 0;
     let endTimer;
+    let interval;
     const nudge = () => {
-      if (nudgeCountRef.current >= NUDGE_MAX) return;
-      nudgeCountRef.current += 1;
+      if (document.visibilityState !== "visible") return; // don't waste pops on a background tab
+      if (count >= NUDGE_MAX_PER_PAGE) { clearInterval(interval); return; }
+      count += 1;
       setNudging(true);
-      endTimer = setTimeout(() => setNudging(false), 1000);
+      endTimer = setTimeout(() => setNudging(false), NUDGE_DURATION_MS);
       if (soundOnRef.current && audioRef.current && !readStore("sessionStorage", CHIMED_KEY)) {
         writeStore("sessionStorage", CHIMED_KEY, "1");
         try { playChime(audioRef.current); } catch { /* audio unavailable */ }
       }
     };
-    let interval;
+    // New page: first pop soon. Just closed the chat on the same page: wait a full interval.
     const first = setTimeout(() => {
       nudge();
-      interval = setInterval(nudge, NUDGE_EVERY_MS);
-    }, NUDGE_FIRST_MS);
+      interval = setInterval(nudge, every);
+    }, newPage ? NUDGE_FIRST_MS : every);
     return () => { clearTimeout(first); clearInterval(interval); clearTimeout(endTimer); setNudging(false); };
-  }, [open, hidden]);
+  }, [open, hidden, pathname]);
 
   if (hidden) return null;
 
@@ -283,7 +294,7 @@ export default function ChatWidget() {
           </svg>
         ) : (
           <>
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F2AA25" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="chat-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F2AA25" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
             </svg>
             <span className="text-sm font-semibold whitespace-nowrap">Ask Betty</span>
@@ -407,23 +418,40 @@ export default function ChatWidget() {
           </form>
         </div>
       )}
-      {/* One-shot "pop" + ring for the periodic attention nudge; off for reduced motion. */}
+      {/* Periodic attention nudge: a springy bounce with a gold ripple and a small icon
+          wiggle. With reduced motion there's no movement, just a soft gold glow. */}
       <style>{`
         @keyframes chat-nudge {
           0%   { transform: translateY(0) scale(1); }
-          30%  { transform: translateY(-6px) scale(1.15); }
-          55%  { transform: translateY(0) scale(0.95); }
-          75%  { transform: translateY(-2px) scale(1.04); }
+          16%  { transform: translateY(-14px) scale(1.2); }
+          32%  { transform: translateY(0) scale(1.06, 0.92); }
+          46%  { transform: translateY(-6px) scale(1.06); }
+          60%  { transform: translateY(0) scale(0.98, 1.02); }
+          76%  { transform: translateY(-2px) scale(1.02); }
           100% { transform: translateY(0) scale(1); }
         }
         @keyframes chat-ring {
-          from { box-shadow: 0 0 0 0 rgba(242, 170, 37, 0.55); }
-          to   { box-shadow: 0 0 0 14px rgba(242, 170, 37, 0); }
+          0%   { box-shadow: 0 0 0 0 rgba(242, 170, 37, 0.7); }
+          100% { box-shadow: 0 0 0 18px rgba(242, 170, 37, 0); }
         }
-        .chat-nudge { animation: chat-nudge 0.9s ease-out; }
-        .chat-ring  { animation: chat-ring 1s ease-out; }
+        @keyframes chat-wiggle {
+          0%, 100% { transform: rotate(0); }
+          20% { transform: rotate(-14deg); }
+          40% { transform: rotate(12deg); }
+          60% { transform: rotate(-8deg); }
+          80% { transform: rotate(4deg); }
+        }
+        @keyframes chat-glow {
+          0%, 100% { box-shadow: 0 0 0 3px rgba(242, 170, 37, 0); }
+          50%      { box-shadow: 0 0 0 3px rgba(242, 170, 37, 0.9), 0 0 18px 4px rgba(242, 170, 37, 0.5); }
+        }
+        .chat-launcher { transform-origin: 50% 100%; }
+        .chat-nudge { animation: chat-nudge 1.2s ease-in-out; will-change: transform; }
+        .chat-nudge .chat-icon { animation: chat-wiggle 0.8s ease-in-out 0.1s; transform-origin: 50% 60%; }
+        .chat-ring  { animation: chat-ring 1.2s ease-out; }
         @media (prefers-reduced-motion: reduce) {
-          .chat-nudge, .chat-ring { animation: none; }
+          .chat-nudge, .chat-nudge .chat-icon { animation: none; }
+          .chat-ring { animation: chat-glow 1.3s ease-in-out; }
         }
       `}</style>
     </>
