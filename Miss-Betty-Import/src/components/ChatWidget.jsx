@@ -286,7 +286,7 @@ export default function ChatWidget() {
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F2AA25" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
             </svg>
-            <span className="text-sm font-semibold hidden sm:inline">Ask Betty</span>
+            <span className="text-sm font-semibold whitespace-nowrap">Ask Betty</span>
           </>
         )}
       </button>
