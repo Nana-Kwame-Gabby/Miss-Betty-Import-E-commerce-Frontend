@@ -45,13 +45,8 @@ function buildFeeGroups(rows, existingFees) {
     feeMap[key] = r;
   });
 
-  return Object.values(groupMap).filter(g => {
-    const key = `${g.product_id}::${g.size_raw}`;
-    const feeRecord = feeMap[key];
-    if (!feeRecord?.dismissed_at) return true;
-    const dismissedAt = new Date(feeRecord.dismissed_at).getTime();
-    return g.latest_order_at > dismissedAt;
-  }).map(g => {
+  // Every product/size with orders stays listed, so a removed fee can always be set again.
+  return Object.values(groupMap).map(g => {
     const key = `${g.product_id}::${g.size_raw}`;
     const feeRecord = feeMap[key];
     g.shipping_fee = (feeRecord && !feeRecord.dismissed_at)
@@ -61,15 +56,43 @@ function buildFeeGroups(rows, existingFees) {
   });
 }
 
+const MAX_FEE = 100000;
+const feeText = fee => (fee > 0 ? String(fee) : '');
+
+// Returns { value } for a valid fee (rounded to 2 decimals) or { error } with a message.
+function parseFee(raw) {
+  const text = String(raw ?? '').trim();
+  if (text === '') return { error: 'Enter an amount, or use Remove to clear the fee.' };
+  const n = Number(text);
+  if (!Number.isFinite(n) || n <= 0) return { error: 'Enter an amount greater than 0.' };
+  if (n > MAX_FEE) return { error: `That looks too large (max GHS ${MAX_FEE.toLocaleString()}).` };
+  return { value: Math.round(n * 100) / 100 };
+}
+
 export default function AdminShippingFeesPage() {
   const { periods, activePeriod, selectedId, selectPeriod, loading: periodsLoading } = useSelectedOrderPeriod();
   const [feeGroups, setFeeGroups] = useState([]);
   const [feeInputs, setFeeInputs] = useState({});
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState(null);
+  const [rowStatus, setRowStatus] = useState({}); // key -> { type: 'saved' | 'error', msg }
   const [expandedKeys, setExpandedKeys] = useState(new Set());
 
   useEffect(() => { if (selectedId != null) loadData(); }, [selectedId]);
+
+  const isDirty = g => {
+    const key = `${g.product_id}::${g.size_raw}`;
+    return String(feeInputs[key] ?? '').trim() !== feeText(g.shipping_fee);
+  };
+  const hasUnsaved = feeGroups.some(isDirty);
+
+  // Warn before leaving the page with fees typed but not saved.
+  useEffect(() => {
+    if (!hasUnsaved) return;
+    const warn = e => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [hasUnsaved]);
 
   async function loadData() {
     setLoading(true);
@@ -89,10 +112,18 @@ export default function AdminShippingFeesPage() {
     const inputs = {};
     groups.forEach(g => {
       const key = `${g.product_id}::${g.size_raw}`;
-      inputs[key] = g.shipping_fee > 0 ? String(g.shipping_fee) : '';
+      inputs[key] = feeText(g.shipping_fee);
     });
     setFeeInputs(inputs);
+    setRowStatus({});
     setLoading(false);
+  }
+
+  function showStatus(key, status) {
+    setRowStatus(prev => ({ ...prev, [key]: status }));
+    if (status.type === 'saved') {
+      setTimeout(() => setRowStatus(prev => (prev[key] === status ? { ...prev, [key]: undefined } : prev)), 2500);
+    }
   }
 
   function toggleExpand(key) {
@@ -120,36 +151,67 @@ export default function AdminShippingFeesPage() {
     XLSX.writeFile(wb, 'Miss-Betty-Shipping-Fees.xlsx');
   }
 
-  async function handleDeleteFee(productId, sizeRaw, sizeDisplay) {
-    const key = `${productId}::${sizeRaw}`;
-    if (!window.confirm('Remove the shipping fee for this product/size?')) return;
-    await supabase
+  // One fee per (order period, product, size). Buyers with unpaid orders read this row live,
+  // so saving here updates every affected buyer; paid orders keep the fee copied at payment.
+  async function writeFee(group, fee, dismissed) {
+    const { data, error } = await supabase
       .from('product_size_shipping_fees')
       .upsert(
-        { order_period_id: selectedId, product_id: productId, size: sizeRaw, shipping_fee: 0, dismissed_at: new Date().toISOString() },
+        {
+          order_period_id: selectedId,
+          product_id: group.product_id,
+          size: group.size_raw,
+          shipping_fee: fee,
+          dismissed_at: dismissed ? new Date().toISOString() : null,
+        },
         { onConflict: 'order_period_id,product_id,size' }
-      );
-    setFeeGroups(prev => prev.filter(g =>
-      !(g.product_id === productId && g.size === sizeDisplay)
-    ));
-    setFeeInputs(prev => ({ ...prev, [key]: '' }));
+      )
+      .select('shipping_fee, dismissed_at')
+      .single();
+    return { saved: data, error };
   }
 
-  async function handleFeeBlur(productId, sizeRaw, sizeDisplay, value) {
-    const parsed = parseFloat(value);
-    if (isNaN(parsed) || parsed <= 0) return;
-    const key = `${productId}::${sizeRaw}`;
-    setSavingKey(key);
-    await supabase
-      .from('product_size_shipping_fees')
-      .upsert(
-        { order_period_id: selectedId, product_id: productId, size: sizeRaw, shipping_fee: parsed, dismissed_at: null },
-        { onConflict: 'order_period_id,product_id,size' }
-      );
+  function applySavedFee(group, saved) {
+    const key = `${group.product_id}::${group.size_raw}`;
+    const fee = saved.dismissed_at ? 0 : Number(saved.shipping_fee ?? 0);
     setFeeGroups(prev => prev.map(g =>
-      g.product_id === productId && g.size === sizeDisplay ? { ...g, shipping_fee: parsed } : g
+      g.product_id === group.product_id && g.size_raw === group.size_raw ? { ...g, shipping_fee: fee } : g
     ));
+    setFeeInputs(prev => ({ ...prev, [key]: feeText(fee) }));
+  }
+
+  async function saveFee(group) {
+    const key = `${group.product_id}::${group.size_raw}`;
+    if (savingKey === key || !isDirty(group)) return;
+    const { value, error: invalid } = parseFee(feeInputs[key]);
+    if (invalid) { showStatus(key, { type: 'error', msg: invalid }); return; }
+    if (value === group.shipping_fee) {
+      setFeeInputs(prev => ({ ...prev, [key]: feeText(value) })); // e.g. "50.00" → "50", nothing to save
+      return;
+    }
+    setSavingKey(key);
+    const { saved, error } = await writeFee(group, value, false);
     setSavingKey(null);
+    if (error || !saved) {
+      showStatus(key, { type: 'error', msg: `Couldn't save: ${error?.message ?? 'no response from the server'}. Please try again.` });
+      return;
+    }
+    applySavedFee(group, saved);
+    showStatus(key, { type: 'saved', msg: 'Saved ✓' });
+  }
+
+  async function handleDeleteFee(group) {
+    const key = `${group.product_id}::${group.size_raw}`;
+    if (!window.confirm('Remove the shipping fee for this product/size?')) return;
+    setSavingKey(key);
+    const { saved, error } = await writeFee(group, 0, true);
+    setSavingKey(null);
+    if (error || !saved) {
+      showStatus(key, { type: 'error', msg: `Couldn't remove the fee: ${error?.message ?? 'no response from the server'}.` });
+      return;
+    }
+    applySavedFee(group, saved);
+    showStatus(key, { type: 'saved', msg: 'Fee removed' });
   }
 
   return (
@@ -210,6 +272,7 @@ export default function AdminShippingFeesPage() {
                     const fee = group.shipping_fee;
                     const outstanding = fee > 0 ? fee * group.unpaid_qty : null;
                     const isExpanded = expandedKeys.has(key);
+                    const dirty = isDirty(group);
 
                     const statusBadge = group.unpaid_qty === 0
                       ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700 whitespace-nowrap">All Paid</span>
@@ -235,17 +298,41 @@ export default function AdminShippingFeesPage() {
                                 type="number"
                                 min="0"
                                 step="0.01"
+                                inputMode="decimal"
                                 value={feeInputs[key] ?? ''}
-                                onChange={e => setFeeInputs(prev => ({ ...prev, [key]: e.target.value }))}
-                                onBlur={e => handleFeeBlur(group.product_id, group.size_raw, group.size, e.target.value)}
-                                onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+                                onChange={e => {
+                                  const v = e.target.value;
+                                  setFeeInputs(prev => ({ ...prev, [key]: v }));
+                                  if (rowStatus[key]) setRowStatus(prev => ({ ...prev, [key]: undefined }));
+                                }}
+                                onBlur={() => saveFee(group)}
+                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveFee(group); } }}
                                 placeholder="0.00"
-                                className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-[#F2AA25] transition-colors"
+                                aria-label={`Shipping fee for ${group.product_name} ${group.size}`}
+                                className={`w-24 border rounded-lg px-2 py-1 text-xs outline-none focus:border-[#F2AA25] transition-colors ${
+                                  rowStatus[key]?.type === 'error' ? 'border-red-400' : dirty ? 'border-amber-400 bg-amber-50' : 'border-gray-200'
+                                }`}
                               />
-                              {savingKey === key && (
+                              {savingKey === key ? (
                                 <div className="w-3.5 h-3.5 border-2 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
-                              )}
+                              ) : dirty ? (
+                                <button
+                                  type="button"
+                                  onMouseDown={e => e.preventDefault() /* keep focus so blur doesn't save twice */}
+                                  onClick={() => saveFee(group)}
+                                  className="text-xs font-semibold bg-[#1e2d3d] text-white px-2.5 py-1 rounded-lg hover:opacity-90 transition-opacity"
+                                >
+                                  Save
+                                </button>
+                              ) : null}
                             </div>
+                            {rowStatus[key] ? (
+                              <p className={`text-[11px] mt-1 ${rowStatus[key].type === 'error' ? 'text-red-600' : 'text-green-600 font-semibold'}`}>
+                                {rowStatus[key].msg}
+                              </p>
+                            ) : dirty && savingKey !== key ? (
+                              <p className="text-[11px] mt-1 text-amber-600">Unsaved</p>
+                            ) : null}
                           </td>
                           <td className="px-4 py-3 text-right font-bold text-[#F2AA25] hidden md:table-cell">
                             {outstanding != null ? `GHS ${outstanding.toLocaleString()}` : '—'}
@@ -273,7 +360,7 @@ export default function AdminShippingFeesPage() {
                               </button>
                               {group.shipping_fee > 0 && (
                                 <button
-                                  onClick={() => handleDeleteFee(group.product_id, group.size_raw, group.size)}
+                                  onClick={() => handleDeleteFee(group)}
                                   title="Remove fee"
                                   className="text-gray-300 hover:text-red-400 transition-colors"
                                 >

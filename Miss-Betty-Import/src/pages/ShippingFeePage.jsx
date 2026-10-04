@@ -94,9 +94,12 @@ export default function ShippingFeePage() {
             snapMap[`${f.product_id}::${f.size ?? ''}`] = Number(f.shipping_fee ?? 0);
           });
 
+          // Record the fee the customer was actually charged (saved when payment started),
+          // so an admin rate change during payment can't alter this receipt. Older pending
+          // payments without it fall back to the current rate.
           await Promise.all(
             (unsnapshot ?? []).map(o => {
-              const fee = snapMap[`${o.product_id}::${o.size ?? ''}`];
+              const fee = saved.feePerItem > 0 ? saved.feePerItem : snapMap[`${o.product_id}::${o.size ?? ''}`];
               if (!fee) return Promise.resolve();
               return supabase.from('orders')
                 .update({ shipping_fee: fee })
@@ -188,6 +191,7 @@ export default function ShippingFeePage() {
     sessionStorage.setItem(`pending_shp_${shpRef}`, JSON.stringify({
       customerId: custId,
       amount:     group.totalFee,
+      feePerItem: group.feePerItem,
       productId:  group.productId,
       size:       group.size,
       orderIds:   group.orderIds,
