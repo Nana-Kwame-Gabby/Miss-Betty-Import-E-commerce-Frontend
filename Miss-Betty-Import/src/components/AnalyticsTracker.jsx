@@ -64,10 +64,12 @@ function trackPageView(path) {
     t: navigator.maxTouchPoints > 1 ? 1 : 0,
   });
 
+  // fetch+keepalive (survives the page closing). sendBeacon is only a fallback: on the live
+  // site, beacons sent after in-app navigation were observed never to arrive.
   const send = () => {
     try {
-      if (navigator.sendBeacon?.("/api/track", new Blob([body], { type: "text/plain" }))) return;
-      fetch("/api/track", { method: "POST", body, keepalive: true }).catch(() => {});
+      fetch("/api/track", { method: "POST", body, keepalive: true, headers: { "Content-Type": "text/plain" } })
+        .catch(() => { try { navigator.sendBeacon?.("/api/track", body); } catch { /* ignore */ } });
     } catch { /* never let analytics break the page */ }
   };
   if ("requestIdleCallback" in window) window.requestIdleCallback(send, { timeout: 3000 });
