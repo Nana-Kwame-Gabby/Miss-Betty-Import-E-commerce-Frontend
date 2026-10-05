@@ -7,11 +7,11 @@ import PeriodSwitcher from "../../components/PeriodSwitcher";
 function buildFeeGroups(rows, existingFees) {
   const groupMap = {};
   rows.filter(r => r.products?.product_status?.status_name !== 'Available').forEach(row => {
-    const key = `${row.product_id}::${row.size ?? ''}`;
+    const key = `${row.product_id ?? `name:${row.product_name_snapshot ?? ''}`}::${row.size ?? ''}`;
     if (!groupMap[key]) {
       groupMap[key] = {
         product_id: row.product_id,
-        product_name: row.products?.product_name ?? `Product #${row.product_id}`,
+        product_name: row.products?.product_name ?? row.product_name_snapshot ?? 'Product no longer listed',
         size: row.size || '—',
         size_raw: row.size ?? '',
         total_qty: 0,
@@ -99,7 +99,7 @@ export default function AdminShippingFeesPage() {
     const [{ data }, { data: existingFees }] = await Promise.all([
       supabase
         .from('orders')
-        .select('product_id, size, quantity, shipping_fee_paid, created_at, products(product_name, product_status(status_name)), customers(customer_name)')
+        .select('product_id, product_name_snapshot, size, quantity, shipping_fee_paid, created_at, products(product_name, product_status(status_name)), customers(customer_name)')
         .eq('deleted_by_admin', false)
         .eq('order_period_id', selectedId)
         .neq('status', 'Cancelled') // cancelled lines no longer count toward quantities or fees

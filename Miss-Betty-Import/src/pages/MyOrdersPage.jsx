@@ -31,7 +31,7 @@ function groupByOrderId(rows) {
     items: rows.map(r => ({
       id:         r.id,
       product_id: r.product_id,
-      name:       r.product_name_snapshot ?? r.products?.product_name ?? `Product #${r.product_id}`,
+      name:       r.products?.product_name ?? r.product_name_snapshot ?? 'Product no longer listed',
       size:       r.size,
       colour:     r.colour,
       qty:        r.quantity,

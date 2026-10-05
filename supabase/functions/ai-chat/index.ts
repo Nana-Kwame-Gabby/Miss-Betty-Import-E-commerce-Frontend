@@ -215,7 +215,7 @@ async function searchProducts(db: SupabaseClient, input: Record<string, unknown>
     .map(c => c.category_id);
 
   const select = productType ? PRODUCT_SELECT.replace("product_status(", "product_status!inner(") : PRODUCT_SELECT;
-  let q = db.from("products").select(select).limit(300);
+  let q = db.from("products").select(select).is("archived_at", null).limit(300);
   if (productType) q = q.eq("product_status.status_name", productType);
   if (categoryIds) q = q.in("category_id", categoryIds);
   if (words.length) {
@@ -267,7 +267,7 @@ async function searchProducts(db: SupabaseClient, input: Record<string, unknown>
 }
 
 async function getProductsByIds(db: SupabaseClient, ids: number[]) {
-  const { data } = await db.from("products").select(PRODUCT_SELECT).in("product_id", ids);
+  const { data } = await db.from("products").select(PRODUCT_SELECT).in("product_id", ids).is("archived_at", null);
   const byId = new Map(((data ?? []) as unknown as ProductRow[]).map(r => [r.product_id, r]));
   return ids.map(id => byId.get(id)).filter((r): r is ProductRow => Boolean(r));
 }
@@ -312,7 +312,7 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): 
       const { data: cust } = await ctx.db.from("customers").select("customer_id").eq("auth_id", ctx.user.id).maybeSingle();
       if (!cust) return { orders: [] };
       const { data } = await ctx.db.from("orders")
-        .select("order_id, quantity, unit_price, size, colour, status, product_type, created_at, delivered_at, products(product_name)")
+        .select("order_id, product_name_snapshot, quantity, unit_price, size, colour, status, product_type, created_at, delivered_at, products(product_name)")
         .eq("customer_id", cust.customer_id)
         .eq("deleted_by_customer", false)
         .neq("status", "Cancelled")
@@ -321,7 +321,7 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): 
       return {
         orders: (data ?? []).map(o => ({
           order_id: o.order_id,
-          product: (o.products as unknown as { product_name?: string } | null)?.product_name ?? "Product no longer listed",
+          product: (o.products as unknown as { product_name?: string } | null)?.product_name ?? o.product_name_snapshot ?? "Product no longer listed",
           quantity: o.quantity,
           unit_price: Number(o.unit_price),
           size: o.size,

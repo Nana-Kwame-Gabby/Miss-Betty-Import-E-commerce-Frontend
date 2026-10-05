@@ -185,6 +185,19 @@ export default function CheckoutPage() {
       if (custError || !cust) throw new Error("Could not find your account. Please try again.");
       custId = cust.customer_id;
 
+      // Products removed from the shop since they were added to the cart can't be bought.
+      const { data: liveProducts, error: liveErr } = await supabase
+        .from('products')
+        .select('product_id')
+        .in('product_id', [...new Set(checkoutItems.map(i => i.id))])
+        .is('archived_at', null);
+      if (liveErr) throw new Error("Could not check your cart. Please try again.");
+      const liveIds = new Set((liveProducts ?? []).map(p => String(p.product_id)));
+      const gone = checkoutItems.find(i => !liveIds.has(String(i.id)));
+      if (gone) {
+        throw new Error(`Sorry, "${gone.product_name}" is no longer available. Please remove it from your cart.`);
+      }
+
       // Best-effort stock check: catch "sold out since it was added to cart" before spending
       // a Hubtel call. Advisory only — nothing is locked/reserved here, so it doesn't fully
       // close the race between two simultaneous buyers of the last unit.

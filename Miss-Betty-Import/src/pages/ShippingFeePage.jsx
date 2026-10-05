@@ -8,13 +8,13 @@ function groupOrdersByProductSize(orders, feeMap, periodNameMap) {
   for (const o of orders) {
     // Available goods carry no shipping fee (same rule as create_shipping_payment).
     if (o.product_type === 'Available') continue;
-    const key = `${o.order_period_id}::${o.product_id}::${o.size ?? ''}`;
+    const key = `${o.order_period_id}::${o.product_id ?? `name:${o.product_name_snapshot ?? ''}`}::${o.size ?? ''}`;
     if (!groups[key]) {
       groups[key] = {
         orderPeriodId: o.order_period_id,
         periodName: periodNameMap[o.order_period_id] ?? null,
         productId: o.product_id,
-        productName: o.products?.product_name ?? `Product #${o.product_id}`,
+        productName: o.products?.product_name ?? o.product_name_snapshot ?? 'Product no longer listed',
         size: o.size ?? null,
         sizeDisplay: o.size ?? '—',
         orders: [],

@@ -301,6 +301,7 @@ export default function AdminProductsPage() {
     const [{ data: prods }, { data: cats }, { data: stats }] = await Promise.all([
       supabase.from("products")
         .select("*, category(category_name), product_status(status_name), product_variant_stock(*)")
+        .is("archived_at", null)
         .order("product_id", { ascending: false }),
       supabase.from("category").select("*").order("category_name"),
       supabase.from("product_status").select("*"),
@@ -452,15 +453,28 @@ export default function AdminProductsPage() {
   }
 
   async function handleDelete(product) {
-    if (!confirm(`Delete "${product.product_name}"? This cannot be undone.`)) return;
+    if (!confirm(`Remove "${product.product_name}" from the shop? Existing orders keep all their details.`)) return;
     setDeletingId(product.product_id);
     try {
-      const { error: ordersErr } = await supabase
+      // A product that has been ordered is archived, not deleted: past orders, shipping
+      // fees and invoices stay linked to it and keep its name, price and images.
+      const { count, error: countErr } = await supabase
         .from('orders')
-        .update({ product_id: null })
+        .select('id', { count: 'exact', head: true })
         .eq('product_id', product.product_id);
-      if (ordersErr) throw new Error(ordersErr.message);
+      if (countErr) throw new Error(countErr.message);
+      if (count > 0) {
+        const { error: archiveErr } = await supabase
+          .from('products')
+          .update({ archived_at: new Date().toISOString() })
+          .eq('product_id', product.product_id);
+        if (archiveErr) throw new Error(archiveErr.message);
+        loadAll();
+        setDeletingId(null);
+        return;
+      }
 
+      // Never ordered: nothing depends on it, so remove it completely.
       const { error: deleteErr } = await supabase
         .from('products')
         .delete()

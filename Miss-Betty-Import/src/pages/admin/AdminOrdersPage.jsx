@@ -19,11 +19,12 @@ function groupByProduct(rows) {
 
   for (const row of rows) {
     const pid = row.product_id;
+    const pKey = pid ?? `name:${row.product_name_snapshot ?? ''}`;
 
-    if (!productMap[pid]) {
-      productMap[pid] = {
+    if (!productMap[pKey]) {
+      productMap[pKey] = {
         product_id: pid,
-        product_name: row.products?.product_name ?? `Product #${pid}`,
+        product_name: row.products?.product_name ?? row.product_name_snapshot ?? 'Product no longer listed',
         product_status_name: row.products?.product_status?.status_name ?? null,
         procurement_status: row.products?.procurement_status ?? 'Not Ordered',
         sizeColourMap: {},
@@ -31,7 +32,7 @@ function groupByProduct(rows) {
       };
     }
 
-    const entry = productMap[pid];
+    const entry = productMap[pKey];
     const sz = row.size   || "—";
     const cl = row.colour || "—";
     const qty = Number(row.quantity ?? 1);

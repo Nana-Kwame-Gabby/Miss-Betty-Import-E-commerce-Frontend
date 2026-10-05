@@ -12,7 +12,8 @@ export default async function handler(req, res) {
     .from("products")
     .select("product_name, product_image_url, description")
     .eq("product_id", id)
-    .single();
+    .is("archived_at", null)
+    .maybeSingle();
 
   const title = product?.product_name ?? "Miss Betty Import";
   const image = product?.product_image_url ?? "https://www.missbettyimport.com/logo.png";

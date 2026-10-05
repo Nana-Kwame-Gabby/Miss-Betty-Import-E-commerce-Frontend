@@ -721,6 +721,7 @@ export default function ShopPage() {
       const [{ data: prods }, { data: cats }] = await Promise.all([
         supabase.from('products')
           .select('*, category(category_name), product_status(status_name), product_variant_stock(*)')
+          .is('archived_at', null)
           .order('product_id', { ascending: false }),
         supabase.from('category').select('*').order('category_name'),
       ]);

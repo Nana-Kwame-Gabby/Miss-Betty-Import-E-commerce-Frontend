@@ -82,12 +82,12 @@ export default function AdminDashboard() {
         { data: allOrderData },
         { data: allFeeData },
       ] = await Promise.all([
-        supabase.from('products').select('product_id, product_status!inner(status_name)', { count: 'exact', head: true }).eq('product_status.status_name', 'Pre-order'),
+        supabase.from('products').select('product_id, product_status!inner(status_name)', { count: 'exact', head: true }).eq('product_status.status_name', 'Pre-order').is('archived_at', null),
         supabase.from('shipping_fee_payments')
           .select('customer_id, amount_paid, paid_at, product_id, size, customers(customer_name), products(product_name)')
           .eq('order_period_id', selectedId)
           .order('paid_at', { ascending: false }),
-        supabase.from('orders').select('customer_id, product_id, size, quantity, unit_price, status, product_type, cost_price, profit, misc_amount, shipping_fee, shipping_fee_paid, customers(customer_name), products(product_name)').eq('deleted_by_admin', false).eq('order_period_id', selectedId),
+        supabase.from('orders').select('customer_id, product_id, product_name_snapshot, size, quantity, unit_price, status, product_type, cost_price, profit, misc_amount, shipping_fee, shipping_fee_paid, customers(customer_name), products(product_name)').eq('deleted_by_admin', false).eq('order_period_id', selectedId),
         supabase.from('product_size_shipping_fees').select('product_id, size, shipping_fee').eq('order_period_id', selectedId),
       ]);
 
@@ -149,14 +149,14 @@ export default function AdminDashboard() {
             productGroups: {},
           };
         }
-        const pKey = `${o.product_id}::${o.size ?? ''}`;
+        const pKey = `${o.product_id ?? `name:${o.product_name_snapshot ?? ''}`}::${o.size ?? ''}`;
         if (!custMap[o.customer_id].productGroups[pKey]) {
           const feePerItem = o.shipping_fee != null
             ? Number(o.shipping_fee)
             : (feeMap[`${o.product_id}::${o.size ?? ''}`] ?? 0);
           custMap[o.customer_id].productGroups[pKey] = {
             productId: o.product_id,
-            productName: o.products?.product_name ?? `Product #${o.product_id}`,
+            productName: o.products?.product_name ?? o.product_name_snapshot ?? 'Product no longer listed',
             size: o.size ?? null,
             sizeDisplay: o.size ?? '—',
             totalQty: 0,

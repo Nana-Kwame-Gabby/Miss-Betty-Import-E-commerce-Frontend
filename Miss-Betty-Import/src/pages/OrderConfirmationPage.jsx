@@ -86,7 +86,7 @@ export default function OrderConfirmationPage() {
       const items = orderRows.map(r => ({
         cartKey:           String(r.id),
         id:                r.product_id,
-        product_name:      r.products?.product_name ?? `Product #${r.product_id}`,
+        product_name:      r.products?.product_name ?? r.product_name_snapshot ?? "Product no longer listed",
         product_image_url: r.products?.product_image_url ?? "",
         unit_price:        Number(r.unit_price),
         quantity:          r.quantity,

@@ -20,7 +20,8 @@ export default function AdminAvailableDashboard() {
       const [{ count: products }, { data: orderRows }] = await Promise.all([
         supabase.from('products')
           .select('product_id, product_status!inner(status_name)', { count: 'exact', head: true })
-          .eq('product_status.status_name', 'Available'),
+          .eq('product_status.status_name', 'Available')
+          .is('archived_at', null),
         supabase.from('orders')
           .select('customer_id, quantity, unit_price, status, cost_price, profit, misc_amount')
           .eq('deleted_by_admin', false)

@@ -79,7 +79,8 @@ export default function ProductDetailPage() {
         .from('products')
         .select('*, category(category_name), product_status(status_name), product_variant_stock(*)')
         .eq('product_id', Number(id))
-        .single();
+        .is('archived_at', null)
+        .maybeSingle();
       if (data) {
         const mapped = mapProduct(data);
         setProduct(mapped);
@@ -161,7 +162,7 @@ export default function ProductDetailPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
         <p className="text-5xl mb-4">🔍</p>
-        <p className="text-gray-500 text-lg font-medium">Product not found</p>
+        <p className="text-gray-500 text-lg font-medium">This product is no longer available</p>
         <Link to="/shop" className="mt-4 inline-block text-[#F2AA25] font-semibold hover:underline">← Back to Shop</Link>
       </div>
     );
