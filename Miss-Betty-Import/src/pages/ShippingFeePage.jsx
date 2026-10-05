@@ -6,7 +6,8 @@ import { supabase } from "../lib/supabase";
 function groupOrdersByProductSize(orders, feeMap, periodNameMap) {
   const groups = {};
   for (const o of orders) {
-    if (o.products?.product_status?.status_name === 'Available') continue;
+    // Available goods carry no shipping fee (same rule as create_shipping_payment).
+    if (o.product_type === 'Available') continue;
     const key = `${o.order_period_id}::${o.product_id}::${o.size ?? ''}`;
     if (!groups[key]) {
       groups[key] = {
@@ -29,9 +30,62 @@ function groupOrdersByProductSize(orders, feeMap, periodNameMap) {
       ...g,
       feePerItem,
       totalFee: feePerItem * g.totalQty,
-      orderIds: g.orders.map(o => o.order_id),
+      lineIds: g.orders.map(o => o.id),
     };
   });
+}
+
+const money = n => Math.round(Number(n) * 100) / 100;
+
+const Spinner = ({ className = "w-4 h-4" }) => (
+  <svg className={`animate-spin ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+  </svg>
+);
+
+function PayAllButton({ amount, paying, onClick, block = false }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={!!paying}
+      className={`${block ? "w-full py-2.5 text-sm" : "px-4 py-2 text-xs"} inline-flex items-center justify-center gap-2 bg-[#F2AA25] text-white font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 whitespace-nowrap`}
+    >
+      {paying === 'all' ? <><Spinner /> Redirecting…</> : `Pay All Shipping Fees — GHS ${amount.toLocaleString()}`}
+    </button>
+  );
+}
+
+// Result of returning from Hubtel. "confirming" waits for the server, which marks fees
+// paid only after Hubtel itself confirms the payment.
+function PaymentBanner({ shpMsg, onClose }) {
+  if (!shpMsg) return null;
+  const styles = {
+    confirming: "bg-blue-50 border-blue-200 text-blue-800",
+    success:    "bg-green-50 border-green-200 text-green-800",
+    cancelled:  "bg-yellow-50 border-yellow-200 text-yellow-800",
+    pending:    "bg-yellow-50 border-yellow-200 text-yellow-800",
+    error:      "bg-red-50 border-red-200 text-red-700",
+  };
+  const text = {
+    confirming: "Confirming your payment with Hubtel…",
+    success:    `✓ Shipping fee payment of GHS ${Number(shpMsg.amount ?? 0).toLocaleString()} confirmed.`,
+    cancelled:  "Payment was cancelled. No charge was made — your shipping fees are still outstanding.",
+    pending:    "We haven't received confirmation from Hubtel yet. If you were charged, your fees will update here automatically once it arrives.",
+    error:      shpMsg.msg,
+  };
+  return (
+    <div className={`flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 mb-3 text-sm font-medium border ${styles[shpMsg.type]}`}>
+      <span className="flex items-center gap-2">{shpMsg.type === "confirming" && <Spinner />}{text[shpMsg.type]}</span>
+      {shpMsg.type !== "confirming" && (
+        <button onClick={onClose} aria-label="Dismiss" className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      )}
+    </div>
+  );
 }
 
 export default function ShippingFeePage() {
@@ -41,8 +95,13 @@ export default function ShippingFeePage() {
   const [custId, setCustId]     = useState(null);
   const [loading, setLoading]   = useState(true);
   const [paying, setPaying]     = useState(null);
+  // { type: 'confirming' | 'success' | 'cancelled' | 'pending' | 'error', amount?, msg? }
   const [shpMsg, setShpMsg]     = useState(null);
   const redirectHandled         = useRef(false);
+  const customerIdRef           = useRef(null);
+
+  // Sum of fees that are set and unpaid right now — the Pay All amount.
+  const payableTotal = money(groups.filter(g => g.feePerItem > 0).reduce((s, g) => s + g.totalFee, 0));
 
   async function refreshGroups(customerId) {
     const [{ data: orderData }, { data: feeData }, { data: periodData }] = await Promise.all([
@@ -66,81 +125,49 @@ export default function ShippingFeePage() {
     setGroups(groupOrdersByProductSize(orderData ?? [], feeMap, periodNameMap));
   }
 
+  // Wait for the server to confirm a payment we were redirected back from. Polls the
+  // payment request; if Hubtel's callback hasn't arrived yet, asks the server to check
+  // with Hubtel directly once (check-payment-status applies it only if Hubtel says paid).
+  async function confirmPayment(ref) {
+    setShpMsg({ type: "confirming" });
+    let askedHubtel = false;
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const { data: req } = await supabase
+        .from('shipping_payment_requests')
+        .select('status, amount')
+        .eq('shp_ref', ref)
+        .maybeSingle();
+      if (req?.status === 'paid') {
+        setShpMsg({ type: "success", amount: req.amount });
+        if (customerIdRef.current) refreshGroups(customerIdRef.current);
+        return;
+      }
+      if (req?.status === 'amount_mismatch') {
+        setShpMsg({ type: "error", msg: "We couldn't match this payment to your shipping fees. Please contact us on WhatsApp (+233 20 269 7541) and we'll sort it out." });
+        return;
+      }
+      if (!askedHubtel && attempt >= 2) {
+        askedHubtel = true;
+        await supabase.functions.invoke("check-payment-status", { body: { clientReference: ref } }).catch(() => {});
+        continue;
+      }
+      await new Promise(r => setTimeout(r, 2000));
+    }
+    setShpMsg({ type: "pending" });
+  }
+
   useEffect(() => {
     async function init() {
       const shpRef    = searchParams.get("shpRef");
       const shpStatus = searchParams.get("status");
 
+      // Back from Hubtel. The redirect proves nothing: fees are marked paid only by the
+      // server once Hubtel confirms the payment (hubtel-callback / check-payment-status).
       if (shpRef && !redirectHandled.current) {
         redirectHandled.current = true;
-        const key   = `pending_shp_${shpRef}`;
-        const saved = JSON.parse(sessionStorage.getItem(key) || "null");
-
-        if (shpStatus === "success" && saved) {
-          // 1. Snapshot fees for only this product's orders in the group, using the
-          // rate for the specific period this group's orders were placed in — a
-          // later period's rate for the same product/size must never leak in here.
-          const [{ data: unsnapshot }, { data: currentFees }] = await Promise.all([
-            supabase.from('orders')
-              .select('order_id, product_id, size')
-              .in('order_id', saved.orderIds)
-              .is('shipping_fee', null)
-              .eq('product_id', saved.productId),
-            supabase.from('product_size_shipping_fees').select('*')
-              .eq('order_period_id', saved.orderPeriodId),
-          ]);
-
-          const snapMap = {};
-          (currentFees ?? []).forEach(f => {
-            snapMap[`${f.product_id}::${f.size ?? ''}`] = Number(f.shipping_fee ?? 0);
-          });
-
-          // Record the fee the customer was actually charged (saved when payment started),
-          // so an admin rate change during payment can't alter this receipt. Older pending
-          // payments without it fall back to the current rate.
-          await Promise.all(
-            (unsnapshot ?? []).map(o => {
-              const fee = saved.feePerItem > 0 ? saved.feePerItem : snapMap[`${o.product_id}::${o.size ?? ''}`];
-              if (!fee) return Promise.resolve();
-              return supabase.from('orders')
-                .update({ shipping_fee: fee })
-                .eq('order_id', o.order_id)
-                .eq('product_id', o.product_id);
-            })
-          );
-
-          // 2. Insert payment linked to the specific product+size+period
-          await supabase.from('shipping_fee_payments').insert({
-            customer_id: saved.customerId,
-            amount_paid: saved.amount,
-            product_id:  saved.productId,
-            size:        saved.size,
-            order_period_id: saved.orderPeriodId,
-          });
-
-          // 3. Mark only this product+size's orders as paid (not all orders in the batch)
-          let markPaidQ = supabase
-            .from('orders')
-            .update({ shipping_fee_paid: true })
-            .neq('status', 'Cancelled')
-            .in('order_id', saved.orderIds)
-            .eq('product_id', saved.productId);
-
-          if (saved.size != null) {
-            markPaidQ = markPaidQ.eq('size', saved.size);
-          } else {
-            markPaidQ = markPaidQ.is('size', null);
-          }
-
-          await markPaidQ;
-
-          sessionStorage.removeItem(key);
-          setShpMsg({ type: "success", amount: saved.amount });
-        } else {
-          sessionStorage.removeItem(key);
-          if (shpStatus === "cancelled") setShpMsg({ type: "cancelled" });
-        }
         setSearchParams({}, { replace: true });
+        if (shpStatus === "success") confirmPayment(shpRef);
+        else setShpMsg({ type: "cancelled" });
       }
 
       // Load customer
@@ -152,6 +179,7 @@ export default function ShippingFeePage() {
 
       if (!cust) { setLoading(false); return; }
       setCustId(cust.customer_id);
+      customerIdRef.current = cust.customer_id;
 
       // Load unpaid orders + fee rates
       await refreshGroups(cust.customer_id);
@@ -182,29 +210,34 @@ export default function ShippingFeePage() {
     };
   }, [custId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handlePayGroup(group) {
-    const groupKey = `${group.productId}::${group.size ?? ''}`;
-    setPaying(groupKey);
+  // Start a payment for one product's fees (lineIds) or all outstanding fees (null).
+  // The amount is calculated by the server from what is unpaid right now.
+  async function startPayment(payKey, lineIds, description, shownAmount) {
+    setPaying(payKey);
+    setShpMsg(null);
+    const { data, error } = await supabase.rpc('create_shipping_payment', { p_line_ids: lineIds });
+    const req = Array.isArray(data) ? data[0] : data;
+    if (error || !req?.shp_ref) {
+      setPaying(null);
+      setShpMsg({ type: "error", msg: error?.message || "Couldn't start the payment. Please try again." });
+      if (customerIdRef.current) refreshGroups(customerIdRef.current);
+      return;
+    }
+    // If a fee changed since the page loaded, show the new amounts before charging anything.
+    if (Math.abs(money(req.amount) - money(shownAmount)) > 0.009) {
+      setPaying(null);
+      setShpMsg({ type: "error", msg: `Your shipping fees have just been updated — the amount due is now GHS ${money(req.amount).toLocaleString()}. Please review and pay again.` });
+      if (customerIdRef.current) refreshGroups(customerIdRef.current);
+      return;
+    }
 
-    const shpRef = `SHP-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000) + 1000}`;
-    const returnUrl  = `${window.location.origin}/shipping-fees?shpRef=${shpRef}&status=success`;
-    const cancelUrl  = `${window.location.origin}/shipping-fees?shpRef=${shpRef}&status=cancelled`;
-
-    sessionStorage.setItem(`pending_shp_${shpRef}`, JSON.stringify({
-      customerId: custId,
-      amount:     group.totalFee,
-      feePerItem: group.feePerItem,
-      productId:  group.productId,
-      size:       group.size,
-      orderIds:   group.orderIds,
-      orderPeriodId: group.orderPeriodId,
-    }));
-
+    const returnUrl = `${window.location.origin}/shipping-fees?shpRef=${req.shp_ref}&status=success`;
+    const cancelUrl = `${window.location.origin}/shipping-fees?shpRef=${req.shp_ref}&status=cancelled`;
     const { data: fnData } = await supabase.functions.invoke("initiate-payment", {
       body: {
-        orderId:         shpRef,
-        amount:          group.totalFee,
-        description:     `Miss Betty Import — Shipping: ${group.productName} (${group.sizeDisplay})`,
+        orderId:         req.shp_ref,
+        amount:          money(req.amount),
+        description:     `Miss Betty Import — ${description}`,
         returnUrl,
         cancellationUrl: cancelUrl,
       },
@@ -212,11 +245,23 @@ export default function ShippingFeePage() {
 
     if (!fnData?.checkoutUrl) {
       setPaying(null);
-      alert(fnData?.error || "Payment failed. Please try again.");
+      setShpMsg({ type: "error", msg: fnData?.error || "Payment failed to start. Nothing was charged — please try again." });
       return;
     }
-
     window.location.href = fnData.checkoutUrl;
+  }
+
+  function handlePayGroup(group) {
+    startPayment(
+      `${group.orderPeriodId}::${group.productId}::${group.size ?? ''}`,
+      group.lineIds,
+      `Shipping: ${group.productName} (${group.sizeDisplay})`,
+      group.totalFee,
+    );
+  }
+
+  function handlePayAll() {
+    startPayment('all', null, 'Shipping: all outstanding fees', payableTotal);
   }
 
   if (loading) {
@@ -230,6 +275,9 @@ export default function ShippingFeePage() {
   if (groups.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+        {shpMsg && shpMsg.type !== "success" && (
+          <div className="max-w-xl mx-auto mb-6 text-left"><PaymentBanner shpMsg={shpMsg} onClose={() => setShpMsg(null)} /></div>
+        )}
         {shpMsg?.type === "success" ? (
           <>
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -237,8 +285,8 @@ export default function ShippingFeePage() {
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </div>
-            <h2 className="text-lg sm:text-xl font-bold text-[#1e2d3d] mb-2">All Shipping Fees Paid!</h2>
-            <p className="text-gray-400 text-sm mb-6">All your shipping fees have been settled. Thank you!</p>
+            <h2 className="text-lg sm:text-xl font-bold text-[#1e2d3d] mb-2">All shipping fees have been paid.</h2>
+            <p className="text-gray-400 text-sm mb-6">Thank you! Your payment has been confirmed.</p>
           </>
         ) : (
           <>
@@ -254,34 +302,14 @@ export default function ShippingFeePage() {
     );
   }
 
-  const grandTotal = groups.reduce((s, g) => s + g.totalFee, 0);
-
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
 
-      {/* Hubtel redirect feedback banner */}
-      {shpMsg && (
-        <div className={`flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 mb-3 text-sm font-medium ${
-          shpMsg.type === "success"
-            ? "bg-green-50 border border-green-200 text-green-800"
-            : "bg-yellow-50 border border-yellow-200 text-yellow-800"
-        }`}>
-          <span>
-            {shpMsg.type === "success"
-              ? `✓ Shipping fee payment of GHS ${Number(shpMsg.amount).toLocaleString()} confirmed.`
-              : "Payment was cancelled. No charge was made."}
-          </span>
-          <button onClick={() => setShpMsg(null)} className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-      )}
+      <PaymentBanner shpMsg={shpMsg} onClose={() => setShpMsg(null)} />
 
       <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-1">Shipping Fees</h1>
       <p className="text-sm text-gray-400 mb-3 sm:mb-5">
-        Shipping fees are assigned by our team. Once set, you can pay each product's fee here.
+        Shipping fees are assigned by our team. Pay for one product at a time, or pay everything at once.
       </p>
 
       {/* Desktop table */}
@@ -296,7 +324,7 @@ export default function ShippingFeePage() {
           </thead>
           <tbody>
             {groups.map((group, i) => {
-              const groupKey = `${group.productId}::${group.size ?? ''}`;
+              const groupKey = `${group.orderPeriodId}::${group.productId}::${group.size ?? ''}`;
               const hasFee   = group.feePerItem > 0;
               const isPaying = paying === groupKey;
               return (
@@ -347,12 +375,14 @@ export default function ShippingFeePage() {
               );
             })}
           </tbody>
-          {grandTotal > 0 && (
+          {payableTotal > 0 && (
             <tfoot>
               <tr className="border-t-2 border-[#1e2d3d] bg-gray-50">
-                <td colSpan={4} className="px-4 py-3 text-right font-bold text-[#1e2d3d] text-sm">Grand Total</td>
-                <td className="px-4 py-3 font-bold text-[#DC2626] text-sm">GHS {grandTotal.toLocaleString()}</td>
-                <td />
+                <td colSpan={4} className="px-4 py-3 text-right font-bold text-[#1e2d3d] text-sm">Total Outstanding</td>
+                <td className="px-4 py-3 font-bold text-[#DC2626] text-sm">GHS {payableTotal.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right">
+                  <PayAllButton amount={payableTotal} paying={paying} onClick={handlePayAll} />
+                </td>
               </tr>
             </tfoot>
           )}
@@ -362,7 +392,7 @@ export default function ShippingFeePage() {
       {/* Mobile cards */}
       <div className="sm:hidden flex flex-col gap-2">
         {groups.map(group => {
-          const groupKey = `${group.productId}::${group.size ?? ''}`;
+          const groupKey = `${group.orderPeriodId}::${group.productId}::${group.size ?? ''}`;
           const hasFee   = group.feePerItem > 0;
           const isPaying = paying === groupKey;
           return (
@@ -423,13 +453,14 @@ export default function ShippingFeePage() {
           );
         })}
 
-        {grandTotal > 0 && (
+        {payableTotal > 0 && (
           <div className="bg-[#1e2d3d] rounded-2xl p-3">
-            <div className="flex justify-between items-center">
-              <span className="text-white font-semibold text-sm">Grand Total</span>
-              <span className="text-[#DC2626] font-bold text-lg">GHS {grandTotal.toLocaleString()}</span>
+            <div className="flex justify-between items-center mb-2.5">
+              <span className="text-white font-semibold text-sm">Total Outstanding</span>
+              <span className="text-[#F2AA25] font-bold text-lg">GHS {payableTotal.toLocaleString()}</span>
             </div>
-            <p className="text-gray-400 text-xs mt-1">Pay each product's fee separately above</p>
+            <PayAllButton amount={payableTotal} paying={paying} onClick={handlePayAll} block />
+            <p className="text-gray-400 text-xs mt-2 text-center">Or pay each product's fee separately above</p>
           </div>
         )}
       </div>

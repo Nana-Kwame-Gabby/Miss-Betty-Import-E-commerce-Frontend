@@ -22,6 +22,33 @@ async function dbFetch(supabaseUrl, supabaseKey, path, method = "GET", body = nu
   return null;
 }
 
+// Ask Hubtel (via the payment proxy) for the real status of a transaction.
+// Returns { paid, amount } — callback bodies are unauthenticated, so this is the check that counts.
+async function hubtelStatus(clientReference) {
+  const proxyUrl = Deno.env.get("PROXY_URL");
+  const proxySecret = Deno.env.get("PROXY_SECRET");
+  if (!proxyUrl || !proxySecret) return { paid: false, amount: null, error: "proxy not configured" };
+  const res = await fetch(`${proxyUrl}/status?${new URLSearchParams({ clientReference })}`, {
+    headers: { "X-Proxy-Key": proxySecret, "Content-Type": "application/json" },
+  });
+  const data = await res.json().catch(() => ({}));
+  const raw = data.Data ?? data.data;
+  const tx = Array.isArray(raw) ? raw[0] : raw;
+  const status = String(tx?.TransactionStatus ?? tx?.InvoiceStatus ?? tx?.Status ?? tx?.status ?? "");
+  const amount = Number(tx?.TransactionAmount ?? tx?.Amount ?? tx?.amount);
+  return { paid: /^(paid|success|successful|completed)$/i.test(status), amount: Number.isFinite(amount) ? amount : null, status };
+}
+
+// Apply a Hubtel-confirmed shipping payment (marks exactly the lines it covered as paid).
+async function finalizeShippingPayment(supabaseUrl, supabaseKey, ref, amount) {
+  const res = await fetch(`${supabaseUrl}/rest/v1/rpc/finalize_shipping_payment`, {
+    method: "POST",
+    headers: { "apikey": supabaseKey, "Authorization": `Bearer ${supabaseKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_ref: ref, p_paid_amount: amount }),
+  });
+  return res.ok ? await res.json() : `error ${res.status}: ${await res.text()}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
@@ -134,6 +161,24 @@ Deno.serve(async (req) => {
       }
     } catch (err) {
       console.error("[hubtel-callback] Order creation failed:", err.message);
+    }
+
+    // 3. Shipping fee payments (SHP-…): confirm with Hubtel itself, then apply.
+    try {
+      const ref =
+        payload.ClientReference ?? payload.clientReference ??
+        payload.Data?.ClientReference ?? payload.data?.clientReference ?? "";
+      if (ref.startsWith("SHP-")) {
+        const verified = await hubtelStatus(ref);
+        if (verified.paid) {
+          const result = await finalizeShippingPayment(supabaseUrl, supabaseKey, ref, verified.amount);
+          console.log("[hubtel-callback] Shipping payment", ref, "→", result);
+        } else {
+          console.warn("[hubtel-callback] Shipping payment not confirmed by Hubtel:", ref, verified.status ?? verified.error);
+        }
+      }
+    } catch (err) {
+      console.error("[hubtel-callback] Shipping payment handling failed:", err.message);
     }
   }
 

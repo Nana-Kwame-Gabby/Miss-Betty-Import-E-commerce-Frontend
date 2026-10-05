@@ -131,9 +131,32 @@ Deno.serve(async (req) => {
       );
     }
 
+    const normalized = normalizeHubtelStatus(data);
+
+    // Shipping fee payments are applied only once Hubtel itself reports them paid. This is the
+    // fallback for when Hubtel's callback is late or missed; finalize is idempotent.
+    if (String(clientReference).startsWith("SHP-")) {
+      const status = String(normalized?.data?.status ?? "");
+      const amount = Number(normalized?.data?.amount);
+      if (/^(paid|success|successful|completed)$/i.test(status) && Number.isFinite(amount)) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        try {
+          const res = await fetch(`${supabaseUrl}/rest/v1/rpc/finalize_shipping_payment`, {
+            method: "POST",
+            headers: { "apikey": serviceKey, "Authorization": `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ p_ref: clientReference, p_paid_amount: amount }),
+          });
+          console.log("[check-payment-status] Shipping payment", clientReference, "→", res.ok ? await res.json() : res.status);
+        } catch (e) {
+          console.error("[check-payment-status] Shipping finalize failed:", e instanceof Error ? e.message : e);
+        }
+      }
+    }
+
     console.log("[check-payment-status] Returning success response");
     return new Response(
-      JSON.stringify(normalizeHubtelStatus(data)),
+      JSON.stringify(normalized),
       { headers: { ...CORS, "Content-Type": "application/json" } }
     );
 
