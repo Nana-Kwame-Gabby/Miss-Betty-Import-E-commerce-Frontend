@@ -43,6 +43,8 @@ import AdminCountdownTimersPage from "./pages/admin/AdminCountdownTimersPage";
 import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import ChatWidget from "./components/ChatWidget";
+import AnalyticsTracker from "./components/AnalyticsTracker";
+import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import ProductRequestPage from "./pages/ProductRequestPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 
@@ -137,6 +139,7 @@ function App() {
                   <Route path="/admin/bulk-sms" element={<AdminSmsMessagingPage />} />
                   <Route path="/admin/available-orders" element={<AdminAvailableOrdersPage />} />
                   <Route path="/admin/available-dashboard" element={<AdminAvailableDashboard />} />
+                  <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
                   <Route path="/admin/promo-alert" element={<AdminPromoAlertPage />} />
                   <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
                   <Route path="/admin/countdown-timers" element={<AdminCountdownTimersPage />} />
@@ -161,6 +164,7 @@ function App() {
               </Route>
             </Routes>
             <ChatWidget />
+            <AnalyticsTracker />
           </Router>
         </CartProvider>
         </NotificationProvider>

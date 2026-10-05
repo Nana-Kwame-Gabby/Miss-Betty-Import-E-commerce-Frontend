@@ -6,7 +6,7 @@ export default function PrivacyPolicyPage() {
       {/* Header */}
       <div className="bg-[#1e2d3d] text-white py-10 px-4 text-center">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-gray-300 text-sm">Last updated: June 2025</p>
+        <p className="text-gray-300 text-sm">Last updated: October 2026</p>
       </div>
 
       {/* Content */}
@@ -35,6 +35,18 @@ export default function PrivacyPolicyPage() {
             transactions are handled directly by <strong>Hubtel</strong>, our third-party
             payment processor. Please refer to Hubtel&rsquo;s privacy policy for details on how
             they process your payment information.
+          </p>
+          <p className="mt-3">
+            <strong>Website analytics.</strong> To understand how our website is used, we count
+            visits anonymously using our own analytics (no Google Analytics or advertising
+            trackers, and no cookies). For each page view we record the page visited, the
+            approximate country, the device type (mobile, tablet or desktop), the browser and
+            operating system, and the website that referred you, if any. A random identifier
+            stored in your browser lets us count returning visitors without knowing who you are.
+            We do <strong>not</strong> store your IP address, and this data is not linked to your
+            account, name, email or phone number. It is used only for overall visitor statistics.
+            If your browser sends a &ldquo;Do Not Track&rdquo; or &ldquo;Global Privacy Control&rdquo;
+            signal, you are not counted.
           </p>
         </Section>
 
