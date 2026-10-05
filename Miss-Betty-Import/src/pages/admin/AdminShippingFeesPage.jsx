@@ -102,6 +102,7 @@ export default function AdminShippingFeesPage() {
         .select('product_id, size, quantity, shipping_fee_paid, created_at, products(product_name, product_status(status_name)), customers(customer_name)')
         .eq('deleted_by_admin', false)
         .eq('order_period_id', selectedId)
+        .neq('status', 'Cancelled') // cancelled lines no longer count toward quantities or fees
         .order('created_at', { ascending: false }),
       supabase.from('product_size_shipping_fees').select('*').eq('order_period_id', selectedId),
     ]);

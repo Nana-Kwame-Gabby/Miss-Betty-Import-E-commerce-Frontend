@@ -81,6 +81,7 @@ export default function AdminAvailableOrdersPage() {
       .select('*, products(product_name, procurement_status, product_status(status_name), rmb_price, size_pricing), customers(customer_name, telephone)')
       .eq('deleted_by_admin', false)
       .eq('order_period_id', selectedId)
+      .neq('status', 'Cancelled') // cancelled lines no longer count toward quantities
       .order('created_at', { ascending: false });
 
     const availableRows = (data ?? []).filter(

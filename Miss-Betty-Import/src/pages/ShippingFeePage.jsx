@@ -50,6 +50,7 @@ export default function ShippingFeePage() {
         .select('*, products(product_name, product_status(status_name))')
         .eq('customer_id', customerId)
         .eq('shipping_fee_paid', false)
+        .neq('status', 'Cancelled') // no shipping fee for cancelled products
         .order('created_at', { ascending: false }),
       supabase.from('product_size_shipping_fees').select('*'),
       supabase.from('order_periods').select('id, name'),
@@ -121,6 +122,7 @@ export default function ShippingFeePage() {
           let markPaidQ = supabase
             .from('orders')
             .update({ shipping_fee_paid: true })
+            .neq('status', 'Cancelled')
             .in('order_id', saved.orderIds)
             .eq('product_id', saved.productId);
 

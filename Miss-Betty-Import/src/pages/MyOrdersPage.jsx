@@ -56,6 +56,7 @@ export default function MyOrdersPage() {
         .select('*, products(product_name)')
         .eq('customer_id', customerId)
         .eq('deleted_by_customer', false)
+        .neq('status', 'Cancelled') // products cancelled by the admin are no longer shown
         .order('created_at', { ascending: false }),
       supabase
         .from('reviews')
@@ -94,7 +95,7 @@ export default function MyOrdersPage() {
       .map(o => o.order_id);
 
     if (overdueIds.length > 0) {
-      await supabase.from('orders').update({ status: 'Received' }).in('order_id', overdueIds);
+      await supabase.from('orders').update({ status: 'Received' }).in('order_id', overdueIds).neq('status', 'Cancelled');
       setOrders(groupedWithDiscount.map(o => overdueIds.includes(o.order_id) ? { ...o, status: 'Received' } : o));
     } else {
       setOrders(groupedWithDiscount);
@@ -130,7 +131,7 @@ export default function MyOrdersPage() {
   }, [customerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleConfirmReceipt(orderId) {
-    await supabase.from('orders').update({ status: 'Received' }).eq('order_id', orderId);
+    await supabase.from('orders').update({ status: 'Received' }).eq('order_id', orderId).neq('status', 'Cancelled');
     setOrders(prev => prev.map(o => o.order_id === orderId ? { ...o, status: 'Received' } : o));
   }
 

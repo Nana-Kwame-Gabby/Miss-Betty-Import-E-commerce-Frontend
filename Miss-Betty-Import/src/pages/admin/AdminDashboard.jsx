@@ -93,7 +93,8 @@ export default function AdminDashboard() {
 
       // This dashboard covers Pre-order goods only; Available Goods sales have their own
       // dashboard. product_type is recorded on each order when it's placed.
-      const preOrderRows = (allOrderData ?? []).filter(o => o.product_type !== 'Available');
+      // Cancelled lines are excluded everywhere, including the Customer Shipping Fee Status table.
+      const preOrderRows = (allOrderData ?? []).filter(o => o.product_type !== 'Available' && o.status !== 'Cancelled');
       const shippingCollected = (paymentData ?? []).reduce((sum, r) => sum + Number(r.amount_paid ?? 0), 0);
 
       const feeMap = {};

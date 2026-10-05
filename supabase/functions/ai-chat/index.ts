@@ -315,6 +315,7 @@ async function runTool(name: string, input: Record<string, unknown>, ctx: Ctx): 
         .select("order_id, quantity, unit_price, size, colour, status, product_type, created_at, delivered_at, products(product_name)")
         .eq("customer_id", cust.customer_id)
         .eq("deleted_by_customer", false)
+        .neq("status", "Cancelled")
         .order("created_at", { ascending: false })
         .limit(limit);
       return {
