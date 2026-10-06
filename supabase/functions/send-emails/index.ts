@@ -202,6 +202,44 @@ async function sendViaBrevo(m: Msg, built: Built) {
   return String(body.messageId ?? "");
 }
 
+// What Brevo actually delivered: every link and image in the sent email, each fetched to
+// check its HTTPS certificate and where it ends up. Used to verify link/image rewriting.
+async function brevoGet(path: string) {
+  const res = await fetch(`https://api.brevo.com/v3${path}`, {
+    headers: { "api-key": Deno.env.get("BREVO_API_KEY")!, accept: "application/json" },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`Brevo ${res.status}: ${body.message ?? res.statusText}`);
+  return body;
+}
+
+async function probe(url: string) {
+  try {
+    const res = await fetch(url, { redirect: "follow", headers: { "user-agent": "Mozilla/5.0 (MBI email link check)" } });
+    await res.body?.cancel();
+    return { ok: res.ok, status: res.status, finalUrl: res.url, contentType: res.headers.get("content-type") };
+  } catch (err) {
+    return { ok: false, error: (err instanceof Error ? err.message : String(err)).slice(0, 300) };
+  }
+}
+
+async function inspectDelivered(messageId: string) {
+  const list = await brevoGet(`/smtp/emails?messageId=${encodeURIComponent(messageId)}`);
+  const uuid = list.transactionalEmails?.[0]?.uuid;
+  if (!uuid) throw new Error("Brevo has no stored copy of this email");
+  const sent = await brevoGet(`/smtp/emails/${uuid}`);
+  const html = String(sent.body ?? "");
+  const grab = (re: RegExp) => [...new Set([...html.matchAll(re)].map(m => m[1].replace(/&amp;/g, "&")))].slice(0, 30);
+  const check = async (urls: string[]) => Promise.all(urls.map(async url => ({
+    url, host: url.match(/^[a-z]+:\/\/([^/?#]+)/i)?.[1] ?? null, ...(await probe(url)),
+  })));
+  return {
+    subject: sent.subject,
+    links: await check(grab(/<a\b[^>]*\bhref="([^"]+)"/gi)),
+    images: await check(grab(/<img\b[^>]*\bsrc="([^"]+)"/gi)),
+  };
+}
+
 // ── Handlers ─────────────────────────────────────────────────────────────────────
 async function processQueue(db: SupabaseClient) {
   const started = Date.now();
@@ -272,6 +310,12 @@ Deno.serve(async (req) => {
         periodName: per?.name ?? null, customerName: "Ama Mensah",
       });
       return json({ subject: built.subject, html: built.html });
+    }
+
+    if (action === "inspect") {
+      const { data: m } = await db.from("email_messages").select("provider_message_id").eq("id", Number(body.email_id)).maybeSingle();
+      if (!m?.provider_message_id) return json({ error: "Email not found or not sent yet" }, 404);
+      return json(await inspectDelivered(m.provider_message_id));
     }
 
     return json({ error: "Unknown action" }, 400);

@@ -3,7 +3,8 @@
 // Every piece of customer/admin text goes through esc().
 
 export const SITE = "https://www.missbettyimport.com";
-const LOGO = `${SITE}/logo.png`;
+// 192×192 copy of the site logo (public/email-logo.png): ~9 KB instead of the 2400 px original.
+const LOGO = `${SITE}/email-logo.png`;
 const NAVY = "#1e2d3d";
 const AMBER = "#F2AA25";
 const MUTED = "#6b7280";
@@ -120,7 +121,7 @@ export function layout({ title, preheader, body, badge }: { title: string; prehe
     <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;">
       <tr><td align="center" bgcolor="${NAVY}" style="padding:22px 24px;">
         <a href="${SITE}" style="text-decoration:none;">
-          <img src="${LOGO}" width="64" height="64" alt="Miss Betty Import" style="display:block;margin:0 auto 8px;border:0;border-radius:12px;">
+          <img src="${LOGO}" width="64" height="64" alt="Miss Betty Import" style="display:block;width:64px;height:64px;margin:0 auto 8px;border:0;outline:none;border-radius:12px;color:#ffffff;font-size:13px;font-weight:bold;line-height:64px;text-align:center;">
           <span style="font-size:18px;font-weight:bold;color:#ffffff;letter-spacing:.5px;">Miss Betty Import</span>
         </a>
       </td></tr>
