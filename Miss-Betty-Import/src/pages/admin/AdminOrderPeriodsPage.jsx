@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+import EmailAnnouncementModal from "./EmailAnnouncementModal";
 
 const VIEW_LINKS = [
   { to: "/admin/orders",           label: "Pre-Orders" },
@@ -18,6 +19,7 @@ export default function AdminOrderPeriodsPage() {
   const [newPeriodName, setNewPeriodName] = useState("");
   const [closing, setClosing] = useState(false);
   const [error, setError] = useState(null);
+  const [announce, setAnnounce] = useState(null); // { kind, justSwitched }
 
   async function loadData() {
     setLoading(true);
@@ -60,7 +62,9 @@ export default function AdminOrderPeriodsPage() {
     setShowCloseModal(false);
     setNewPeriodName("");
     setClosing(false);
-    loadData();
+    await loadData();
+    // Offer the closed / new-period announcement emails.
+    setAnnounce({ kind: "period_closed", justSwitched: true });
   }
 
   const activePeriod = periods.find(p => p.is_active) ?? null;
@@ -99,12 +103,20 @@ export default function AdminOrderPeriodsPage() {
                   </p>
                 )}
               </div>
-              <button
-                onClick={() => setShowCloseModal(true)}
-                className="bg-[#1e2d3d] text-white font-bold text-sm px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
-              >
-                Close Period &amp; Start New
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setAnnounce({ kind: "period_opened", justSwitched: false })}
+                  className="border border-[#1e2d3d] text-[#1e2d3d] font-bold text-sm px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  Email Customers
+                </button>
+                <button
+                  onClick={() => setShowCloseModal(true)}
+                  className="bg-[#1e2d3d] text-white font-bold text-sm px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+                >
+                  Close Period &amp; Start New
+                </button>
+              </div>
             </div>
           </div>
 
@@ -195,6 +207,16 @@ export default function AdminOrderPeriodsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {announce && (
+        <EmailAnnouncementModal
+          initialKind={announce.kind}
+          justSwitched={announce.justSwitched}
+          activeName={activePeriod?.name}
+          closedName={pastPeriods[0]?.name}
+          onClose={() => setAnnounce(null)}
+        />
       )}
     </div>
   );

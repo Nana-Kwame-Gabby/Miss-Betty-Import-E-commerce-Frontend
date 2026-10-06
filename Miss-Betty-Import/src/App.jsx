@@ -45,6 +45,7 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import ChatWidget from "./components/ChatWidget";
 import AnalyticsTracker from "./components/AnalyticsTracker";
 import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
+import AdminEmailsPage from "./pages/admin/AdminEmailsPage";
 import ProductRequestPage from "./pages/ProductRequestPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 
@@ -140,6 +141,7 @@ function App() {
                   <Route path="/admin/available-orders" element={<AdminAvailableOrdersPage />} />
                   <Route path="/admin/available-dashboard" element={<AdminAvailableDashboard />} />
                   <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
+                  <Route path="/admin/emails" element={<AdminEmailsPage />} />
                   <Route path="/admin/promo-alert" element={<AdminPromoAlertPage />} />
                   <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
                   <Route path="/admin/countdown-timers" element={<AdminCountdownTimersPage />} />

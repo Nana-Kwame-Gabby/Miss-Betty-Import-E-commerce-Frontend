@@ -92,28 +92,162 @@ function ConfirmDeleteModal({ request, onConfirm, onCancel, deleting }) {
   );
 }
 
+// "Sourced" emails, keyed by request id.
+async function fetchSourcedEmails() {
+  const { data } = await supabase
+    .from("email_messages")
+    .select("dedupe_key, status, sent_at, created_at, last_error")
+    .eq("kind", "request_sourced");
+  return Object.fromEntries((data ?? []).map(m => [m.dedupe_key.replace("request_sourced:", ""), m]));
+}
+
+function EmailStatus({ email }) {
+  if (!email) return null;
+  const fmt = (d) => new Date(d).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  if (email.status === "sent") {
+    return <p className="text-[11px] text-green-600 mt-1 whitespace-nowrap" title="Customer was emailed">✉ Emailed {fmt(email.sent_at)}</p>;
+  }
+  if (email.status === "failed") {
+    return <p className="text-[11px] text-red-500 mt-1 whitespace-nowrap" title={email.last_error ?? ""}>✉ Email failed · see Emails</p>;
+  }
+  return <p className="text-[11px] text-gray-400 mt-1 whitespace-nowrap">✉ Email sending…</p>;
+}
+
+// Shown when a request is set to "Sourced": optionally link the uploaded product so the
+// customer's email shows its photo, price and a direct link.
+function SourcedDialog({ request, alreadyEmailed, onConfirm, onCancel, saving }) {
+  const [products, setProducts] = useState([]);
+  const [query, setQuery] = useState(request.product_name ?? "");
+  const [picked, setPicked] = useState(null);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    supabase.from("products")
+      .select("product_id, product_name, product_image_url")
+      .is("archived_at", null)
+      .order("product_id", { ascending: false })
+      .then(({ data }) => setProducts(data ?? []));
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+  const matches = (words.length
+    ? products.filter(p => words.some(w => p.product_name.toLowerCase().includes(w)))
+    : products).slice(0, 8);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onCancel}>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-5 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <h3 className="text-base font-bold text-[#1e2d3d] mb-1">Mark as Sourced</h3>
+        <p className="text-sm text-gray-500 mb-3">
+          “<span className="font-semibold text-[#1e2d3d]">{request.product_name}</span>” requested by {request.customers?.customer_name ?? "a customer"}.
+        </p>
+        {alreadyEmailed ? (
+          <p className="text-xs bg-gray-50 text-gray-500 rounded-xl px-3 py-2 mb-3">This customer was already notified, so no new email will be sent.</p>
+        ) : (
+          <p className="text-xs bg-green-50 text-green-700 rounded-xl px-3 py-2 mb-3">The customer will be emailed that their product has been sourced.</p>
+        )}
+
+        <label className="text-xs font-semibold text-gray-500 mb-1">Link the uploaded product (optional)</label>
+        <input
+          value={query}
+          onChange={e => { setQuery(e.target.value); setPicked(null); }}
+          placeholder="Search products…"
+          className="text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#F2AA25] mb-2"
+        />
+        <div className="overflow-y-auto min-h-0 flex-1 -mx-1 px-1 mb-3">
+          {matches.map(p => (
+            <button
+              key={p.product_id}
+              onClick={() => setPicked(p)}
+              className={`w-full flex items-center gap-3 text-left p-2 rounded-xl transition-colors ${picked?.product_id === p.product_id ? "bg-[#F2AA25]/15 ring-1 ring-[#F2AA25]" : "hover:bg-gray-50"}`}
+            >
+              {p.product_image_url
+                ? <img src={p.product_image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                : <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0" />}
+              <span className="text-sm text-[#1e2d3d] line-clamp-2">{p.product_name}</span>
+            </button>
+          ))}
+          {products.length > 0 && matches.length === 0 && <p className="text-xs text-gray-400 text-center py-3">No matching products</p>}
+        </div>
+        <p className="text-[11px] text-gray-400 mb-3">
+          {picked ? <>The email will link to <strong className="text-[#1e2d3d]">{picked.product_name}</strong>.</> : "No product picked: the email will link to the shop."}
+        </p>
+
+        <div className="flex gap-3">
+          <button onClick={onCancel} disabled={saving}
+            className="flex-1 border border-gray-300 text-gray-600 font-semibold py-2.5 rounded-2xl text-sm hover:border-gray-400 transition-colors disabled:opacity-40">
+            Cancel
+          </button>
+          <button onClick={() => onConfirm(picked?.product_id ?? null)} disabled={saving}
+            className="flex-1 bg-green-600 text-white font-bold py-2.5 rounded-2xl text-sm hover:bg-green-700 transition-colors disabled:opacity-60">
+            {saving ? "Saving…" : "Mark as Sourced"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminProductRequestsPage() {
   const [requests, setRequests]       = useState([]);
   const [loading, setLoading]         = useState(true);
   const [search, setSearch]           = useState("");
   const [confirmTarget, setConfirmTarget] = useState(null); // request to delete
   const [deleting, setDeleting]       = useState(false);
+  const [emails, setEmails]           = useState({});
+  const [sourcing, setSourcing]       = useState(null); // request being marked Sourced
+  const [savingSourced, setSavingSourced] = useState(false);
+  const [statusError, setStatusError] = useState("");
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from("product_requests")
-        .select("*, customers(customer_name)")
-        .order("created_at", { ascending: false });
+      const [{ data }, emailMap] = await Promise.all([
+        supabase
+          .from("product_requests")
+          .select("*, customers(customer_name)")
+          .order("created_at", { ascending: false }),
+        fetchSourcedEmails(),
+      ]);
       setRequests(data ?? []);
+      setEmails(emailMap);
       setLoading(false);
     }
     load();
   }, []);
 
   async function handleStatusChange(id, status) {
+    const req = requests.find(r => r.id === id);
+    if (status === "Sourced" && req?.status !== "Sourced") {
+      setSourcing(req);
+      return;
+    }
+    setStatusError("");
     setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));
-    await supabase.from("product_requests").update({ status }).eq("id", id);
+    const { error } = await supabase.from("product_requests").update({ status }).eq("id", id);
+    if (error) {
+      setStatusError(`Could not update the status: ${error.message}`);
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: req.status } : r));
+    }
+  }
+
+  async function confirmSourced(productId) {
+    const req = sourcing;
+    setSavingSourced(true);
+    setStatusError("");
+    const { error } = await supabase.from("product_requests")
+      .update({ status: "Sourced", sourced_product_id: productId })
+      .eq("id", req.id);
+    setSavingSourced(false);
+    if (error) {
+      setStatusError(`Could not mark as Sourced: ${error.message}`);
+      return;
+    }
+    setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: "Sourced", sourced_product_id: productId } : r));
+    setSourcing(null);
+    // The email is queued by the database; show its status once the sender has run.
+    fetchSourcedEmails().then(setEmails);
+    setTimeout(() => fetchSourcedEmails().then(setEmails), 6000);
   }
 
   async function handleDelete() {
@@ -179,6 +313,10 @@ export default function AdminProductRequestsPage() {
         </div>
       </div>
 
+      {statusError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl px-4 py-3 mb-4">{statusError}</div>
+      )}
+
       {filtered.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
           <p className="text-gray-400 font-medium">{search ? "No requests match your search." : "No product requests yet."}</p>
@@ -229,6 +367,7 @@ export default function AdminProductRequestsPage() {
                           <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
+                      <EmailStatus email={emails[req.id]} />
                     </td>
                     <td className="px-4 py-3">
                       <button
@@ -274,6 +413,7 @@ export default function AdminProductRequestsPage() {
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
+                  <EmailStatus email={emails[req.id]} />
                   <button
                     onClick={() => setConfirmTarget(req)}
                     className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 font-semibold px-3 py-1.5 rounded-xl hover:bg-red-50 transition-colors"
@@ -288,6 +428,16 @@ export default function AdminProductRequestsPage() {
             ))}
           </div>
         </>
+      )}
+
+      {sourcing && (
+        <SourcedDialog
+          request={sourcing}
+          alreadyEmailed={Boolean(emails[sourcing.id])}
+          onConfirm={confirmSourced}
+          onCancel={() => setSourcing(null)}
+          saving={savingSourced}
+        />
       )}
 
       {confirmTarget && (
