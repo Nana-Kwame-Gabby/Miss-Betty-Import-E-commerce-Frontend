@@ -30,6 +30,40 @@ export const paragraphs = (text: string) =>
     .map(p => `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#374151;">${p.replace(/\n/g, "<br>")}</p>`)
     .join("");
 
+// Light formatting for admin-written bulk emails. Everything is escaped first, so no HTML
+// from the admin reaches the email; then: blank line = new paragraph, "- " lines = bullet
+// list, **text** = bold, https:// addresses = links.
+const P_STYLE = "margin:0 0 14px;font-size:15px;line-height:1.6;color:#374151;";
+function inline(escaped: string) {
+  return escaped
+    .replace(/\*\*([^*\n]+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/https:\/\/[^\s<]+[^\s<.,;:!?)\]]/g, url => `<a href="${url}" target="_blank" style="color:${AMBER};font-weight:bold;word-break:break-all;">${url}</a>`);
+}
+export function richText(text: string) {
+  return esc(text.replace(/\r\n/g, "\n").trim())
+    .split(/\n{2,}/)
+    .map(block => {
+      // Within a paragraph, consecutive "- " lines become one bullet list.
+      const html: string[] = [];
+      let text: string[] = [];
+      let items: string[] = [];
+      const flushText = () => { if (text.length) html.push(`<p style="${P_STYLE}">${text.map(inline).join("<br>")}</p>`); text = []; };
+      const flushList = () => {
+        if (items.length) html.push(`<ul style="margin:0 0 14px;padding-left:22px;">${
+          items.map(i => `<li style="margin:0 0 6px;font-size:15px;line-height:1.6;color:#374151;">${inline(i)}</li>`).join("")
+        }</ul>`);
+        items = [];
+      };
+      for (const line of block.split("\n")) {
+        const bullet = line.match(/^\s*[-•]\s+(.*)$/);
+        if (bullet) { flushText(); items.push(bullet[1]); } else { flushList(); text.push(line); }
+      }
+      flushText(); flushList();
+      return html.join("");
+    })
+    .join("");
+}
+
 export const p = (html: string) =>
   `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#374151;">${html}</p>`;
 

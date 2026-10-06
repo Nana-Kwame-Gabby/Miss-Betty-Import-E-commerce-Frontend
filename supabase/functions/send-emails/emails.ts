@@ -1,7 +1,7 @@
 // The five Miss Betty Import emails, built from the shared layout and blocks.
 // Builders take plain data (loaded by index.ts) so they can be previewed and tested alone.
 import {
-  SITE, button, esc, ghanaTime, infoRows, itemTable, layout, money, note, p, paragraphs, productCard, totals,
+  SITE, button, esc, ghanaTime, infoRows, itemTable, layout, money, note, p, paragraphs, productCard, richText, totals,
   type ItemRow,
 } from "./templates.ts";
 
@@ -145,5 +145,30 @@ export function periodEmail(e: PeriodEmail): Built {
   return {
     subject: e.subject,
     html: layout({ title, preheader: e.message.trim().slice(0, 120) || title, body, badge: opened ? "Now open" : "Order period closed" }),
+  };
+}
+
+// ── 6. Bulk email / general announcement ────────────────────────────────────────────
+export type AnnouncementEmail = {
+  subject: string;
+  message: string;
+  customerName?: string | null;
+  buttonLabel?: string | null;
+  buttonUrl?: string | null;
+};
+
+export function announcementEmail(a: AnnouncementEmail): Built {
+  const url = a.buttonUrl && /^https:\/\/[^\s<>"]+$/.test(a.buttonUrl) ? a.buttonUrl : SITE;
+  const label = a.buttonLabel?.trim() || (url === SITE ? "Visit missbettyimport.com" : "Learn more");
+  const plain = a.message.replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
+  const body = `
+    ${p(`Hi ${firstName(a.customerName)},`)}
+    ${richText(a.message)}
+    ${button(label, url)}
+    ${url !== SITE ? p(`<span style="font-size:13px;color:#6b7280;">Visit us anytime at <a href="${SITE}" style="color:#F2AA25;font-weight:bold;text-decoration:none;">missbettyimport.com</a></span>`) : ""}
+  `;
+  return {
+    subject: a.subject,
+    html: layout({ title: a.subject, preheader: plain.slice(0, 120) || a.subject, body }),
   };
 }

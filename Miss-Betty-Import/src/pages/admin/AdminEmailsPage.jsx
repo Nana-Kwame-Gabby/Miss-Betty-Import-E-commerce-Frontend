@@ -10,6 +10,7 @@ const KIND_LABELS = {
   request_sourced:    "Request sourced",
   period_closed:      "Period closed",
   period_opened:      "New period open",
+  announcement:       "Bulk email",
 };
 const STATUS_STYLES = {
   sent:    "bg-green-100 text-green-700",

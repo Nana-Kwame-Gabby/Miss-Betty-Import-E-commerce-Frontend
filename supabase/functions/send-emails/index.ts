@@ -9,7 +9,7 @@
 // Secrets: BREVO_API_KEY, EMAIL_FROM ("Miss Betty Import <orders@missbettyimport.com>"),
 // EMAIL_REPLY_TO (optional). Until BREVO_API_KEY is set, emails simply wait in the outbox.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { orderEmail, orderShippingNote, periodEmail, shippingEmail, sourcedEmail, type Built } from "./emails.ts";
+import { announcementEmail, orderEmail, orderShippingNote, periodEmail, shippingEmail, sourcedEmail, type Built } from "./emails.ts";
 import { ghanaTime, toText } from "./templates.ts";
 import { buildInvoicePdf } from "./invoice-pdf.ts";
 
@@ -139,23 +139,44 @@ async function buildSourced(db: SupabaseClient, m: Msg): Promise<Built> {
   });
 }
 
-async function buildPeriod(db: SupabaseClient, m: Msg): Promise<Built> {
-  let subject = String(m.data.subject ?? m.subject ?? "");
-  let message = String(m.data.message ?? "");
-  let periodId = (m.data.order_period_id ?? null) as number | null;
-  if (m.campaign_id) {
-    const { data: c, error } = await db.from("email_campaigns").select("subject, message, order_period_id").eq("id", m.campaign_id).maybeSingle();
-    if (error) throw new Error(`Loading announcement failed: ${error.message}`);
-    if (!c) throw new PermanentError("Announcement not found");
-    ({ subject, message } = c);
-    periodId = c.order_period_id;
+type CampaignContent = {
+  kind: string; subject: string; message: string; periodId: number | null;
+  buttonLabel: string | null; buttonUrl: string | null;
+};
+
+// Renders an order-period announcement or a bulk email (same data, different template).
+async function renderCampaign(db: SupabaseClient, c: CampaignContent, customerName: string | null): Promise<Built> {
+  if (c.kind === "announcement") {
+    return announcementEmail({ subject: c.subject, message: c.message, customerName, buttonLabel: c.buttonLabel, buttonUrl: c.buttonUrl });
   }
   let periodName: string | null = null;
-  if (periodId) {
-    const { data: per } = await db.from("order_periods").select("name").eq("id", periodId).maybeSingle();
+  if (c.periodId) {
+    const { data: per } = await db.from("order_periods").select("name").eq("id", c.periodId).maybeSingle();
     periodName = per?.name ?? null;
   }
-  const built = periodEmail({ kind: m.kind as "period_closed" | "period_opened", subject, message, periodName, customerName: m.recipient_name });
+  return periodEmail({ kind: c.kind as "period_closed" | "period_opened", subject: c.subject, message: c.message, periodName, customerName });
+}
+
+async function loadCampaign(db: SupabaseClient, id: number): Promise<CampaignContent> {
+  const { data: c, error } = await db.from("email_campaigns")
+    .select("kind, subject, message, order_period_id, button_label, button_url").eq("id", id).maybeSingle();
+  if (error) throw new Error(`Loading announcement failed: ${error.message}`);
+  if (!c) throw new PermanentError("Announcement not found");
+  return { kind: c.kind, subject: c.subject, message: c.message, periodId: c.order_period_id, buttonLabel: c.button_label, buttonUrl: c.button_url };
+}
+
+async function buildCampaign(db: SupabaseClient, m: Msg): Promise<Built> {
+  const content: CampaignContent = m.campaign_id
+    ? await loadCampaign(db, m.campaign_id)
+    : {
+        kind: m.kind,
+        subject: String(m.data.subject ?? m.subject ?? ""),
+        message: String(m.data.message ?? ""),
+        periodId: (m.data.order_period_id ?? null) as number | null,
+        buttonLabel: (m.data.button_label ?? null) as string | null,
+        buttonUrl: (m.data.button_url ?? null) as string | null,
+      };
+  const built = await renderCampaign(db, content, m.recipient_name);
   if (m.is_test) built.subject = `[TEST] ${built.subject}`;
   return built;
 }
@@ -164,8 +185,9 @@ const BUILDERS: Record<string, (db: SupabaseClient, m: Msg) => Promise<Built>> =
   order_confirmation: buildOrder,
   shipping_payment: buildShipping,
   request_sourced: buildSourced,
-  period_closed: buildPeriod,
-  period_opened: buildPeriod,
+  period_closed: buildCampaign,
+  period_opened: buildCampaign,
+  announcement: buildCampaign,
 };
 
 // ── Brevo ────────────────────────────────────────────────────────────────────────
@@ -301,14 +323,24 @@ Deno.serve(async (req) => {
     }
 
     if (action === "preview" && adminOk) {
-      const kind = body.kind === "period_closed" ? "period_closed" : "period_opened";
-      const { data: per } = kind === "period_opened"
-        ? await db.from("order_periods").select("name").eq("is_active", true).order("opened_at", { ascending: false }).limit(1).maybeSingle()
-        : await db.from("order_periods").select("name").eq("is_active", false).not("closed_at", "is", null).order("closed_at", { ascending: false }).limit(1).maybeSingle();
-      const built = periodEmail({
-        kind, subject: String(body.subject ?? "").slice(0, 150), message: String(body.message ?? "").slice(0, 5000),
-        periodName: per?.name ?? null, customerName: "Ama Mensah",
-      });
+      // A past campaign exactly as sent, or a draft being composed.
+      if (body.campaign_id) {
+        const built = await renderCampaign(db, await loadCampaign(db, Number(body.campaign_id)), null);
+        return json({ subject: built.subject, html: built.html });
+      }
+      const kind = ["period_closed", "period_opened", "announcement"].includes(body.kind) ? body.kind : "period_opened";
+      let periodId: number | null = null;
+      if (kind !== "announcement") {
+        const { data: per } = kind === "period_opened"
+          ? await db.from("order_periods").select("id").eq("is_active", true).order("opened_at", { ascending: false }).limit(1).maybeSingle()
+          : await db.from("order_periods").select("id").eq("is_active", false).not("closed_at", "is", null).order("closed_at", { ascending: false }).limit(1).maybeSingle();
+        periodId = per?.id ?? null;
+      }
+      const built = await renderCampaign(db, {
+        kind, subject: String(body.subject ?? "").slice(0, 150), message: String(body.message ?? "").slice(0, 10000), periodId,
+        buttonLabel: body.button_label ? String(body.button_label).slice(0, 60) : null,
+        buttonUrl: body.button_url ? String(body.button_url).slice(0, 500) : null,
+      }, "Ama Mensah");
       return json({ subject: built.subject, html: built.html });
     }
 
