@@ -33,6 +33,8 @@ function mapProduct(p) {
     product_image_url:   p.product_image_url   ?? '',
     product_image_url_2: p.product_image_url_2 ?? '',
     product_video_url:   p.product_video_url   ?? '',
+    extra_image_urls: Array.isArray(p.extra_image_urls) ? p.extra_image_urls.filter(Boolean) : [],
+    videos: Array.isArray(p.product_videos) ? p.product_videos.filter(v => v?.url) : [],
     unit_price: Number(p.unit_price),
     cost_price: Number(p.cost_price ?? 0),
     profit:     Number(p.profit ?? 0),
@@ -252,13 +254,21 @@ export default function ProductDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
         {/* Media carousel */}
         <div className="rounded-2xl overflow-hidden shadow-sm">
+          {/* With uploaded videos: video first, a thumbnail strip, and no auto-slide.
+              Without videos: images first, exactly as before. */}
           <MediaCarousel
-            heightClass="h-48 sm:h-72"
+            heightClass={product.videos.length ? "h-64 sm:h-80" : "h-48 sm:h-72"}
             name={product.product_name}
+            thumbnails={product.videos.length > 0}
+            autoSlide={product.videos.length === 0}
+            autoplayVideo
+            focusUrl={variantImg}
             media={[
+              ...product.videos.map(v => ({ type: "video", url: v.url, poster: v.poster_url })),
               { type: "image", url: variantImg },
               { type: "image", url: product.product_image_url   === variantImg ? null : product.product_image_url },
               { type: "image", url: product.product_image_url_2 === variantImg ? null : product.product_image_url_2 },
+              ...product.extra_image_urls.map(url => ({ type: "image", url: url === variantImg ? null : url })),
               { type: "tiktok", url: product.product_video_url },
             ]}
           />

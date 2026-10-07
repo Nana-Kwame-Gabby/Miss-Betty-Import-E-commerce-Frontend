@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import usePersistedState from "../../hooks/usePersistedState";
+import ProductMediaManager from "./ProductMediaManager";
+import MediaStoragePanel from "./MediaStoragePanel";
+import {
+  emptyMedia, mediaBusy, mediaFromProduct, productMediaUrls, removeStoredMedia, uploadProductMedia,
+} from "../../lib/productMedia";
 
 const EMPTY_FORM = {
   product_name: "",
@@ -24,62 +29,6 @@ const Spinner = () => (
     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
   </svg>
 );
-
-function ImagePickerField({ label, file, preview, onChange, onClear, existingUrl = null }) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-[#1e2d3d] mb-1">{label}</label>
-      <div className="flex items-start gap-3">
-        {(preview || existingUrl) && (
-          <div className="relative flex-shrink-0">
-            <img
-              src={preview ?? existingUrl}
-              alt="Preview"
-              className="w-16 h-16 object-cover rounded-xl border border-gray-200"
-            />
-            {preview && (
-              <button
-                type="button"
-                onClick={onClear}
-                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
-              >×</button>
-            )}
-          </div>
-        )}
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input type="file" accept="image/*" onChange={onChange} className="hidden" />
-          <span className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-[#1e2d3d] font-semibold text-xs px-3 py-2 rounded-xl transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-            </svg>
-            {file ? file.name : existingUrl ? "Replace Image" : "Choose Image"}
-          </span>
-        </label>
-      </div>
-    </div>
-  );
-}
-
-
-function getStoragePath(publicUrl, bucket) {
-  if (!publicUrl) return null;
-  const marker = `/storage/v1/object/public/${bucket}/`;
-  const idx = publicUrl.indexOf(marker);
-  if (idx === -1) return null;
-  return decodeURIComponent(publicUrl.slice(idx + marker.length));
-}
-
-async function uploadFile(file, folder = "", bucket = "product-images") {
-  const ext = file.name.split(".").pop();
-  const path = `${folder}${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    contentType: file.type,
-    upsert: false,
-  });
-  if (error) throw new Error(error.message);
-  const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path);
-  return publicUrl;
-}
 
 // One stock row per applicable (size, colour) combination — a single row when the
 // product has neither dimension, one row per size or per colour when only one is set,
@@ -113,24 +62,22 @@ function flattenVariantImages(variantImages) {
   return flat;
 }
 
-// Uploads pending files and builds the products.variant_images value, dropping entries
-// for sizes/colours that no longer exist on the product. Returns null when empty.
-async function buildVariantImages(flat, sizes, colours) {
-  const entries = Object.entries(flat).filter(([key]) => {
-    const [kind, name] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
-    if (kind === "colour") return colours.includes(name);
-    if (kind === "size")   return sizes.includes(name);
-    const [size, colour] = name.split("|");
-    return sizes.includes(size) && colours.includes(colour);
-  });
-  const uploaded = await Promise.all(entries.map(async ([key, v]) =>
-    [key, typeof v === "string" ? v : await uploadFile(v.file, "images/variants/", "product-images")]
-  ));
+// Builds the products.variant_images value from a map of already-uploaded URLs, dropping
+// entries for sizes/colours that no longer exist on the product. Returns null when empty.
+function buildVariantImages(flat, sizes, colours) {
   const result = {};
   const group = { colour: "colours", size: "sizes", combo: "combos" };
-  for (const [key, url] of uploaded) {
+  for (const [key, url] of Object.entries(flat)) {
+    if (typeof url !== "string" || !url) continue;
     const kind = key.slice(0, key.indexOf(":"));
-    (result[group[kind]] ??= {})[key.slice(key.indexOf(":") + 1)] = url;
+    const name = key.slice(key.indexOf(":") + 1);
+    if (kind === "colour" && !colours.includes(name)) continue;
+    if (kind === "size" && !sizes.includes(name)) continue;
+    if (kind === "combo") {
+      const [size, colour] = name.split("|");
+      if (!sizes.includes(size) || !colours.includes(colour)) continue;
+    }
+    (result[group[kind]] ??= {})[name] = url;
   }
   return Object.keys(result).length > 0 ? result : null;
 }
@@ -171,7 +118,7 @@ function VariantImagesEditor({ sizes, colours, value, onChange }) {
         <label className="cursor-pointer">
           <input
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             className="hidden"
             onChange={e => {
               const file = e.target.files[0];
@@ -243,10 +190,8 @@ export default function AdminProductsPage() {
   // Upload form — text/number fields persist across navigation (draft survives an
   // accidental nav-away); image files are never persisted (not serializable, must be re-picked).
   const [form, setForm] = usePersistedState("mbimport_form_admin_product_draft", EMPTY_FORM);
-  const [imageFile, setImageFile]     = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [imageFile2, setImageFile2]   = useState(null);
-  const [imagePreview2, setImagePreview2] = useState(null);
+  const [media, setMedia]             = useState(emptyMedia);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [tiktokUrl, setTiktokUrl]     = usePersistedState("mbimport_form_admin_product_draft_tiktok", "");
   const [submitting, setSubmitting]   = useState(false);
   const [error, setError]             = useState("");
@@ -271,10 +216,7 @@ export default function AdminProductsPage() {
   // Edit modal
   const [editingProduct, setEditingProduct] = useState(null);
   const [editForm, setEditForm]             = useState(EMPTY_FORM);
-  const [editImageFile, setEditImageFile]   = useState(null);
-  const [editImagePreview, setEditImagePreview] = useState(null);
-  const [editImageFile2, setEditImageFile2] = useState(null);
-  const [editImagePreview2, setEditImagePreview2] = useState(null);
+  const [editMedia, setEditMedia]           = useState(emptyMedia);
   const [editTiktokUrl, setEditTiktokUrl]   = useState("");
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError]           = useState("");
@@ -316,16 +258,6 @@ export default function AdminProductsPage() {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   }
 
-  function makeImagePicker(setFile, setPreview) {
-    return (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      setFile(file);
-      setPreview(URL.createObjectURL(file));
-    };
-  }
-
-
   async function handleSubmit(e) {
     e.preventDefault();
     setError(""); setSuccess("");
@@ -343,13 +275,18 @@ export default function AdminProductsPage() {
       setError("Add at least one complete size entry, or disable size-based pricing.");
       return;
     }
+    if (mediaBusy(media)) {
+      setError("Please wait until the videos finish optimizing, then upload.");
+      return;
+    }
 
     setSubmitting(true);
+    let uploaded = [];
     try {
-      const [imageUrl, imageUrl2] = await Promise.all([
-        imageFile  ? uploadFile(imageFile,  "images/", "product-images") : Promise.resolve(null),
-        imageFile2 ? uploadFile(imageFile2, "images/", "product-images") : Promise.resolve(null),
-      ]);
+      setUploadProgress(0);
+      const up = await uploadProductMedia(media, variantImages, setUploadProgress);
+      uploaded = up.uploaded;
+      setUploadProgress(null);
       const videoUrl = tiktokUrl.trim() || null;
 
       const cost_price  = Number(form.cost_price);
@@ -384,8 +321,8 @@ export default function AdminProductsPage() {
         return;
       }
       const simpleDiscountPrice = discountAmount > 0 ? cost_price + (profit - discountAmount) + misc_amount : null;
-      const variant_images = await buildVariantImages(
-        variantImages,
+      const variant_images = buildVariantImages(
+        up.variantFlat,
         size_pricing ? size_pricing.map(r => r.size) : splitList(form.sizes),
         splitList(form.colours)
       );
@@ -401,8 +338,7 @@ export default function AdminProductsPage() {
         discount_price: simpleDiscountPrice,
         product_status_id: Number(form.status_id),
         description: form.description.trim() || null,
-        product_image_url:   imageUrl,
-        product_image_url_2: imageUrl2,
+        ...up.fields,
         product_video_url:   videoUrl,
         size:   sizeValue,
         colour: form.colours.trim() || null,
@@ -413,6 +349,10 @@ export default function AdminProductsPage() {
       }).select("product_id, product_name").single();
 
       if (insertError) throw new Error(insertError.message);
+      // Uploaded files the product doesn't use (e.g. a variant photo for a removed colour).
+      const kept = new Set(productMediaUrls({ ...up.fields, variant_images }));
+      removeStoredMedia(uploaded.filter(u => !kept.has(u)));
+      uploaded = [];
 
       const stockToSave = stockRows
         .filter(r => r.stock_quantity !== "")
@@ -437,8 +377,7 @@ export default function AdminProductsPage() {
 
       setSuccess("Product uploaded successfully!");
       setForm(EMPTY_FORM);
-      setImageFile(null);    setImagePreview(null);
-      setImageFile2(null);   setImagePreview2(null);
+      setMedia(emptyMedia());
       setTiktokUrl("");
       setUseSizePricing(false);
       setSizePricingRows([{ size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }]);
@@ -447,8 +386,11 @@ export default function AdminProductsPage() {
       loadAll();
       setTimeout(() => setSuccess(""), 4000);
     } catch (err) {
+      // Nothing saved: remove anything uploaded for it so no orphaned files are left.
+      removeStoredMedia(uploaded);
       setError(err.message);
     }
+    setUploadProgress(null);
     setSubmitting(false);
   }
 
@@ -481,18 +423,7 @@ export default function AdminProductsPage() {
         .eq('product_id', product.product_id);
       if (deleteErr) throw new Error(deleteErr.message);
 
-      const imgPaths = [
-        getStoragePath(product.product_image_url,   'product-images'),
-        getStoragePath(product.product_image_url_2, 'product-images'),
-        ...Object.values(flattenVariantImages(product.variant_images)).map(url => getStoragePath(url, 'product-images')),
-      ].filter(Boolean);
-      if (imgPaths.length) {
-        await supabase.storage.from('product-images').remove(imgPaths);
-      }
-      const videoPath = getStoragePath(product.product_video_url, 'product-videos');
-      if (videoPath) {
-        await supabase.storage.from('product-videos').remove([videoPath]);
-      }
+      await removeStoredMedia(productMediaUrls(product));
 
       loadAll();
     } catch (err) {
@@ -521,8 +452,7 @@ export default function AdminProductsPage() {
       estimated_shipping_fee_min: String(product.estimated_shipping_fee_min ?? ""),
       estimated_shipping_fee_max: String(product.estimated_shipping_fee_max ?? ""),
     });
-    setEditImageFile(null);    setEditImagePreview(null);
-    setEditImageFile2(null);   setEditImagePreview2(null);
+    setEditMedia(mediaFromProduct(product));
     setEditTiktokUrl(product.product_video_url ?? "");
     setEditError("");
     setEditVariantImages(flattenVariantImages(product.variant_images));
@@ -552,8 +482,7 @@ export default function AdminProductsPage() {
 
   function handleEditClose() {
     setEditingProduct(null);
-    setEditImageFile(null);    setEditImagePreview(null);
-    setEditImageFile2(null);   setEditImagePreview2(null);
+    setEditMedia(emptyMedia());
     setEditTiktokUrl("");
     setEditError("");
     setEditUseSizePricing(false);
@@ -583,14 +512,19 @@ export default function AdminProductsPage() {
       setEditError("Add at least one complete size entry, or disable size-based pricing.");
       return;
     }
+    if (mediaBusy(editMedia)) {
+      setEditError("Please wait until the videos finish optimizing, then save.");
+      return;
+    }
 
     setEditSubmitting(true);
+    let uploaded = [];
     try {
-      const [imageUrl, imageUrl2] = await Promise.all([
-        editImageFile  ? uploadFile(editImageFile,  "images/", "product-images") : Promise.resolve(editingProduct.product_image_url),
-        editImageFile2 ? uploadFile(editImageFile2, "images/", "product-images") : Promise.resolve(editingProduct.product_image_url_2),
-      ]);
-      const videoUrl = editTiktokUrl.trim() || editingProduct.product_video_url || null;
+      setUploadProgress(0);
+      const up = await uploadProductMedia(editMedia, editVariantImages, setUploadProgress);
+      uploaded = up.uploaded;
+      setUploadProgress(null);
+      const videoUrl = editTiktokUrl.trim() || null;
 
       const cost_price  = Number(editForm.cost_price);
       const profit      = Number(editForm.profit || 0);
@@ -624,8 +558,8 @@ export default function AdminProductsPage() {
         return;
       }
       const simpleDiscountPrice = discountAmount > 0 ? cost_price + (profit - discountAmount) + misc_amount : null;
-      const variant_images = await buildVariantImages(
-        editVariantImages,
+      const variant_images = buildVariantImages(
+        up.variantFlat,
         size_pricing ? size_pricing.map(r => r.size) : splitList(editForm.sizes),
         splitList(editForm.colours)
       );
@@ -642,8 +576,7 @@ export default function AdminProductsPage() {
           discount_price: editUseSizePricing ? null : simpleDiscountPrice,
           product_status_id: Number(editForm.status_id),
           description: editForm.description.trim() || null,
-          product_image_url:   imageUrl,
-          product_image_url_2: imageUrl2,
+          ...up.fields,
           product_video_url:   videoUrl,
           size:   sizeValue,
           colour: editForm.colours.trim() || null,
@@ -655,6 +588,11 @@ export default function AdminProductsPage() {
         .eq("product_id", editingProduct.product_id);
 
       if (updateError) throw new Error(updateError.message);
+
+      // Saved: delete files that were replaced or removed, and uploads the product doesn't use.
+      const kept = new Set(productMediaUrls({ ...up.fields, variant_images }));
+      removeStoredMedia([...productMediaUrls(editingProduct), ...uploaded].filter(u => !kept.has(u)));
+      uploaded = [];
 
       // Admin's save is authoritative: replace this product's stock rows outright rather
       // than diffing, consistent with how every other field in this form already behaves.
@@ -669,8 +607,10 @@ export default function AdminProductsPage() {
       handleEditClose();
       loadAll();
     } catch (err) {
+      removeStoredMedia(uploaded);
       setEditError(err.message);
     }
+    setUploadProgress(null);
     setEditSubmitting(false);
   }
 
@@ -687,6 +627,8 @@ export default function AdminProductsPage() {
     <div>
       <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Products</h1>
       <p className="text-sm text-gray-400 mb-6">Upload and manage store products</p>
+
+      <MediaStoragePanel onChanged={loadAll} />
 
       {/* ── Upload Form ── */}
       <div className="bg-white rounded-2xl shadow-sm p-5 mb-8">
@@ -768,37 +710,15 @@ export default function AdminProductsPage() {
             </div>
           )}
 
-          {/* Media uploads */}
-          <div className="sm:col-span-2">
-            <p className="text-xs font-bold text-[#1e2d3d] mb-3 uppercase tracking-wide">Product Media</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <ImagePickerField
-                label="Image 1 (Main)"
-                file={imageFile}
-                preview={imagePreview}
-                onChange={makeImagePicker(setImageFile, setImagePreview)}
-                onClear={() => { setImageFile(null); setImagePreview(null); }}
-              />
-              <ImagePickerField
-                label="Image 2"
-                file={imageFile2}
-                preview={imagePreview2}
-                onChange={makeImagePicker(setImageFile2, setImagePreview2)}
-                onClear={() => { setImageFile2(null); setImagePreview2(null); }}
-              />
-              <div>
-                <label className={labelClass}>TikTok Video Link <span className="text-gray-400 font-normal">(optional)</span></label>
-                <input
-                  type="url"
-                  value={tiktokUrl}
-                  onChange={e => setTiktokUrl(e.target.value)}
-                  placeholder="https://www.tiktok.com/@user/video/..."
-                  className={inputClass}
-                />
-              </div>
-            </div>
-            <p className="text-xs text-gray-400 mt-2">Media will display as a slideshow: Image 1 → Image 2 → TikTok link</p>
-          </div>
+          {/* Media uploads (Cloudflare R2) */}
+          <ProductMediaManager
+            value={media}
+            onChange={setMedia}
+            tiktokUrl={tiktokUrl}
+            onTiktokChange={setTiktokUrl}
+            inputClass={inputClass}
+            disabled={submitting}
+          />
 
           {/* Sizes / Size-based pricing */}
           <div className="sm:col-span-2">
@@ -1002,7 +922,7 @@ export default function AdminProductsPage() {
               disabled={submitting}
               className="bg-[#F2AA25] text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2"
             >
-              {submitting ? <><Spinner /> Uploading…</> : "Upload Product"}
+              {submitting ? <><Spinner /> {uploadProgress != null ? `Uploading media ${Math.round(uploadProgress * 100)}%…` : "Saving…"}</> : "Upload Product"}
             </button>
           </div>
         </form>
@@ -1127,8 +1047,10 @@ export default function AdminProductsPage() {
                       <div className="flex items-center gap-1">
                         {p.product_image_url   && <span title="Image 1" className="text-xs bg-blue-50 text-blue-600 font-semibold px-1.5 py-0.5 rounded">IMG1</span>}
                         {p.product_image_url_2 && <span title="Image 2" className="text-xs bg-blue-50 text-blue-600 font-semibold px-1.5 py-0.5 rounded">IMG2</span>}
-                        {p.product_video_url   && <span title="Video"   className="text-xs bg-purple-50 text-purple-600 font-semibold px-1.5 py-0.5 rounded">VID</span>}
-                        {!p.product_image_url && !p.product_image_url_2 && !p.product_video_url && <span className="text-gray-300 text-xs">—</span>}
+                        {(p.product_videos?.length ?? 0) > 0 && <span title="Uploaded videos" className="text-xs bg-purple-50 text-purple-600 font-semibold px-1.5 py-0.5 rounded">VID{p.product_videos.length > 1 ? ` ×${p.product_videos.length}` : ""}</span>}
+                        {p.product_video_url   && <span title="TikTok link" className="text-xs bg-gray-100 text-gray-600 font-semibold px-1.5 py-0.5 rounded">TT</span>}
+                        {(p.extra_image_urls?.length ?? 0) > 0 && <span title="More images" className="text-xs bg-blue-50 text-blue-600 font-semibold px-1.5 py-0.5 rounded">+{p.extra_image_urls.length}</span>}
+                        {!p.product_image_url && !p.product_image_url_2 && !p.product_video_url && !(p.product_videos?.length) && <span className="text-gray-300 text-xs">—</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -1250,39 +1172,15 @@ export default function AdminProductsPage() {
                   </div>
                 )}
 
-                {/* Media section */}
-                <div className="sm:col-span-2">
-                  <p className="text-xs font-bold text-[#1e2d3d] mb-3 uppercase tracking-wide">Product Media</p>
-                  <div className="grid grid-cols-1 gap-4">
-                    <ImagePickerField
-                      label="Image 1 (Main)"
-                      file={editImageFile}
-                      preview={editImagePreview}
-                      existingUrl={editingProduct.product_image_url}
-                      onChange={makeImagePicker(setEditImageFile, setEditImagePreview)}
-                      onClear={() => { setEditImageFile(null); setEditImagePreview(null); }}
-                    />
-                    <ImagePickerField
-                      label="Image 2"
-                      file={editImageFile2}
-                      preview={editImagePreview2}
-                      existingUrl={editingProduct.product_image_url_2}
-                      onChange={makeImagePicker(setEditImageFile2, setEditImagePreview2)}
-                      onClear={() => { setEditImageFile2(null); setEditImagePreview2(null); }}
-                    />
-                    <div>
-                      <label className={labelClass}>TikTok Video Link <span className="text-gray-400 font-normal">(optional)</span></label>
-                      <input
-                        type="url"
-                        value={editTiktokUrl}
-                        onChange={e => setEditTiktokUrl(e.target.value)}
-                        placeholder="https://www.tiktok.com/@user/video/..."
-                        className={inputClass}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2">Media will display as a slideshow: Image 1 → Image 2 → TikTok link</p>
-                </div>
+                {/* Media section (Cloudflare R2) */}
+                <ProductMediaManager
+                  value={editMedia}
+                  onChange={setEditMedia}
+                  tiktokUrl={editTiktokUrl}
+                  onTiktokChange={setEditTiktokUrl}
+                  inputClass={inputClass}
+                  disabled={editSubmitting}
+                />
 
                 {/* Sizes / Size-based pricing (edit) */}
                 <div className="sm:col-span-2">
@@ -1495,7 +1393,7 @@ export default function AdminProductsPage() {
                 disabled={editSubmitting}
                 className="bg-[#F2AA25] text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2"
               >
-                {editSubmitting ? <><Spinner /> Saving…</> : "Save Changes"}
+                {editSubmitting ? <><Spinner /> {uploadProgress != null ? `Uploading media ${Math.round(uploadProgress * 100)}%…` : "Saving…"}</> : "Save Changes"}
               </button>
             </div>
           </div>

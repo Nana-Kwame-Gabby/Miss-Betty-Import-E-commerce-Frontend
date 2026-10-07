@@ -12,6 +12,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
     "@tailwindcss/vite": "^4.2.0",
+    "aws4fetch": "^1.0.20",
+    "mediabunny": "^1.61.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.2",

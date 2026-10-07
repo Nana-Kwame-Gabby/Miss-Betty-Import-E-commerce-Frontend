@@ -44,6 +44,12 @@ const TikTokIcon = () => (
   </svg>
 );
 
+const PlayBadge = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="white" aria-hidden="true">
+    <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/>
+  </svg>
+);
+
 const ImagePlaceholder = ({ heightClass }) => (
   <div className={`w-full ${heightClass} bg-gray-100 flex items-center justify-center`}>
     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"
@@ -73,12 +79,35 @@ async function triggerDownload(url, filename) {
 }
 
 /**
- * media:       array of { type: 'image' | 'tiktok', url: string }
+ * media:       array of { type: 'image' | 'video' | 'tiktok', url: string, poster?: string }
  * heightClass: tailwind height classes, e.g. "h-56 sm:h-72"
  * name:        base filename used for downloads (e.g. product name)
+ * thumbnails:  show a thumbnail strip under the main area (videos get a ▶ badge)
+ * autoSlide:   advance every few seconds (never while a video is showing)
+ * focusUrl:    when this changes (e.g. a colour with its own photo is picked), show that item
+ * autoplayVideo: start a showing video automatically, muted and looping (browsers only allow
+ *              muted autoplay). Only on good connections: skipped with Data Saver or on 2G/3G,
+ *              where the customer sees the thumbnail and presses play to spend the data.
  */
-export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", name = "media" }) {
-  const items = media.filter(m => m.url);
+// Autoplaying muted: set the property and attribute before play() (iOS Safari needs both).
+function startMuted(el) {
+  if (!el) return;
+  el.muted = true;
+  el.setAttribute("muted", "");
+  el.play?.().catch(() => { /* blocked by the browser: the customer can press play */ });
+}
+
+// Browsers without the Network Information API (e.g. Safari) count as a good connection.
+const slowOrSaving = () => {
+  try {
+    const c = navigator.connection;
+    return Boolean(c?.saveData) || ["slow-2g", "2g", "3g"].includes(c?.effectiveType);
+  } catch { return false; }
+};
+
+export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", name = "media", thumbnails = false, autoSlide = true, focusUrl = null, autoplayVideo = false }) {
+  // De-duplicate (the same photo can appear as main and variant image).
+  const items = media.filter((m, i, all) => m.url && all.findIndex(o => o.url === m.url) === i);
 
   const [idx,      setIdx]      = useState(0);
   const [hovered,  setHovered]  = useState(false);
@@ -94,16 +123,24 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
     setIdx(0);
     setAutoKey(k => k + 1);
   }
+  const [prevFocus, setPrevFocus] = useState(focusUrl);
+  if (focusUrl !== prevFocus) {
+    setPrevFocus(focusUrl);
+    const at = items.findIndex(m => m.url === focusUrl);
+    if (at >= 0) { setIdx(at); setAutoKey(k => k + 1); }
+  }
+  const showingVideo = items[idx]?.type === "video";
+  const sliding = autoSlide && !showingVideo && items.length > 1;
 
   // Auto-slide: runs every SLIDE_INTERVAL ms unless hovered.
   // autoKey dependency means any manual navigation resets the countdown.
   useEffect(() => {
-    if (items.length <= 1 || hovered) return;
+    if (!sliding || hovered) return;
     const timer = setInterval(() => {
       setIdx(i => (i + 1) % items.length);
     }, SLIDE_INTERVAL);
     return () => clearInterval(timer);
-  }, [items.length, hovered, autoKey]);
+  }, [items.length, hovered, autoKey, sliding]);
 
   // Manual navigation resets the auto-slide timer via autoKey
   const goTo = useCallback((newIdx) => {
@@ -147,6 +184,36 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
             alt={name}
             className={`w-full ${heightClass} object-cover`}
           />
+        ) : item.type === "video" ? (
+          /* Uploaded video: mounted only while selected (switching away stops it). It either
+             autoplays muted and loops, or waits for the customer to press play. Never with sound. */
+          autoplayVideo && !slowOrSaving() ? (
+            <video
+              key={item.url}
+              ref={startMuted}
+              src={item.url}
+              poster={item.poster || undefined}
+              controls
+              playsInline
+              muted
+              autoPlay
+              loop
+              preload="auto"
+              controlsList="nodownload"
+              className={`w-full ${heightClass} object-contain bg-black`}
+            />
+          ) : (
+            <video
+              key={item.url}
+              src={item.url}
+              poster={item.poster || undefined}
+              controls
+              playsInline
+              preload="none"
+              controlsList="nodownload"
+              className={`w-full ${heightClass} object-contain bg-black`}
+            />
+          )
         ) : (
           /* TikTok slide — full-area link, opens TikTok app on mobile via universal links */
           <a
@@ -204,7 +271,7 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
         )}
 
         {/* ── Dot indicators — bottom-center ── */}
-        {items.length > 1 && (
+        {items.length > 1 && !thumbnails && !showingVideo && (
           <div className="absolute bottom-2.5 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none">
             {items.map((m, i) => (
               <button
@@ -228,7 +295,7 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
         )}
 
         {/* ── Auto-slide progress bar ── */}
-        {items.length > 1 && (
+        {sliding && (
           <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20 z-10">
             <div
               key={`${idx}-${autoKey}-${hovered}`}
@@ -238,6 +305,41 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
           </div>
         )}
       </div>
+
+      {/* ── Thumbnail strip ── */}
+      {thumbnails && items.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto p-2 bg-white" role="tablist" aria-label="Product media">
+          {items.map((m, i) => (
+            <button
+              key={m.url}
+              type="button"
+              role="tab"
+              aria-selected={i === idx}
+              aria-label={m.type === "video" ? `Play video ${i + 1}` : m.type === "tiktok" ? "TikTok video" : `Image ${i + 1}`}
+              onClick={() => goTo(i)}
+              className={`relative flex-shrink-0 w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-xl overflow-hidden border-2 transition-colors ${
+                i === idx ? "border-[#F2AA25]" : "border-transparent hover:border-gray-300"
+              }`}
+            >
+              {m.type === "image" ? (
+                <img src={m.url} alt="" loading="lazy" className="w-full h-full object-cover" />
+              ) : m.type === "video" ? (
+                <>
+                  {m.poster
+                    ? <img src={m.poster} alt="" loading="lazy" className="w-full h-full object-cover" />
+                    : <span className="block w-full h-full bg-[#1e2d3d]" />}
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                    <span className="w-7 h-7 rounded-full bg-black/60 flex items-center justify-center pl-0.5"><PlayBadge size={14} /></span>
+                  </span>
+                  <span className="absolute bottom-0.5 left-0.5 text-[9px] font-bold text-white bg-black/60 px-1 rounded">VIDEO</span>
+                </>
+              ) : (
+                <span className="w-full h-full bg-black flex items-center justify-center text-[10px] font-bold text-white">TikTok</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── Lightbox ── */}
       {lightbox && item.type === "image" && (
