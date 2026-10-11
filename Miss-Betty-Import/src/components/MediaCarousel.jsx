@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { imgFallback, thumbUrl } from "../lib/imageUrl";
 
 const SLIDE_INTERVAL = 4000;
 
@@ -180,8 +181,10 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
         {/* ── Slide ── */}
         {item.type === "image" ? (
           <img
-            src={item.url}
+            src={thumbUrl(item.url, 1000)}
+            onError={imgFallback(item.url)}
             alt={name}
+            decoding="async"
             className={`w-full ${heightClass} object-cover`}
           />
         ) : item.type === "video" ? (
@@ -322,11 +325,11 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
               }`}
             >
               {m.type === "image" ? (
-                <img src={m.url} alt="" loading="lazy" className="w-full h-full object-cover" />
+                <img src={thumbUrl(m.url, 160)} onError={imgFallback(m.url)} alt="" loading="lazy" className="w-full h-full object-cover" />
               ) : m.type === "video" ? (
                 <>
                   {m.poster
-                    ? <img src={m.poster} alt="" loading="lazy" className="w-full h-full object-cover" />
+                    ? <img src={thumbUrl(m.poster, 160)} onError={imgFallback(m.poster)} alt="" loading="lazy" className="w-full h-full object-cover" />
                     : <span className="block w-full h-full bg-[#1e2d3d]" />}
                   <span className="absolute inset-0 flex items-center justify-center bg-black/25">
                     <span className="w-7 h-7 rounded-full bg-black/60 flex items-center justify-center pl-0.5"><PlayBadge size={14} /></span>

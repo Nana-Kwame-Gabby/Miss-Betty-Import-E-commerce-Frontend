@@ -15,9 +15,14 @@ import CountdownDisplay from "../components/CountdownBanner";
 import useActiveCountdown from "../hooks/useActiveCountdown";
 import ShareProductButton from "../components/ShareProductButton";
 import { supabase } from "../lib/supabase";
+import { setPostAuthRedirect } from "../utils/postAuthRedirect";
 import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
 import usePersistedState from "../hooks/usePersistedState";
 import useScrollRestoration from "../hooks/useScrollRestoration";
+import useSeo from "../hooks/useSeo";
+import useIncrementalList from "../hooks/useIncrementalList";
+import { productPath } from "../lib/seo";
+import { imgFallback, thumbUrl } from "../lib/imageUrl";
 
 const CATEGORY_ICONS = {
   'Mother care items':               '👶',
@@ -141,6 +146,7 @@ const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre")
 
 function ProductDetailModal({ product, onClose, buyNow = false }) {
   const { addToCart, addMultipleToCart } = useCart();
+  const { session } = useAuth();
   const { ordersClosed } = useAppSettings();
   const navigate = useNavigate();
   const blockedByPreorder = ordersClosed && isPreorder(product.product_status);
@@ -210,16 +216,19 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   }
 
   function handleAddAll() {
+    if (!session) { setPostAuthRedirect(productPath(product)); navigate("/login"); return; }
     if (pendingVariants.length === 0) return;
     commitToCart(() => { setAdded(true); setTimeout(() => { setAdded(false); onClose(); }, 1500); });
   }
 
   function handleCheckout() {
+    if (!session) { setPostAuthRedirect(productPath(product)); navigate("/login"); return; }
     if (blockedByPreorder || pendingVariants.length === 0) return;
     commitToCart(() => navigate("/checkout"));
   }
 
   function handleSimpleAdd() {
+    if (!session) { setPostAuthRedirect(productPath(product)); navigate("/login"); return; }
     const simpleOriginal = curHasDiscount ? curRegularPrice : null;
     addToCart(product, curQty, null, null, curPrice, product.cost_price, product.profit, simpleOriginal, product.rmb_price, product.misc_amount);
     setAdded(true);
@@ -227,6 +236,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   }
 
   function handleSimpleBuyNow() {
+    if (!session) { setPostAuthRedirect(productPath(product)); navigate("/login"); return; }
     if (blockedByPreorder) return;
     navigate("/checkout", {
       state: {
@@ -519,7 +529,7 @@ function ProductDetailModal({ product, onClose, buyNow = false }) {
   );
 }
 
-function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed }) {
+function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed, priority = false }) {
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -582,8 +592,12 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
       <div className="relative overflow-hidden">
         {product.product_image_url ? (
           <img
-            src={product.product_image_url}
+            src={thumbUrl(product.product_image_url, 480)}
+            onError={imgFallback(product.product_image_url)}
             alt={product.product_name}
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
+            decoding="async"
             className="w-full h-48 sm:h-64 object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
@@ -639,9 +653,14 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
         <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full w-fit mb-1 truncate max-w-full">
           {product.category}
         </span>
-        <h3 className="font-semibold text-[#1e2d3d] text-xs sm:text-sm mb-0.5 line-clamp-2 flex-1">
-          {product.product_name}
-        </h3>
+        <h2 className="font-semibold text-[#1e2d3d] text-xs sm:text-sm mb-0.5 line-clamp-2 flex-1">
+          <a
+            href={productPath(product)}
+            onClick={e => { if (e.metaKey || e.ctrlKey || e.shiftKey) e.stopPropagation(); else e.preventDefault(); }}
+          >
+            {product.product_name}
+          </a>
+        </h2>
         <div className="mb-2 flex items-baseline gap-1.5 flex-wrap">
           {hasDiscount(product) ? (
             <>
@@ -689,6 +708,7 @@ function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed })
 
 export default function ShopPage() {
   const { totalItems } = useCart();
+  const { session } = useAuth();
   const { ordersClosed, announcementMessage, promoActive, promoMessage } = useAppSettings();
   const [search, setSearch] = usePersistedState("mbimport_form_shop_filters_search", "");
   const [activeCategory, setActiveCategory] = usePersistedState("mbimport_form_shop_filters_category", "All");
@@ -706,6 +726,7 @@ export default function ShopPage() {
   const countdownData = useActiveCountdown();
 
   useScrollRestoration("mbimport_scroll_shop", !loadingProducts);
+  useSeo({ title: "Shop Imported Products in Ghana", description: "Browse kitchen appliances, sneakers, bags, fashion, home and baby products. Buy in-stock items or pre-order from China, with delivery across Ghana.", path: "/shop" });
 
   useLayoutEffect(() => {
     const el = filterBarRef.current;
@@ -771,6 +792,8 @@ export default function ShopPage() {
       return matchSearch && matchCat && matchStatus;
     });
   }, [products, search, activeCategory, statusFilter]);
+  const { visible: visibleProducts, sentinelRef: moreRef, hasMore: hasMoreProducts, showAll: showAllProducts } =
+    useIncrementalList(filtered, "mbimport_list_shop", `${search}|${activeCategory}|${statusFilter}`);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -833,7 +856,7 @@ export default function ShopPage() {
             </div>
 
             {/* Cart */}
-            <Link to="/cart" className="relative flex-shrink-0 p-1.5 text-[#1e2d3d] hover:text-[#F2AA25] transition-colors">
+            <Link to="/cart" aria-label="Cart" className="relative flex-shrink-0 p-1.5 text-[#1e2d3d] hover:text-[#F2AA25] transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
@@ -845,10 +868,28 @@ export default function ShopPage() {
               )}
             </Link>
 
-            <NotificationBell />
-
-            {/* Account */}
-            <AccountDropdown />
+            {session ? (
+              <>
+                <NotificationBell />
+                <AccountDropdown />
+              </>
+            ) : (
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Link
+                  to="/login"
+                  className="text-sm font-semibold text-[#1e2d3d] border border-gray-300 px-3 py-2 rounded-xl hover:border-[#F2AA25] hover:text-[#F2AA25] transition-colors hidden xs:block sm:block"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/signup"
+                  className="text-sm font-bold text-white px-3 py-2 rounded-xl hover:opacity-90 transition-opacity whitespace-nowrap"
+                  style={{ backgroundColor: "#F2AA25" }}
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -966,6 +1007,7 @@ export default function ShopPage() {
 
       {/* Products section */}
       <main style={{ paddingTop: filterBarHeight }} className="max-w-7xl mx-auto px-3 sm:px-6 pb-20">
+        <h1 className="sr-only">Shop imported products in Ghana</h1>
 
         {/* Grid */}
         {loadingProducts ? (
@@ -983,10 +1025,12 @@ export default function ShopPage() {
             ))}
           </div>
         ) : filtered.length > 0 ? (
+          <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-            {filtered.map(p => (
+            {visibleProducts.map((p, i) => (
               <ProductCard
                 key={p.id}
+                priority={i < 4}
                 product={p}
                 onSelect={setSelectedProduct}
                 onViewImage={(src, alt) => setLightboxImage({ src, alt })}
@@ -995,6 +1039,14 @@ export default function ShopPage() {
               />
             ))}
           </div>
+          {hasMoreProducts && (
+            <div ref={moreRef} className="flex justify-center py-6">
+              <button type="button" onClick={showAllProducts} className="text-sm font-semibold text-[#F2AA25] hover:underline">
+                Show more products
+              </button>
+            </div>
+          )}
+          </>
         ) : (
           <div className="text-center py-14">
             <p className="text-4xl sm:text-5xl mb-3">🔍</p>

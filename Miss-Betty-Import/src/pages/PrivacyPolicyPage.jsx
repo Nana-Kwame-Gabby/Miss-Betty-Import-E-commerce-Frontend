@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import useSeo from "../hooks/useSeo";
 
 export default function PrivacyPolicyPage() {
+  useSeo({ title: "Privacy Policy", description: "How Miss Betty Import collects, uses and protects your personal information, in line with Ghana’s Data Protection Act, 2012 (Act 843).", path: "/privacy-policy" });
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

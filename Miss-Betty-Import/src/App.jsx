@@ -1,4 +1,5 @@
 import "./App.css";
+import { lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useParams, useLocation } from "react-router-dom";
 import { setPostAuthRedirect } from "./utils/postAuthRedirect";
 import { CartProvider } from "./context/CartContext";
@@ -7,48 +8,49 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { AppSettingsProvider } from "./context/AppSettingsContext";
 import { NotificationProvider } from "./context/NotificationContext";
 
-import LoginPage from "./components/LoginPage";
-import SignUp from "./components/SignUp";
-import ForgotPasswordPage from "./components/ForgotPasswordPage";
-import ResetPasswordPage from "./components/ResetPasswordPage";
+const LoginPage = lazy(() => import("./components/LoginPage"));
+const SignUp = lazy(() => import("./components/SignUp"));
+const ForgotPasswordPage = lazy(() => import("./components/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./components/ResetPasswordPage"));
 
 import Layout from "./components/layout/Layout";
 
 import HomePage from "./pages/HomePage";
-import ContactPage from "./pages/ContactPage";
-import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
-import TermsAndConditionsPage from "./pages/TermsAndConditionsPage";
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const TermsAndConditionsPage = lazy(() => import("./pages/TermsAndConditionsPage"));
 import ShopPage from "./pages/ShopPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
-import CartPage from "./pages/CartPage";
-import CheckoutPage from "./pages/CheckoutPage";
-import OrderConfirmationPage from "./pages/OrderConfirmationPage";
-import MyOrdersPage from "./pages/MyOrdersPage";
-import MyReferralsPage from "./pages/MyReferralsPage";
-import ShippingFeePage from "./pages/ShippingFeePage";
+const CartPage = lazy(() => import("./pages/CartPage"));
+const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
+const OrderConfirmationPage = lazy(() => import("./pages/OrderConfirmationPage"));
+const MyOrdersPage = lazy(() => import("./pages/MyOrdersPage"));
+const MyReferralsPage = lazy(() => import("./pages/MyReferralsPage"));
+const ShippingFeePage = lazy(() => import("./pages/ShippingFeePage"));
 
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminOrderPeriodsPage from "./pages/admin/AdminOrderPeriodsPage";
-import AdminProductsPage from "./pages/admin/AdminProductsPage";
-import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
-import AdminInvoicesPage from "./pages/admin/AdminInvoicesPage";
-import AdminShippingFeesPage from "./pages/admin/AdminShippingFeesPage";
-import AdminProductRequestsPage from "./pages/admin/AdminProductRequestsPage";
-import AdminSmsMessagingPage from "./pages/admin/AdminSmsMessagingPage";
-import AdminAvailableOrdersPage from "./pages/admin/AdminAvailableOrdersPage";
-import AdminAvailableDashboard from "./pages/admin/AdminAvailableDashboard";
-import AdminPromoAlertPage from "./pages/admin/AdminPromoAlertPage";
-import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
-import AdminCountdownTimersPage from "./pages/admin/AdminCountdownTimersPage";
-import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
-import AdminLayout from "./pages/admin/AdminLayout";
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminOrderPeriodsPage = lazy(() => import("./pages/admin/AdminOrderPeriodsPage"));
+const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"));
+const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"));
+const AdminInvoicesPage = lazy(() => import("./pages/admin/AdminInvoicesPage"));
+const AdminShippingFeesPage = lazy(() => import("./pages/admin/AdminShippingFeesPage"));
+const AdminProductRequestsPage = lazy(() => import("./pages/admin/AdminProductRequestsPage"));
+const AdminSmsMessagingPage = lazy(() => import("./pages/admin/AdminSmsMessagingPage"));
+const AdminAvailableOrdersPage = lazy(() => import("./pages/admin/AdminAvailableOrdersPage"));
+const AdminAvailableDashboard = lazy(() => import("./pages/admin/AdminAvailableDashboard"));
+const AdminPromoAlertPage = lazy(() => import("./pages/admin/AdminPromoAlertPage"));
+const AdminNotificationsPage = lazy(() => import("./pages/admin/AdminNotificationsPage"));
+const AdminCountdownTimersPage = lazy(() => import("./pages/admin/AdminCountdownTimersPage"));
+const AdminCouponsPage = lazy(() => import("./pages/admin/AdminCouponsPage"));
+const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
 import ChatWidget from "./components/ChatWidget";
 import AnalyticsTracker from "./components/AnalyticsTracker";
-import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
-import AdminEmailsPage from "./pages/admin/AdminEmailsPage";
-import AdminBulkEmailPage from "./pages/admin/AdminBulkEmailPage";
-import ProductRequestPage from "./pages/ProductRequestPage";
-import AuthCallbackPage from "./pages/AuthCallbackPage";
+const AdminAnalyticsPage = lazy(() => import("./pages/admin/AdminAnalyticsPage"));
+const AdminEmailsPage = lazy(() => import("./pages/admin/AdminEmailsPage"));
+const AdminBulkEmailPage = lazy(() => import("./pages/admin/AdminBulkEmailPage"));
+const ProductRequestPage = lazy(() => import("./pages/ProductRequestPage"));
+const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
 // Take manual control of scroll position so the browser's own native scroll
 // restoration (which can fire on back/forward) doesn't race with our per-page hooks.
@@ -83,16 +85,11 @@ function ProtectedLayout() {
   return <Outlet />;
 }
 
-// Canonical shareable product URL — routes an authenticated visitor straight to the
-// full purchase page, or an unauthenticated visitor to the public Home page with the
-// product pre-selected, without this component ever rendering its own UI.
+// Old share links (/product/:id): product pages are public now, so everyone goes
+// straight to the product page. (On the live site Vercel already 301-redirects these.)
 function ProductShareGateway() {
   const { id } = useParams();
-  const { session, loading } = useAuth();
-  if (loading) return <LoadingSpinner />;
-  return session
-    ? <Navigate to={`/shop/${id}`} replace />
-    : <Navigate to={`/?product=${id}`} replace />;
+  return <Navigate to={`/shop/${id}`} replace />;
 }
 
 function AdminGuard() {
@@ -111,6 +108,7 @@ function App() {
         <NotificationProvider>
         <CartProvider>
           <Router>
+            <Suspense fallback={<LoadingSpinner />}>
             <Routes>
               {/* Fully public */}
               <Route path="/" element={<HomePage />} />
@@ -120,6 +118,11 @@ function App() {
               <Route path="/terms" element={<TermsAndConditionsPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               <Route path="/product/:id" element={<ProductShareGateway />} />
+              {/* Public catalogue: anyone (and search engines) can browse; buying needs login */}
+              <Route path="/shop" element={<ShopPage />} />
+              <Route element={<Layout />}>
+                <Route path="/shop/:id" element={<ProductDetailPage />} />
+              </Route>
               {/* Public-only — redirect to /shop if already logged in */}
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route element={<PublicOnlyRoute />}>
@@ -151,12 +154,9 @@ function App() {
                 </Route>
               </Route>
 
-              {/* Protected — all customer pages */}
+              {/* Protected — customer account pages */}
               <Route element={<ProtectedLayout />}>
-                <Route path="/shop" element={<ShopPage />} />
-
                 <Route element={<Layout />}>
-                  <Route path="/shop/:id" element={<ProductDetailPage />} />
                   <Route path="/cart" element={<CartPage />} />
                   <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
@@ -166,7 +166,10 @@ function App() {
                   <Route path="/product-requests" element={<ProductRequestPage />} />
                 </Route>
               </Route>
+
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
+            </Suspense>
             <ChatWidget />
             <AnalyticsTracker />
           </Router>

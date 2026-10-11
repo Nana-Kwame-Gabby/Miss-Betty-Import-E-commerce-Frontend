@@ -10,6 +10,10 @@ import { getVariantImage } from "../lib/variantImage";
 import ReviewsSection from "../components/ReviewsSection";
 import usePersistedState from "../hooks/usePersistedState";
 import useScrollRestoration from "../hooks/useScrollRestoration";
+import useSeo from "../hooks/useSeo";
+import { useAuth } from "../context/AuthContext";
+import { setPostAuthRedirect } from "../utils/postAuthRedirect";
+import { metaDescription, productPath } from "../lib/seo";
 
 function mapProduct(p) {
   const rawSizePricing = Array.isArray(p.size_pricing) && p.size_pricing.length > 0
@@ -56,10 +60,12 @@ function mapProduct(p) {
 }
 
 export default function ProductDetailPage() {
-  const { id } = useParams();
+  const { id: idParam } = useParams();
+  const id = String(parseInt(idParam, 10));
   const navigate = useNavigate();
   const { addToCart, addMultipleToCart } = useCart();
   const { ordersClosed } = useAppSettings();
+  const { session } = useAuth();
 
   const [product, setProduct] = useState(null);
   const isPreorder = product ? product.product_status.toLowerCase().includes("pre") : false;
@@ -74,6 +80,14 @@ export default function ProductDetailPage() {
   const [added, setAdded] = useState(false);
 
   useScrollRestoration(`mbimport_scroll_product_${id}`, !loading);
+  useSeo(product
+    ? {
+        title: product.product_name,
+        description: metaDescription(product.description, `Buy ${product.product_name} from Miss Betty Import${product.category ? ` (${product.category})` : ""}. ${product.product_status === "Available" ? "In stock in Ghana" : "Pre-order from China"}, with delivery across Ghana.`),
+        path: productPath(product),
+        image: product.product_image_url || null,
+      }
+    : { title: "Product", path: `/shop/${id}` });
 
   useEffect(() => {
     async function loadProduct() {
@@ -154,7 +168,7 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 flex items-center justify-center">
+      <div className="max-w-7xl mx-auto px-4 py-20 min-h-[85vh] flex items-start justify-center">
         <div className="w-10 h-10 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -202,6 +216,7 @@ export default function ProductDetailPage() {
   }
 
   function handleAddToCart() {
+    if (!session) { setPostAuthRedirect(productPath(product)); navigate("/login"); return; }
     if (pendingVariants.length === 0) return setError("Please add at least one variant.");
     setError("");
     commitToCart(() => {
@@ -212,6 +227,7 @@ export default function ProductDetailPage() {
   }
 
   function handleBuyNow() {
+    if (!session) { setPostAuthRedirect(productPath(product)); navigate("/login"); return; }
     if (ordersClosed && isPreorder) return;
     if (pendingVariants.length === 0) return setError("Please add at least one variant.");
     setError("");
@@ -219,6 +235,7 @@ export default function ProductDetailPage() {
   }
 
   function handleSimpleAdd() {
+    if (!session) { setPostAuthRedirect(productPath(product)); navigate("/login"); return; }
     if (curOutOfStock) return;
     const simpleOriginal = curHasDiscount ? curRegularPrice : null;
     addToCart(product, curQty, null, null, curPrice, product.cost_price, product.profit, simpleOriginal, product.rmb_price, product.misc_amount);
@@ -227,6 +244,7 @@ export default function ProductDetailPage() {
   }
 
   function handleSimpleBuyNow() {
+    if (!session) { setPostAuthRedirect(productPath(product)); navigate("/login"); return; }
     if ((ordersClosed && isPreorder) || curOutOfStock) return;
     navigate("/checkout", {
       state: {
@@ -244,7 +262,7 @@ export default function ProductDetailPage() {
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-xs sm:text-sm text-gray-400 mb-3 sm:mb-5">
-        <Link to="/home" className="hover:text-[#F2AA25]">Home</Link>
+        <Link to="/" className="hover:text-[#F2AA25]">Home</Link>
         <span>/</span>
         <Link to="/shop" className="hover:text-[#F2AA25]">Shop</Link>
         <span>/</span>

@@ -1,24 +1,33 @@
 {
   "rewrites": [
     {
-      "source": "/product/:id",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*(facebookexternalhit|Facebot|Twitterbot|TelegramBot|WhatsApp|Slackbot|LinkedInBot|Discordbot|Pinterest|redditbot|vkShare|SkypeUriPreview|Applebot|Googlebot|bingbot|W3C_Validator|Embedly|Iframely|bot|crawler|spider).*"
-        }
-      ],
-      "destination": "/api/product-preview?id=:id"
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/",
+      "destination": "/api/seo?route=home"
+    },
+    {
+      "source": "/shop",
+      "destination": "/api/seo?route=shop"
+    },
+    {
+      "source": "/shop/:slug",
+      "destination": "/api/seo?route=product&slug=:slug"
+    },
+    {
+      "source": "/product/:id",
+      "destination": "/api/seo?route=product&slug=:id&legacy=1"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/app.html"
     }
   ],
   "headers": [
     {
-      "source": "/index.html",
+      "source": "/app.html",
       "headers": [
         {
           "key": "Cache-Control",

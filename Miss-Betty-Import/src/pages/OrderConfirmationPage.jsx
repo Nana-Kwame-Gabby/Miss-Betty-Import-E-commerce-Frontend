@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useCart } from "../context/CartContext";
+import { imgFallback, thumbUrl } from "../lib/imageUrl";
 
 export default function OrderConfirmationPage() {
   const [searchParams] = useSearchParams();
@@ -320,7 +321,7 @@ export default function OrderConfirmationPage() {
           {items.map(item => (
             <div key={item.cartKey} className="flex items-center gap-3">
               {item.product_image_url ? (
-                <img src={item.product_image_url} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl" />
+                <img src={thumbUrl(item.product_image_url, 120)} onError={imgFallback(item.product_image_url)} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl" />
               ) : (
                 <div className="w-10 h-12 bg-gray-100 rounded-xl flex-shrink-0" />
               )}

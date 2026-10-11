@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
+import { imgFallback, thumbUrl } from "../lib/imageUrl";
 
 // Floating AI shopping assistant. Replies come from the ai-chat Edge Function, which
 // grounds answers in the store's policies and live product/order data. The conversation
@@ -108,7 +109,7 @@ function ProductCard({ p, onNavigate }) {
       className="flex gap-2.5 bg-white border border-gray-100 rounded-xl p-2 hover:border-[#F2AA25] hover:shadow-sm transition-all"
     >
       {p.image ? (
-        <img src={p.image} alt={p.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+        <img src={thumbUrl(p.image, 160)} onError={imgFallback(p.image)} alt={p.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
       ) : (
         <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0" />
       )}
@@ -282,7 +283,7 @@ export default function ChatWidget() {
     <>
       <button
         onClick={() => (open ? setOpen(false) : openChat())}
-        aria-label={open ? "Close chat" : "Chat with our shopping assistant"}
+        aria-label={open ? "Close chat" : "Ask Betty, our shopping assistant"}
         className={`chat-launcher fixed right-4 ${buttonBottom} z-[61] flex items-center gap-2 bg-[#1e2d3d] text-white py-3 rounded-full shadow-lg hover:bg-[#2a3d52] transition-colors ${
           open ? "px-3 lg:hidden" : "pl-3.5 pr-4"
         } ${nudging ? "chat-nudge" : ""}`}

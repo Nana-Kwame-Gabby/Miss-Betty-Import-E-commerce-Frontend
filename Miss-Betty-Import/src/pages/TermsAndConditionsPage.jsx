@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import useSeo from "../hooks/useSeo";
 
 function Section({ title, children }) {
   return (
@@ -10,6 +11,7 @@ function Section({ title, children }) {
 }
 
 export default function TermsAndConditionsPage() {
+  useSeo({ title: "Terms and Conditions", description: "Terms for ordering from Miss Betty Import: payments, pre-orders, shipping fees, delivery, cancellations and returns in Ghana.", path: "/terms" });
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

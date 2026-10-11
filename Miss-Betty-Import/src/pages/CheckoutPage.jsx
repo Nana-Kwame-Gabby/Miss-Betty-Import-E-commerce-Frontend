@@ -8,6 +8,7 @@ import { supabase } from "../lib/supabase";
 import usePersistedState from "../hooks/usePersistedState";
 import { getVariantImage } from "../lib/variantImage";
 import { getItemProfit } from "../lib/priceUtils";
+import { imgFallback, thumbUrl } from "../lib/imageUrl";
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Eastern", "Central",
@@ -413,7 +414,7 @@ export default function CheckoutPage() {
               {checkoutItems.map(item => (
                 <div key={item.cartKey} className="flex items-start gap-3">
                   {itemImage(item) ? (
-                    <img src={itemImage(item)} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl flex-shrink-0" />
+                    <img src={thumbUrl(itemImage(item), 120)} onError={imgFallback(itemImage(item))} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl flex-shrink-0" />
                   ) : (
                     <div className="w-10 h-12 bg-gray-100 rounded-xl flex-shrink-0" />
                   )}

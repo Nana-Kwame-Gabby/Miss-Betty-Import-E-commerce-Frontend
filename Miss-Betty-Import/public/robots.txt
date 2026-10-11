@@ -1,0 +1,16 @@
+# Miss Betty Import - https://www.missbettyimport.com
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cart
+Disallow: /checkout
+Disallow: /order-confirmation
+Disallow: /my-orders
+Disallow: /my-referrals
+Disallow: /shipping-fees
+Disallow: /product-requests
+Disallow: /auth/
+Disallow: /reset-password
+Disallow: /api/
+
+Sitemap: https://www.missbettyimport.com/sitemap.xml

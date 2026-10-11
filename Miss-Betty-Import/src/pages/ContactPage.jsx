@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import useSeo from "../hooks/useSeo";
 
 function ContactCard({ icon, title, subtitle, buttonLabel, href, buttonColor }) {
   return (
@@ -21,6 +22,7 @@ function ContactCard({ icon, title, subtitle, buttonLabel, href, buttonColor }) 
 }
 
 export default function ContactPage() {
+  useSeo({ title: "Contact Us", description: "Contact Miss Betty Import on WhatsApp (+233 20 269 7541) or by message for orders, pre-orders, shipping and delivery questions across Ghana.", path: "/contact" });
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-10 sm:py-14">
       <div className="max-w-2xl mx-auto">

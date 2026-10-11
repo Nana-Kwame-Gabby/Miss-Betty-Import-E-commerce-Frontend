@@ -4,6 +4,7 @@ import { useCart } from "../context/CartContext";
 import { useAppSettings } from "../context/AppSettingsContext";
 import { colourMap } from "../data/mockData";
 import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
+import { imgFallback, thumbUrl } from "../lib/imageUrl";
 
 function VariantAdder({ product, addToCart }) {
   const [curSize,   setCurSize]   = useState(null);
@@ -148,7 +149,8 @@ function ProductGroupCard({ group, addToCart, updateQuantity, removeFromCart }) 
     <div className="bg-white rounded-2xl shadow-sm p-1.5 sm:p-2">
       <div className="flex gap-2 items-center mb-1">
         <img
-          src={product.product_image_url}
+          src={thumbUrl(product.product_image_url, 160)}
+          onError={imgFallback(product.product_image_url)}
           alt={product.product_name}
           className="w-11 h-14 sm:w-14 sm:h-[4.5rem] object-cover rounded-xl flex-shrink-0"
         />

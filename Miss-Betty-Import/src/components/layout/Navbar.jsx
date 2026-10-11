@@ -108,7 +108,7 @@ function AccountDropdown() {
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { totalItems } = useCart();
-  const { signOut } = useAuth();
+  const { signOut, session } = useAuth();
   const navigate = useNavigate();
 
   const navClass = ({ isActive }) =>
@@ -132,14 +132,20 @@ export default function Navbar() {
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-5">
             <NavLink to="/shop" className={navClass}>Shop</NavLink>
-            <NavLink to="/my-orders" className={navClass}>My Orders</NavLink>
-            <NavLink to="/shipping-fees" className={navClass}>Shipping Fee</NavLink>
+            {session ? (
+              <>
+                <NavLink to="/my-orders" className={navClass}>My Orders</NavLink>
+                <NavLink to="/shipping-fees" className={navClass}>Shipping Fee</NavLink>
+              </>
+            ) : (
+              <NavLink to="/contact" className={navClass}>Contact Us</NavLink>
+            )}
           </nav>
 
           {/* Right */}
           <div className="flex items-center gap-3">
             {/* Cart */}
-            <Link to="/cart" className="relative p-2 text-[#1e2d3d] hover:text-[#F2AA25] transition-colors">
+            <Link to="/cart" aria-label="Cart" className="relative p-2 text-[#1e2d3d] hover:text-[#F2AA25] transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
@@ -151,12 +157,25 @@ export default function Navbar() {
               )}
             </Link>
 
-            <NotificationBell />
+            {session ? (
+              <>
+                <NotificationBell />
 
-            {/* Account dropdown */}
-            <div className="hidden sm:block">
-              <AccountDropdown />
-            </div>
+                {/* Account dropdown */}
+                <div className="hidden sm:block">
+                  <AccountDropdown />
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link to="/login" className="hidden sm:block text-sm font-semibold text-[#1e2d3d] border border-gray-300 px-3 py-1.5 rounded-xl hover:border-[#F2AA25] hover:text-[#F2AA25] transition-colors">
+                  Login
+                </Link>
+                <Link to="/signup" className="text-sm font-bold text-white px-3 py-1.5 rounded-xl hover:opacity-90 transition-opacity whitespace-nowrap" style={{ backgroundColor: "#F2AA25" }}>
+                  Sign Up
+                </Link>
+              </div>
+            )}
 
             {/* Hamburger */}
             <button
@@ -181,12 +200,18 @@ export default function Navbar() {
         {menuOpen && (
           <div className="md:hidden border-t border-gray-100 py-3 flex flex-col gap-3 px-2">
             <NavLink to="/shop" className={navClass} onClick={() => setMenuOpen(false)}>Shop</NavLink>
-            <NavLink to="/my-orders" className={navClass} onClick={() => setMenuOpen(false)}>My Orders</NavLink>
-            <NavLink to="/shipping-fees" className={navClass} onClick={() => setMenuOpen(false)}>Shipping Fee</NavLink>
-            <NavLink to="/product-requests" className={navClass} onClick={() => setMenuOpen(false)}>Request a Product</NavLink>
+            {session && <NavLink to="/my-orders" className={navClass} onClick={() => setMenuOpen(false)}>My Orders</NavLink>}
+            {session && <NavLink to="/shipping-fees" className={navClass} onClick={() => setMenuOpen(false)}>Shipping Fee</NavLink>}
+            {session && <NavLink to="/product-requests" className={navClass} onClick={() => setMenuOpen(false)}>Request a Product</NavLink>}
             <NavLink to="/contact" className={navClass} onClick={() => setMenuOpen(false)}>Contact Us</NavLink>
-            <Link to="/my-orders" className="flex items-center gap-2 text-[#1e2d3d] font-medium" onClick={() => setMenuOpen(false)}>📦 Orders</Link>
-            <button onClick={async () => { setMenuOpen(false); await signOut(); navigate("/"); }} className="flex items-center gap-2 text-red-500 font-medium text-left">🚪 Sign out</button>
+            {session ? (
+              <>
+                <Link to="/my-orders" className="flex items-center gap-2 text-[#1e2d3d] font-medium" onClick={() => setMenuOpen(false)}>📦 Orders</Link>
+                <button onClick={async () => { setMenuOpen(false); await signOut(); navigate("/"); }} className="flex items-center gap-2 text-red-500 font-medium text-left">🚪 Sign out</button>
+              </>
+            ) : (
+              <Link to="/login" className="flex items-center gap-2 text-[#1e2d3d] font-medium" onClick={() => setMenuOpen(false)}>🔑 Log in</Link>
+            )}
           </div>
         )}
       </div>
