@@ -56,6 +56,9 @@ function buildFeeGroups(rows, existingFees) {
   });
 }
 
+// Case-insensitive; curly and straight apostrophes match ("men's" finds "Men’s Shirt").
+const normalizeName = s => String(s ?? '').toLowerCase().replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim();
+
 const MAX_FEE = 100000;
 const feeText = fee => (fee > 0 ? String(fee) : '');
 
@@ -77,6 +80,13 @@ export default function AdminShippingFeesPage() {
   const [savingKey, setSavingKey] = useState(null);
   const [rowStatus, setRowStatus] = useState({}); // key -> { type: 'saved' | 'error', msg }
   const [expandedKeys, setExpandedKeys] = useState(new Set());
+  const [search, setSearch] = useState('');
+
+  // Filters the loaded rows only; typed fees on hidden rows are kept (and still warn on leave).
+  const searchTerm = normalizeName(search);
+  const visibleGroups = searchTerm
+    ? feeGroups.filter(g => normalizeName(g.product_name).includes(searchTerm))
+    : feeGroups;
 
   useEffect(() => { if (selectedId != null) loadData(); }, [selectedId]);
 
@@ -232,12 +242,37 @@ export default function AdminShippingFeesPage() {
           <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-[#1e2d3d]">
-                Product / Size ({feeGroups.length})
+                Product / Size ({searchTerm ? `${visibleGroups.length} of ${feeGroups.length}` : feeGroups.length})
               </h2>
               <p className="text-xs text-gray-400 mt-0.5">
                 Enter one fee per product + size. Click a row to see customer payment details.
               </p>
             </div>
+            {feeGroups.length > 0 && (
+              <div className="relative w-full sm:w-64 sm:ml-auto">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  type="search"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search by product name…"
+                  aria-label="Search by product name"
+                  className="w-full border border-gray-200 rounded-xl pl-9 pr-9 py-2 text-sm outline-none focus:border-[#F2AA25] transition-colors [&::-webkit-search-cancel-button]:hidden"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    aria-label="Clear search"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                )}
+              </div>
+            )}
             <button
               onClick={handleDownloadExcel}
               disabled={feeGroups.length === 0}
@@ -252,6 +287,13 @@ export default function AdminShippingFeesPage() {
 
           {feeGroups.length === 0 ? (
             <div className="text-center py-12 text-gray-400 text-sm">No orders yet.</div>
+          ) : visibleGroups.length === 0 ? (
+            <div className="text-center py-12 text-sm">
+              <p className="text-gray-400">No products match “{search.trim()}”.</p>
+              <button type="button" onClick={() => setSearch('')} className="mt-2 text-xs font-semibold text-[#F2AA25] hover:underline">
+                Clear search
+              </button>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -268,7 +310,7 @@ export default function AdminShippingFeesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {feeGroups.map(group => {
+                  {visibleGroups.map(group => {
                     const key = `${group.product_id}::${group.size_raw}`;
                     const fee = group.shipping_fee;
                     const outstanding = fee > 0 ? fee * group.unpaid_qty : null;
