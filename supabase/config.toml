@@ -52,3 +52,7 @@ verify_jwt = false
 
 [functions.verify-payment]
 verify_jwt = true
+
+# Called by the database (pg_net, with a worker secret) and by admins; it checks both itself.
+[functions.send-emails]
+verify_jwt = false

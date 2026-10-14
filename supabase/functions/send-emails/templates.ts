@@ -133,7 +133,7 @@ export const productCard = (name: string, image: string | null, href: string, pr
   </table>`;
 
 // The shared layout every email uses.
-export function layout({ title, preheader, body, badge }: { title: string; preheader: string; body: string; badge?: string }) {
+export function layout({ title, preheader, body, badge, footerNote = "You received this email because you have an account with Miss Betty Import." }: { title: string; preheader: string; body: string; badge?: string; footerNote?: string }) {
   return `<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting">
@@ -171,7 +171,7 @@ export function layout({ title, preheader, body, badge }: { title: string; prehe
         </p>
         <p style="margin:0;font-size:12px;line-height:1.5;color:#9ca3af;">
           <a href="${SITE}" style="color:#9ca3af;">missbettyimport.com</a> · Quality imports, delivered in Ghana.<br>
-          You received this email because you have an account with Miss Betty Import.
+          ${esc(footerNote)}
         </p>
       </td></tr>
     </table>

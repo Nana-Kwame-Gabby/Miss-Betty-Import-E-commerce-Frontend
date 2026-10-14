@@ -11,6 +11,7 @@ const KIND_LABELS = {
   period_closed:      "Period closed",
   period_opened:      "New period open",
   announcement:       "Bulk email",
+  offline_invoice:    "Offline invoice",
 };
 const STATUS_STYLES = {
   sent:    "bg-green-100 text-green-700",

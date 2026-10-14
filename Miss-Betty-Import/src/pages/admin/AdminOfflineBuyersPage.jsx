@@ -53,7 +53,9 @@ export default function AdminOfflineBuyersPage() {
   const [expanded, setExpanded] = useState(new Set());
   const [editing, setEditing] = useState(null); // null | { sale } (sale null = new)
   const [busyId, setBusyId] = useState(null);
-  const [notice, setNotice] = useState(null); // { type: 'success' | 'error', msg }
+  const [notice, setNotice] = useState(null); // { type: 'success' | 'error', msg, saleId? }
+  const [invoiceModal, setInvoiceModal] = useState(null); // { sale, mode: 'preview' | 'send' }
+  const [emailsVersion, setEmailsVersion] = useState(0); // bump to refresh invoice email histories
 
   useEffect(() => {
     supabase
@@ -112,7 +114,7 @@ export default function AdminOfflineBuyersPage() {
   const productTerm = normalizeName(productSearch);
   const visibleSales = useMemo(() => sales.filter(s =>
     (showCancelled || s.status === 'Active')
-    && (!buyerTerm || normalizeName(s.buyer_name).includes(buyerTerm))
+    && (!buyerTerm || normalizeName(s.buyer_name).includes(buyerTerm) || normalizeName(s.invoice_number).includes(buyerTerm))
     && (!productTerm || s.offline_sale_items.some(i => normalizeName(i.product_name_snapshot).includes(productTerm)))
   ), [sales, showCancelled, buyerTerm, productTerm]);
 
@@ -154,8 +156,15 @@ export default function AdminOfflineBuyersPage() {
     setEditing(null);
     await Promise.all([reload(), reloadStock()]);
     setExpanded(prev => new Set(prev).add(saleId));
-    flash('success', isNew ? `Offline sale for ${buyer} recorded.` : `${buyer}'s sale was updated.`);
+    // Stays until dismissed, offering the invoice actions straight away.
+    setNotice({
+      type: 'success',
+      saleId,
+      msg: isNew ? `Offline sale for ${buyer} recorded. Its invoice is ready.` : `${buyer}'s sale was updated. The invoice now shows the changes.`,
+    });
   }
+
+  const noticeSale = notice?.saleId ? sales.find(s => s.id === notice.saleId) : null;
 
   return (
     <div>
@@ -176,7 +185,19 @@ export default function AdminOfflineBuyersPage() {
 
       {notice && (
         <div className={`mb-4 text-sm rounded-xl px-4 py-3 flex items-start justify-between gap-3 ${notice.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-          <span>{notice.msg}</span>
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            {notice.msg}
+            {noticeSale && noticeSale.status === 'Active' && (
+              <span className="flex gap-2">
+                <button onClick={() => setInvoiceModal({ sale: noticeSale, mode: 'preview' })} className="text-xs font-semibold bg-white border border-green-200 text-green-800 px-2.5 py-1 rounded-lg hover:bg-green-100">
+                  View invoice
+                </button>
+                <button onClick={() => setInvoiceModal({ sale: noticeSale, mode: 'send' })} className="text-xs font-semibold bg-[#1e2d3d] text-white px-2.5 py-1 rounded-lg hover:opacity-90">
+                  Send Invoice via Email
+                </button>
+              </span>
+            )}
+          </span>
           <button onClick={() => setNotice(null)} aria-label="Dismiss" className="opacity-60 hover:opacity-100">✕</button>
         </div>
       )}
@@ -208,7 +229,7 @@ export default function AdminOfflineBuyersPage() {
           <h2 className="text-sm font-bold text-[#1e2d3d] mr-auto">
             Sales ({(buyerTerm || productTerm) ? `${visibleSales.length} of ${showCancelled ? sales.length : activeSales.length}` : (showCancelled ? sales.length : activeSales.length)})
           </h2>
-          <SearchBox value={buyerSearch} onChange={setBuyerSearch} placeholder="Search buyer name…" />
+          <SearchBox value={buyerSearch} onChange={setBuyerSearch} placeholder="Search buyer or invoice no.…" />
           <SearchBox value={productSearch} onChange={setProductSearch} placeholder="Search product…" />
           {cancelledCount > 0 && (
             <label className="flex items-center gap-2 text-xs font-semibold text-gray-500 cursor-pointer select-none">
@@ -253,9 +274,12 @@ export default function AdminOfflineBuyersPage() {
                           <polyline points="9 6 15 12 9 18" />
                         </svg>
                         <span className="font-semibold text-[#1e2d3d] group-hover:text-[#F2AA25] transition-colors">{sale.buyer_name}</span>
-                        {cancelled && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Cancelled</span>}
+                        {cancelled
+                          ? <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Cancelled</span>
+                          : <PaymentBadge status={sale.payment_status} />}
                       </span>
                       <span className="block text-xs text-gray-400 mt-0.5 ml-[22px]">
+                        {sale.invoice_number && <span className="font-semibold text-gray-500">{sale.invoice_number} · </span>}
                         {new Date(sale.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                         {' · '}{sale.offline_sale_items.length} product{sale.offline_sale_items.length !== 1 ? 's' : ''} · {t.units} unit{t.units !== 1 ? 's' : ''}
                       </span>
@@ -289,6 +313,13 @@ export default function AdminOfflineBuyersPage() {
 
                   {isOpen && (
                     <div className="px-5 pb-4 bg-gray-50 border-t border-gray-100">
+                      <InvoicePanel
+                        sale={sale}
+                        total={t.revenue}
+                        version={emailsVersion}
+                        onPreview={() => setInvoiceModal({ sale, mode: 'preview' })}
+                        onSend={() => setInvoiceModal({ sale, mode: 'send' })}
+                      />
                       {sale.note && <p className="text-xs text-gray-500 pt-3"><span className="font-semibold">Note:</span> {sale.note}</p>}
                       <div className="overflow-x-auto mt-3">
                         <table className="w-full text-xs min-w-[640px]">
@@ -356,6 +387,21 @@ export default function AdminOfflineBuyersPage() {
           periodId={editing.sale?.order_period_id ?? selectedId}
           onClose={() => setEditing(null)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {invoiceModal?.mode === 'preview' && (
+        <InvoicePreview
+          sale={invoiceModal.sale}
+          onClose={() => setInvoiceModal(null)}
+          onSend={invoiceModal.sale.status === 'Active' ? () => setInvoiceModal({ sale: invoiceModal.sale, mode: 'send' }) : null}
+        />
+      )}
+      {invoiceModal?.mode === 'send' && (
+        <SendInvoice
+          sale={invoiceModal.sale}
+          onClose={() => setInvoiceModal(null)}
+          onQueued={() => setEmailsVersion(v => v + 1)}
         />
       )}
     </div>
@@ -426,6 +472,8 @@ function SaleForm({ sale, products, periodId, onClose, onSaved }) {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState(sale?.payment_status ?? 'Paid');
+  const [amountPaid, setAmountPaid] = useState(sale?.payment_status === 'Partially paid' ? String(Number(sale.amount_paid)) : '');
 
   // Units this sale already holds per variant (put back first when an edit is saved).
   const heldBySale = useMemo(() => {
@@ -500,6 +548,11 @@ function SaleForm({ sale, products, periodId, onClose, onSaved }) {
       else if (!info.keptVariant && info.colours.length && !l.colour) errs[l.key] = 'Choose a colour.';
       else if (!/^\d+$/.test(l.quantity) || Number(l.quantity) < 1 || Number(l.quantity) > 10000) errs[l.key] = 'Quantity must be a whole number from 1 to 10,000.';
     });
+    if (paymentStatus === 'Partially paid') {
+      const amt = Number(amountPaid);
+      if (amountPaid.trim() === '' || !Number.isFinite(amt) || amt <= 0) errs.payment = 'Enter the amount the buyer has paid.';
+      else if (amt >= totals.revenue) errs.payment = `For a partial payment the amount must be less than the total (${ghs(totals.revenue)}). Choose "Paid" if it's paid in full.`;
+    }
     return errs;
   }
 
@@ -525,6 +578,8 @@ function SaleForm({ sale, products, periodId, onClose, onSaved }) {
       p_buyer_name: buyer.trim(),
       p_order_period_id: periodId,
       p_note: note.trim() || null,
+      p_payment_status: paymentStatus,
+      p_amount_paid: paymentStatus === 'Partially paid' ? Math.round(Number(amountPaid) * 100) / 100 : null,
       p_items: items,
     });
     setSaving(false);
@@ -687,6 +742,45 @@ function SaleForm({ sale, products, periodId, onClose, onSaved }) {
             + Add another product
           </button>
 
+          <div className="mt-5 flex flex-wrap items-end gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1" htmlFor="offline-payment">Payment</label>
+              <select
+                id="offline-payment"
+                value={paymentStatus}
+                onChange={e => { setPaymentStatus(e.target.value); setDirty(true); setErrors(p => ({ ...p, payment: undefined })); }}
+                className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white outline-none focus:border-[#F2AA25]"
+              >
+                <option value="Paid">Paid in full</option>
+                <option value="Partially paid">Partially paid</option>
+                <option value="Unpaid">Unpaid</option>
+              </select>
+            </div>
+            {paymentStatus === 'Partially paid' && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1" htmlFor="offline-paid">Amount paid (GHS)</label>
+                <input
+                  id="offline-paid"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={amountPaid}
+                  onChange={e => { setAmountPaid(e.target.value); setDirty(true); setErrors(p => ({ ...p, payment: undefined })); }}
+                  placeholder="0.00"
+                  className={`w-36 border rounded-xl px-3 py-2 text-sm outline-none focus:border-[#F2AA25] ${errors.payment ? 'border-red-400' : 'border-gray-200'}`}
+                />
+              </div>
+            )}
+            {paymentStatus === 'Partially paid' && Number(amountPaid) > 0 && Number(amountPaid) < totals.revenue && (
+              <p className="text-xs text-gray-500 pb-2">Balance due: <span className="font-semibold text-[#1e2d3d]">{ghs(totals.revenue - Number(amountPaid))}</span></p>
+            )}
+            {paymentStatus === 'Unpaid' && totals.revenue > 0 && (
+              <p className="text-xs text-gray-500 pb-2">Balance due: <span className="font-semibold text-[#1e2d3d]">{ghs(totals.revenue)}</span></p>
+            )}
+          </div>
+          {errors.payment && <p className="text-[11px] text-red-600 mt-1">{errors.payment}</p>}
+
           <label className="block text-xs font-semibold text-gray-500 mt-5 mb-1" htmlFor="offline-note">Note (optional)</label>
           <textarea
             id="offline-note"
@@ -820,5 +914,333 @@ function ProductPicker({ products, value, locked, onPick, onType }) {
         </ul>
       )}
     </div>
+  );
+}
+
+
+// ── Invoices ──────────────────────────────────────────────────────────────────────
+// The invoice PDF is rendered by the send-emails function from the saved sale (the same file
+// that is emailed), so preview, download, print and email always match.
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+function PaymentBadge({ status }) {
+  const style = status === 'Paid' ? 'bg-green-100 text-green-700'
+    : status === 'Partially paid' ? 'bg-amber-100 text-amber-700'
+    : 'bg-gray-100 text-gray-500';
+  return <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${style}`}>{status ?? 'Paid'}</span>;
+}
+
+async function fetchInvoicePdf(saleId) {
+  const { data, error } = await supabase.functions.invoke('send-emails', { body: { action: 'offline_invoice_pdf', sale_id: saleId } });
+  if (error || !data?.pdf) {
+    let msg = data?.error;
+    if (!msg && error?.context?.json) msg = (await error.context.json().catch(() => null))?.error;
+    throw new Error(msg || error?.message || 'No response from the invoice service');
+  }
+  const bytes = Uint8Array.from(atob(data.pdf), c => c.charCodeAt(0));
+  return { blob: new Blob([bytes], { type: 'application/pdf' }), filename: data.filename };
+}
+
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// Prints a PDF through a hidden frame; phones (no inline PDF printing) open it in a new tab.
+function printBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  if (window.matchMedia?.('(pointer: coarse)').matches) {
+    window.open(url, '_blank');
+    return;
+  }
+  const frame = document.createElement('iframe');
+  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  frame.src = url;
+  frame.onload = () => {
+    try { frame.contentWindow.focus(); frame.contentWindow.print(); }
+    catch { window.open(url, '_blank'); }
+    setTimeout(() => { frame.remove(); URL.revokeObjectURL(url); }, 60000);
+  };
+  document.body.appendChild(frame);
+}
+
+async function loadInvoiceEmails(saleId) {
+  const { data } = await supabase
+    .from('email_messages')
+    .select('id, recipient, status, attempts, last_error, created_at, sent_at')
+    .eq('kind', 'offline_invoice')
+    .eq('data->>sale_id', String(saleId))
+    .order('created_at', { ascending: false })
+    .limit(20);
+  return data ?? [];
+}
+
+function emailStatus(e) {
+  if (e.status === 'sent') return { label: 'Sent ✓', cls: 'text-green-600' };
+  if (e.status === 'failed') return { label: e.attempts >= 5 ? 'Failed' : 'Failed – will retry', cls: 'text-red-600' };
+  return { label: 'Sending…', cls: 'text-blue-600' };
+}
+
+function InvoicePanel({ sale, total, version, onPreview, onSend }) {
+  const [emails, setEmails] = useState(null);
+  const [busy, setBusy] = useState(null); // 'download' | 'print'
+  const [error, setError] = useState('');
+  const cancelled = sale.status === 'Cancelled';
+
+  useEffect(() => {
+    let live = true;
+    loadInvoiceEmails(sale.id).then(rows => { if (live) setEmails(rows); });
+    return () => { live = false; };
+  }, [sale.id, version]);
+
+  async function run(kind) {
+    setBusy(kind);
+    setError('');
+    try {
+      const { blob, filename } = await fetchInvoicePdf(sale.id);
+      kind === 'download' ? saveBlob(blob, filename) : printBlob(blob);
+    } catch (err) {
+      setError(`Couldn't get the invoice: ${err.message}`);
+    }
+    setBusy(null);
+  }
+
+  const balance = Math.max(total - Number(sale.amount_paid ?? 0), 0);
+  const btn = 'flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50';
+
+  return (
+    <div className="mt-3 rounded-xl bg-white border border-gray-200 p-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="mr-auto">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Invoice</p>
+          <p className="text-sm font-bold text-[#1e2d3d]">{sale.invoice_number ?? '—'}</p>
+          <p className="text-[11px] text-gray-500">
+            {new Date(sale.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+            {' · '}{ghs(total)}{' · '}{sale.payment_status ?? 'Paid'}
+            {sale.payment_status === 'Partially paid' && ` (${ghs(sale.amount_paid)} paid, ${ghs(balance)} due)`}
+          </p>
+        </div>
+        <button onClick={onPreview} disabled={!sale.invoice_number} className={`${btn} border border-gray-200 text-[#1e2d3d] hover:bg-gray-50`}>Preview</button>
+        <button onClick={() => run('download')} disabled={!!busy || !sale.invoice_number} className={`${btn} border border-gray-200 text-[#1e2d3d] hover:bg-gray-50`}>
+          {busy === 'download' && <span className="w-3 h-3 border-2 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />}
+          Download PDF
+        </button>
+        <button onClick={() => run('print')} disabled={!!busy || !sale.invoice_number} className={`${btn} border border-gray-200 text-[#1e2d3d] hover:bg-gray-50`}>
+          {busy === 'print' && <span className="w-3 h-3 border-2 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />}
+          Print
+        </button>
+        <button
+          onClick={onSend}
+          disabled={cancelled || !sale.invoice_number}
+          title={cancelled ? 'A cancelled sale\'s invoice can\'t be sent' : undefined}
+          className={`${btn} bg-[#1e2d3d] text-white hover:opacity-90`}
+        >
+          Send Invoice via Email
+        </button>
+      </div>
+      {error && <p className="text-[11px] text-red-600 mt-2">{error}</p>}
+      {emails && emails.length > 0 && (
+        <div className="mt-3 border-t border-gray-100 pt-2">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Emailed</p>
+          <ul className="space-y-1">
+            {emails.map(e => {
+              const st = emailStatus(e);
+              return (
+                <li key={e.id} className="text-[11px] text-gray-600 flex flex-wrap gap-x-2">
+                  <span>{new Date(e.sent_at ?? e.created_at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                  <span className="font-medium text-[#1e2d3d] break-all">{e.recipient}</span>
+                  <span className={`font-semibold ${st.cls}`}>{st.label}</span>
+                  {e.status === 'failed' && e.last_error && <span className="text-red-500 break-all">({e.last_error})</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModalShell({ title, onClose, children, wide }) {
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-stretch sm:items-center justify-center sm:p-4" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-label={title}
+        className={`bg-white w-full ${wide ? 'sm:max-w-4xl' : 'sm:max-w-md'} sm:rounded-2xl shadow-xl flex flex-col max-h-full sm:max-h-[92vh]`}>
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+          <h2 className="text-base font-bold text-[#1e2d3d]">{title}</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 p-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function InvoicePreview({ sale, onClose, onSend }) {
+  const [pdf, setPdf] = useState(null); // { blob, filename, url }
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let live = true;
+    let url = null;
+    fetchInvoicePdf(sale.id)
+      .then(({ blob, filename }) => {
+        if (!live) return;
+        url = URL.createObjectURL(blob);
+        setPdf({ blob, filename, url });
+      })
+      .catch(err => { if (live) setError(`Couldn't load the invoice: ${err.message}`); });
+    return () => { live = false; if (url) URL.revokeObjectURL(url); };
+  }, [sale.id]);
+
+  const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
+  const btn = 'text-sm font-semibold px-4 py-2 rounded-xl transition-opacity disabled:opacity-40';
+
+  return (
+    <ModalShell title={`Invoice ${sale.invoice_number ?? ''}`} onClose={onClose} wide>
+      <div className="flex-1 min-h-0 bg-gray-100 sm:min-h-[60vh] flex">
+        {error ? (
+          <p className="m-auto p-6 text-sm text-red-600 text-center">{error}</p>
+        ) : !pdf ? (
+          <div className="m-auto w-8 h-8 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+        ) : coarse ? (
+          <div className="m-auto p-6 text-center">
+            <p className="text-sm text-gray-600 mb-3">Your phone can't show the PDF here.</p>
+            <a href={pdf.url} target="_blank" rel="noreferrer" className={`${btn} inline-block bg-[#F2AA25] text-white`}>Open invoice</a>
+          </div>
+        ) : (
+          <iframe title="Invoice preview" src={pdf.url} className="w-full h-[70vh] border-0" />
+        )}
+      </div>
+      <div className="px-5 py-3 border-t border-gray-100 flex flex-wrap justify-end gap-2">
+        <button onClick={() => pdf && saveBlob(pdf.blob, pdf.filename)} disabled={!pdf} className={`${btn} border border-gray-200 text-[#1e2d3d] hover:bg-gray-50`}>Download PDF</button>
+        <button onClick={() => pdf && printBlob(pdf.blob)} disabled={!pdf} className={`${btn} border border-gray-200 text-[#1e2d3d] hover:bg-gray-50`}>Print</button>
+        {onSend && <button onClick={onSend} className={`${btn} bg-[#1e2d3d] text-white hover:opacity-90`}>Send Invoice via Email</button>}
+      </div>
+    </ModalShell>
+  );
+}
+
+function SendInvoice({ sale, onClose, onQueued }) {
+  const [email, setEmail] = useState('');
+  const [touched, setTouched] = useState(false);
+  const [phase, setPhase] = useState('form'); // form | sending | sent | failed | waiting
+  const [message, setMessage] = useState('');
+  const requestId = useRef(null);
+  const live = useRef(true);
+
+  useEffect(() => {
+    live.current = true;
+    // Pre-fill the last address this invoice was sent to.
+    loadInvoiceEmails(sale.id).then(rows => {
+      if (live.current && rows[0]?.recipient) setEmail(prev => prev || rows[0].recipient);
+    });
+    return () => { live.current = false; };
+  }, [sale.id]);
+
+  const trimmed = email.trim();
+  const valid = EMAIL_RE.test(trimmed) && trimmed.length <= 254;
+
+  async function send(e) {
+    e.preventDefault();
+    setTouched(true);
+    if (!valid || phase === 'sending') return;
+    // One id per send: a double-click or retry of the same send can't queue a second email.
+    requestId.current ??= crypto.randomUUID();
+    setPhase('sending');
+    setMessage('');
+    const { data: emailId, error } = await supabase.rpc('offline_sale_send_invoice', {
+      p_sale_id: sale.id, p_email: trimmed, p_request_id: requestId.current,
+    });
+    if (error) {
+      setPhase('failed');
+      setMessage(error.message);
+      return;
+    }
+    onQueued();
+    // Follow the email until Brevo accepts it (or it fails) — never report "sent" before that.
+    const started = Date.now();
+    while (live.current && Date.now() - started < 45000) {
+      await new Promise(r => setTimeout(r, 2000));
+      const { data: row } = await supabase
+        .from('email_messages').select('status, attempts, last_error, sent_at').eq('id', emailId).maybeSingle();
+      if (row?.status === 'sent') {
+        requestId.current = null;
+        setPhase('sent');
+        setMessage(`Invoice ${sale.invoice_number} was emailed to ${trimmed}. The email service accepted it for delivery.`);
+        onQueued();
+        return;
+      }
+      if (row?.status === 'failed') {
+        requestId.current = null;
+        setPhase('failed');
+        setMessage(`${row.last_error ?? 'The email could not be sent.'} ${row.attempts >= 5 ? "It won't be retried." : 'It will be retried automatically.'}`);
+        onQueued();
+        return;
+      }
+    }
+    if (!live.current) return;
+    requestId.current = null;
+    setPhase('waiting');
+    setMessage('The email is queued but hasn\'t been sent yet. The email service may be busy, down or not configured; it will keep retrying, and its status shows under the sale.');
+    onQueued();
+  }
+
+  return (
+    <ModalShell title="Send Invoice via Email" onClose={onClose}>
+      <form onSubmit={send} className="px-5 py-4" noValidate>
+        <p className="text-sm text-gray-500 mb-3">
+          Invoice <span className="font-semibold text-[#1e2d3d]">{sale.invoice_number}</span> for {sale.buyer_name} will be sent as a PDF attachment.
+        </p>
+        <label htmlFor="invoice-email" className="block text-xs font-semibold text-gray-500 mb-1">Customer's email address</label>
+        <input
+          id="invoice-email"
+          type="email"
+          inputMode="email"
+          autoComplete="off"
+          autoFocus
+          value={email}
+          onChange={e => { setEmail(e.target.value); requestId.current = null; if (phase !== 'sending') setPhase('form'); }}
+          onBlur={() => setTouched(true)}
+          disabled={phase === 'sending'}
+          placeholder="customer@example.com"
+          className={`w-full border rounded-xl px-3 py-2 text-sm outline-none focus:border-[#F2AA25] ${touched && !valid ? 'border-red-400' : 'border-gray-200'}`}
+        />
+        {touched && !valid && <p className="text-[11px] text-red-600 mt-1">{trimmed ? 'Enter a valid email address, e.g. name@example.com.' : 'Enter the customer\'s email address.'}</p>}
+
+        {phase === 'sending' && (
+          <p className="mt-3 text-sm text-blue-700 bg-blue-50 rounded-xl px-3 py-2 flex items-center gap-2">
+            <span className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+            Sending… waiting for the email service to confirm.
+          </p>
+        )}
+        {phase === 'sent' && <p className="mt-3 text-sm text-green-700 bg-green-50 rounded-xl px-3 py-2">✓ {message}</p>}
+        {phase === 'failed' && <p className="mt-3 text-sm text-red-700 bg-red-50 rounded-xl px-3 py-2">Not sent: {message}</p>}
+        {phase === 'waiting' && <p className="mt-3 text-sm text-amber-800 bg-amber-50 rounded-xl px-3 py-2">{message}</p>}
+
+        <div className="flex justify-end gap-2 mt-4">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-500 rounded-xl hover:bg-gray-100">
+            {phase === 'sent' ? 'Done' : 'Close'}
+          </button>
+          <button type="submit" disabled={phase === 'sending'} className="flex items-center gap-2 bg-[#1e2d3d] text-white text-sm font-semibold px-5 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60">
+            {phase === 'sending' ? 'Sending…' : phase === 'form' ? 'Send invoice' : 'Send again'}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
   );
 }

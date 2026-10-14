@@ -5,7 +5,7 @@ export type InvoiceData = {
   orderId: string;
   date: string;            // already formatted, Ghana time
   customerName: string;
-  email: string;
+  email?: string | null;
   phone?: string | null;
   delivery?: string | null;
   items: { name: string; detail?: string; qty: number; unit: number; total: number }[];
@@ -14,6 +14,14 @@ export type InvoiceData = {
   shippingNote: string;
   total: number;
   status: string;
+  // Optional overrides (offline-sale invoices); app orders use the defaults.
+  title?: string;                                          // default "INVOICE / RECEIPT"
+  detailsTitle?: string;                                   // default "ORDER DETAILS"
+  detailRows?: [string, string][];                         // default order number/date/status/payment
+  totalRows?: { label: string; value: string; strong?: boolean }[]; // default subtotal/coupon/shipping/total
+  stamp?: string | null;                                   // e.g. "CANCELLED"
+  footer?: string;
+  logoPng?: Uint8Array | null;                             // drawn in the header when given
 };
 
 const NAVY = rgb(0.118, 0.176, 0.239);
@@ -61,18 +69,34 @@ export async function buildInvoicePdf(d: InvoiceData): Promise<Uint8Array> {
   // Header band
   page.drawRectangle({ x: 0, y: H - 96, width: W, height: 96, color: NAVY });
   page.drawRectangle({ x: 0, y: H - 100, width: W, height: 4, color: AMBER });
-  text("Miss Betty Import", M, H - 52, 20, bold, rgb(1, 1, 1));
-  text("www.missbettyimport.com  \u00B7  WhatsApp +233 20 269 7541", M, H - 72, 9, font, rgb(0.85, 0.87, 0.9));
-  textR("INVOICE / RECEIPT", right, H - 52, 14, bold, AMBER);
+  let brandX = M;
+  if (d.logoPng) {
+    try {
+      const logo = await pdf.embedPng(d.logoPng);
+      page.drawImage(logo, { x: M, y: H - 84, width: 60, height: 60 });
+      brandX = M + 74;
+    } catch { /* unreadable logo: text header only */ }
+  }
+  text("Miss Betty Import", brandX, H - 52, 20, bold, rgb(1, 1, 1));
+  text("www.missbettyimport.com  \u00B7  WhatsApp +233 20 269 7541", brandX, H - 72, 9, font, rgb(0.85, 0.87, 0.9));
+  textR(d.title ?? "INVOICE / RECEIPT", right, H - 52, 14, bold, AMBER);
   textR(d.orderId, right, H - 72, 10, font, rgb(1, 1, 1));
   y = H - 136;
 
+  if (d.stamp) {
+    const s = safe(d.stamp), size = 26;
+    const w = bold.widthOfTextAtSize(s, size);
+    page.drawRectangle({ x: right - w - 24, y: y - 14, width: w + 24, height: 38, borderColor: rgb(0.8, 0.15, 0.15), borderWidth: 2, opacity: 0 });
+    page.drawText(s, { x: right - w - 12, y: y - 2, size, font: bold, color: rgb(0.8, 0.15, 0.15) });
+    y -= 50;
+  }
+
   // Billed to / details
   text("BILLED TO", M, y, 8, bold, GREY);
-  text("ORDER DETAILS", 330, y, 8, bold, GREY);
+  text(d.detailsTitle ?? "ORDER DETAILS", 330, y, 8, bold, GREY);
   y -= 16;
-  const left = [d.customerName, d.email, d.phone ?? "", d.delivery ?? ""].filter(Boolean);
-  const rightRows: [string, string][] = [["Order number", d.orderId], ["Date", d.date], ["Status", d.status], ["Payment", "Paid via Hubtel"]];
+  const left = [d.customerName, d.email ?? "", d.phone ?? "", d.delivery ?? ""].filter(Boolean);
+  const rightRows: [string, string][] = d.detailRows ?? [["Order number", d.orderId], ["Date", d.date], ["Status", d.status], ["Payment", "Paid via Hubtel"]];
   for (let i = 0; i < Math.max(left.length, rightRows.length); i++) {
     if (left[i]) text(left[i], M, y, 10, i === 0 ? bold : font);
     if (rightRows[i]) { text(rightRows[i][0], 330, y, 9, font, GREY); textR(rightRows[i][1], right, y, 9, bold); }
@@ -117,15 +141,27 @@ export async function buildInvoicePdf(d: InvoiceData): Promise<Uint8Array> {
     textR(value, right - 6, y, vSize, bold);
     y -= strong ? 20 : 16;
   };
-  totalRow("Subtotal", ghs(d.subtotal));
-  if (d.discount > 0) totalRow("Coupon discount", `- ${ghs(d.discount)}`);
-  totalRow("Shipping", d.shippingNote);
-  page.drawLine({ start: { x: 300, y: y + 12 }, end: { x: right, y: y + 12 }, thickness: 1.2, color: NAVY });
-  y -= 4;
-  totalRow("Total paid", ghs(d.total), true);
+  if (d.totalRows) {
+    // Keep the totals above the footer.
+    if (y - d.totalRows.length * 20 < 90) { page = pdf.addPage([W, H]); y = H - M; }
+    for (const r of d.totalRows) {
+      if (r.strong) {
+        page.drawLine({ start: { x: 300, y: y + 12 }, end: { x: right, y: y + 12 }, thickness: 1.2, color: NAVY });
+        y -= 4;
+      }
+      totalRow(r.label, r.value, r.strong);
+    }
+  } else {
+    totalRow("Subtotal", ghs(d.subtotal));
+    if (d.discount > 0) totalRow("Coupon discount", `- ${ghs(d.discount)}`);
+    totalRow("Shipping", d.shippingNote);
+    page.drawLine({ start: { x: 300, y: y + 12 }, end: { x: right, y: y + 12 }, thickness: 1.2, color: NAVY });
+    y -= 4;
+    totalRow("Total paid", ghs(d.total), true);
+  }
 
   // Footer
-  const foot = "Thank you for shopping with Miss Betty Import. Keep this receipt for your records.";
+  const foot = d.footer ?? "Thank you for shopping with Miss Betty Import. Keep this receipt for your records.";
   page.drawLine({ start: { x: M, y: 70 }, end: { x: right, y: 70 }, thickness: 0.7, color: LINE });
   text(foot, M, 54, 9, font, GREY);
   text("Questions about this order? WhatsApp +233 20 269 7541 or visit missbettyimport.com", M, 40, 9, font, GREY);

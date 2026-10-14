@@ -5,6 +5,7 @@
 //   secret, or by an admin. Each email is built from fresh data, sent via Brevo, and its
 //   outcome recorded; failures are retried with back-off by the database.
 // action "preview": admin only; returns the HTML of an announcement before it is sent.
+// action "offline_invoice_pdf": admin only; the invoice PDF of an offline sale (preview/print).
 //
 // Secrets: BREVO_API_KEY, EMAIL_FROM ("Miss Betty Import <orders@missbettyimport.com>"),
 // EMAIL_REPLY_TO (optional). Until BREVO_API_KEY is set, emails simply wait in the outbox.
@@ -12,6 +13,7 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { announcementEmail, orderEmail, orderShippingNote, periodEmail, shippingEmail, sourcedEmail, type Built } from "./emails.ts";
 import { ghanaTime, toText } from "./templates.ts";
 import { buildInvoicePdf } from "./invoice-pdf.ts";
+import { offlineInvoiceData, offlineInvoiceEmail, offlineInvoicePdf, toBase64, type OfflineSale } from "./offline-invoice.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -181,6 +183,25 @@ async function buildCampaign(db: SupabaseClient, m: Msg): Promise<Built> {
   return built;
 }
 
+// ── Offline-sale invoice (Admin › Offline Buyers) ───────────────────────────────────
+async function loadOfflineSale(db: SupabaseClient, saleId: number): Promise<OfflineSale | null> {
+  const { data, error } = await db.from("offline_sales")
+    .select("id, invoice_number, buyer_name, status, payment_status, amount_paid, created_at, updated_at, offline_sale_items(id, product_name_snapshot, size, colour, quantity, original_price, discount_amount, unit_price)")
+    .eq("id", saleId).maybeSingle();
+  if (error) throw new Error(`Loading sale failed: ${error.message}`);
+  return data as OfflineSale | null;
+}
+
+async function buildOfflineInvoice(db: SupabaseClient, m: Msg): Promise<Built> {
+  const sale = await loadOfflineSale(db, Number(m.data.sale_id));
+  if (!sale) throw new PermanentError("This offline sale no longer exists");
+  if (sale.status === "Cancelled") throw new PermanentError("This offline sale was cancelled");
+  const inv = offlineInvoiceData(sale);
+  const built = offlineInvoiceEmail(inv);
+  built.attachments = [{ name: `Invoice-${inv.number}.pdf`, content: toBase64(await offlineInvoicePdf(inv)) }];
+  return built;
+}
+
 const BUILDERS: Record<string, (db: SupabaseClient, m: Msg) => Promise<Built>> = {
   order_confirmation: buildOrder,
   shipping_payment: buildShipping,
@@ -188,6 +209,7 @@ const BUILDERS: Record<string, (db: SupabaseClient, m: Msg) => Promise<Built>> =
   period_closed: buildCampaign,
   period_opened: buildCampaign,
   announcement: buildCampaign,
+  offline_invoice: buildOfflineInvoice,
 };
 
 // ── Brevo ────────────────────────────────────────────────────────────────────────
@@ -342,6 +364,13 @@ Deno.serve(async (req) => {
         buttonUrl: body.button_url ? String(body.button_url).slice(0, 500) : null,
       }, "Ama Mensah");
       return json({ subject: built.subject, html: built.html });
+    }
+
+    if (action === "offline_invoice_pdf" && adminOk) {
+      const sale = await loadOfflineSale(db, Number(body.sale_id));
+      if (!sale) return json({ error: "This sale no longer exists" }, 404);
+      const inv = offlineInvoiceData(sale);
+      return json({ filename: `Invoice-${inv.number}.pdf`, pdf: toBase64(await offlineInvoicePdf(inv)), total: inv.total });
     }
 
     if (action === "inspect") {
