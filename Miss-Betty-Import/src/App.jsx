@@ -34,6 +34,7 @@ const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"));
 const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"));
 const AdminInvoicesPage = lazy(() => import("./pages/admin/AdminInvoicesPage"));
 const AdminShippingFeesPage = lazy(() => import("./pages/admin/AdminShippingFeesPage"));
+const AdminOfflineBuyersPage = lazy(() => import("./pages/admin/AdminOfflineBuyersPage"));
 const AdminProductRequestsPage = lazy(() => import("./pages/admin/AdminProductRequestsPage"));
 const AdminSmsMessagingPage = lazy(() => import("./pages/admin/AdminSmsMessagingPage"));
 const AdminAvailableOrdersPage = lazy(() => import("./pages/admin/AdminAvailableOrdersPage"));
@@ -140,6 +141,7 @@ function App() {
                   <Route path="/admin/orders" element={<AdminOrdersPage />} />
                   <Route path="/admin/invoices" element={<AdminInvoicesPage />} />
                   <Route path="/admin/shipping-fees" element={<AdminShippingFeesPage />} />
+                  <Route path="/admin/offline-buyers" element={<AdminOfflineBuyersPage />} />
                   <Route path="/admin/product-requests" element={<AdminProductRequestsPage />} />
                   <Route path="/admin/bulk-sms" element={<AdminSmsMessagingPage />} />
                   <Route path="/admin/available-orders" element={<AdminAvailableOrdersPage />} />
