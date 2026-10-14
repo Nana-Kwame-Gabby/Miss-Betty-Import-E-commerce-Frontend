@@ -15,7 +15,9 @@ function VariantAdder({ product, addToCart }) {
   const curEntry         = product.sizePricing && curSize
     ? (product.sizePricing.find(sp => sp.size === curSize) ?? null) : null;
   const curRegularPrice  = curEntry?.selling_price ?? curEntry?.price ?? product.unit_price ?? 0;
-  const curDiscountPrice = curEntry?.discount_price ?? product.discount_price ?? null;
+  // A chosen size uses only its own discount; the product-level discount_price is the
+  // lowest discount across sizes (for the "from" price) and must not leak into other sizes.
+  const curDiscountPrice = curEntry ? (curEntry.discount_price ?? null) : (product.discount_price ?? null);
   const curHasDiscount   = curDiscountPrice != null && curDiscountPrice > 0 && curDiscountPrice < curRegularPrice;
   const curPrice         = curHasDiscount ? curDiscountPrice : curRegularPrice;
   const curCostPrice     = curEntry?.cost_price ?? product.cost_price ?? 0;
