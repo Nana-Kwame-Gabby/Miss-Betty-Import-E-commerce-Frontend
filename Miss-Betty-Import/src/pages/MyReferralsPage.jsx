@@ -100,48 +100,48 @@ export default function MyReferralsPage() {
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-20 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
-      <h1 className="text-lg sm:text-xl font-bold text-[#1e2d3d] mb-3 sm:mb-5">My Referrals & Coupons</h1>
+      <h1 className="text-2xl sm:text-[28px] font-bold tracking-[-0.4px] text-mbi-navy mb-4 sm:mb-6">Referrals & coupons</h1>
 
       {/* Headline stats */}
       <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-white rounded-2xl shadow-sm p-4 text-center">
-          <p className="text-2xl font-bold text-[#1e2d3d]">{referrals.length}</p>
-          <p className="text-xs text-gray-400 font-medium mt-0.5">Successful Referrals</p>
+        <div className="bg-white rounded-mbi-card p-4 text-center">
+          <p className="text-2xl font-bold text-mbi-navy">{referrals.length}</p>
+          <p className="text-xs text-mbi-slate font-medium mt-0.5">Successful Referrals</p>
         </div>
-        <div className="bg-white rounded-2xl shadow-sm p-4 text-center">
-          <p className="text-2xl font-bold text-green-600">{availableCoupons.length}</p>
-          <p className="text-xs text-gray-400 font-medium mt-0.5">
+        <div className="bg-white rounded-mbi-card p-4 text-center">
+          <p className="text-2xl font-bold text-mbi-available">{availableCoupons.length}</p>
+          <p className="text-xs text-mbi-slate font-medium mt-0.5">
             Available Coupons {availableCoupons.length > 0 && `(GHS ${availableTotal.toLocaleString()})`}
           </p>
         </div>
       </div>
 
       {/* Referral code + share link */}
-      <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
-        <h2 className="font-bold text-[#1e2d3d] text-base mb-1">Your Referral Code</h2>
-        <p className="text-xs text-gray-400 mb-3">
+      <div className="bg-white rounded-mbi-card p-4 mb-4">
+        <h2 className="font-bold text-mbi-navy text-base mb-1">Your Referral Code</h2>
+        <p className="text-xs text-mbi-slate mb-3">
           Share this with friends — when they sign up with it, you get a GHS 100 coupon.
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono font-bold text-lg text-[#1e2d3d] bg-gray-100 rounded-xl px-4 py-2">
+          <span className="font-mono font-bold text-lg text-mbi-navy bg-mbi-surface-soft rounded-lg px-4 py-2">
             {referralCode || "—"}
           </span>
           <div className="relative">
             <button
               onClick={handleShare}
-              className="flex items-center gap-1.5 bg-[#F2AA25] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity"
+              className="mbi-press flex items-center gap-1.5 bg-mbi-amber text-mbi-navy text-sm font-semibold px-4 py-2 rounded-lg hover:bg-mbi-amber-press transition-opacity"
             >
               Share Link
             </button>
             {copied && (
-              <span className="absolute top-full left-0 mt-1 whitespace-nowrap bg-[#1e2d3d] text-white text-[10px] font-semibold px-2 py-1 rounded-md shadow-sm">
+              <span className="absolute top-full left-0 mt-1 whitespace-nowrap bg-mbi-navy text-white text-xs font-semibold px-2 py-1 rounded-md">
                 Link copied!
               </span>
             )}
@@ -150,18 +150,18 @@ export default function MyReferralsPage() {
       </div>
 
       {/* Coupons */}
-      <div className="bg-white rounded-2xl shadow-sm p-4 mb-4">
-        <h2 className="font-bold text-[#1e2d3d] text-base mb-3">
+      <div className="bg-white rounded-mbi-card p-4 mb-4">
+        <h2 className="font-bold text-mbi-navy text-base mb-3">
           Available Coupons ({availableCoupons.length})
         </h2>
         {availableCoupons.length === 0 ? (
-          <p className="text-sm text-gray-400">No coupons available yet — refer a friend to earn one.</p>
+          <p className="text-sm text-mbi-slate">No coupons available yet — refer a friend to earn one.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {availableCoupons.map(c => (
-              <div key={c.id} className="flex items-center justify-between bg-green-50 border border-green-100 rounded-xl px-3 py-2.5">
-                <span className="font-bold text-green-700 text-sm">GHS {Number(c.amount).toLocaleString()} off</span>
-                <span className="text-xs text-gray-400">
+              <div key={c.id} className="flex items-center justify-between bg-mbi-available-tint border border-mbi-available/30 rounded-lg px-3 py-2.5">
+                <span className="font-bold text-mbi-available text-sm">GHS {Number(c.amount).toLocaleString()} off</span>
+                <span className="text-xs text-mbi-slate">
                   Earned {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                 </span>
               </div>
@@ -171,12 +171,12 @@ export default function MyReferralsPage() {
 
         {usedCoupons.length > 0 && (
           <>
-            <h3 className="font-semibold text-[#1e2d3d] text-sm mt-4 mb-2">Used Coupons ({usedCoupons.length})</h3>
+            <h3 className="font-semibold text-mbi-navy text-sm mt-4 mb-2">Used Coupons ({usedCoupons.length})</h3>
             <div className="flex flex-col gap-2">
               {usedCoupons.map(c => (
-                <div key={c.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
-                  <span className="font-semibold text-gray-500 text-sm">GHS {Number(c.amount).toLocaleString()} off</span>
-                  <span className="text-xs text-gray-400">
+                <div key={c.id} className="flex items-center justify-between bg-mbi-surface-soft border border-mbi-hairline-soft rounded-lg px-3 py-2.5">
+                  <span className="font-semibold text-mbi-slate text-sm">GHS {Number(c.amount).toLocaleString()} off</span>
+                  <span className="text-xs text-mbi-slate">
                     Used on {c.used_order_id ?? "—"}
                   </span>
                 </div>
@@ -187,18 +187,18 @@ export default function MyReferralsPage() {
       </div>
 
       {/* People referred */}
-      <div className="bg-white rounded-2xl shadow-sm p-4">
-        <h2 className="font-bold text-[#1e2d3d] text-base mb-3">
+      <div className="bg-white rounded-mbi-card p-4">
+        <h2 className="font-bold text-mbi-navy text-base mb-3">
           People You've Referred ({referrals.length})
         </h2>
         {referrals.length === 0 ? (
-          <p className="text-sm text-gray-400">Nobody has signed up with your code yet.</p>
+          <p className="text-sm text-mbi-slate">Nobody has signed up with your code yet.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {referrals.map(r => (
               <div key={r.id} className="flex items-center justify-between text-sm">
-                <span className="text-[#1e2d3d] font-medium">{r.customer_name ?? "—"}</span>
-                <span className="text-xs text-gray-400">
+                <span className="text-mbi-navy font-medium">{r.customer_name ?? "—"}</span>
+                <span className="text-xs text-mbi-slate">
                   {new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                 </span>
               </div>
@@ -208,7 +208,7 @@ export default function MyReferralsPage() {
       </div>
 
       <div className="mt-5 text-center">
-        <Link to="/shop" className="inline-block text-[#F2AA25] font-semibold hover:underline">
+        <Link to="/shop" className="inline-block text-mbi-amber-ink font-semibold hover:underline">
           ← Continue Shopping
         </Link>
       </div>

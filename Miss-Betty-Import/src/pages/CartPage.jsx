@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAppSettings } from "../context/AppSettingsContext";
-import { colourMap } from "../data/mockData";
-import { getEffectivePrice, hasDiscount } from "../lib/priceUtils";
 import { imgFallback, thumbUrl } from "../lib/imageUrl";
+import { productPath } from "../lib/seo";
+import { AddVariantRow, ColourSwatches, QtyStepper, SizeChips } from "../components/shop/BuyBox";
+import { money, primaryButtonClass, secondaryButtonClass } from "../lib/buyBoxStyles";
 
 function VariantAdder({ product, addToCart }) {
   const [curSize,   setCurSize]   = useState(null);
@@ -23,6 +24,9 @@ function VariantAdder({ product, addToCart }) {
   const curCostPrice     = curEntry?.cost_price ?? product.cost_price ?? 0;
   const curProfit        = curEntry?.profit     ?? product.profit     ?? 0;
   const curRmbPrice      = curEntry?.rmb_price  ?? product.rmb_price  ?? 0;
+  // Misc travels with the line like on every other add-to-cart path, so the order's
+  // profit (price − cost − misc) is right.
+  const curMiscAmount    = curEntry?.misc_amount ?? product.misc_amount ?? 0;
 
   const canAdd = (!product.sizes?.length || curSize) && (!product.colours?.length || curColour);
 
@@ -32,7 +36,7 @@ function VariantAdder({ product, addToCart }) {
       product, curQty, curSize, curColour,
       curPrice, curCostPrice, curProfit,
       curHasDiscount ? curRegularPrice : null,
-      curRmbPrice
+      curRmbPrice, curMiscAmount
     );
     setAdded(true);
     setCurQty(1);
@@ -40,157 +44,85 @@ function VariantAdder({ product, addToCart }) {
   }
 
   return (
-    <div className="bg-[#FFF9F0] rounded-xl border border-[#F2AA25]/30 p-2">
-      {/* Header */}
-      <div className="flex items-center gap-2.5 mb-1.5">
-        <p className="text-[10px] text-[#F2AA25] font-semibold">+ Add a variant</p>
-      </div>
-
-      {/* Size picker */}
-      {product.sizes?.length > 0 && (
-        <div className="mb-1.5">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Size</p>
-          <div className="flex flex-wrap gap-1.5">
-            {product.sizes.map(s => {
-              const entry  = product.sizePricing?.find(sp => sp.size === s);
-              const reg    = entry ? (entry.selling_price ?? entry.price ?? 0) : 0;
-              const disc   = entry ? getEffectivePrice(entry) : 0;
-              const hasDis = entry && hasDiscount(entry);
-              const active = curSize === s;
-              return (
-                <button
-                  key={s}
-                  onClick={() => setCurSize(s)}
-                  className={`px-1.5 py-0.5 rounded-xl text-[11px] font-semibold transition-colors leading-none border ${
-                    active
-                      ? "bg-[#1e2d3d] text-white border-[#1e2d3d]"
-                      : "border-gray-300 text-gray-600 hover:border-[#1e2d3d]"
-                  }`}
-                >
-                  <span className="block">{s}</span>
-                  {entry && (hasDis ? (
-                    <>
-                      <span className="block text-[10px] font-semibold text-[#DC2626]">GHS {disc.toLocaleString()}</span>
-                      <span className={`block text-[9px] line-through ${active ? "text-white/50" : "text-gray-300"}`}>GHS {reg.toLocaleString()}</span>
-                    </>
-                  ) : (
-                    <span className={`block text-[10px] ${active ? "text-white/70" : "text-gray-400"}`}>GHS {reg.toLocaleString()}</span>
-                  ))}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Colour picker */}
-      {product.colours?.length > 0 && (
-        <div className="mb-1.5">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">
-            Colour:{" "}
-            <span className="normal-case font-normal text-gray-600">{curColour}</span>
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {product.colours.map(c => (
-              <button
-                key={c}
-                onClick={() => setCurColour(c)}
-                title={c}
-                className={`w-5 h-5 rounded-full transition-all flex-shrink-0 ${
-                  curColour === c
-                    ? "ring-2 ring-offset-2 ring-[#1e2d3d] scale-110"
-                    : "hover:scale-105"
-                } ${c === "White" ? "border border-gray-200" : ""}`}
-                style={{ backgroundColor: colourMap[c] || "#ccc" }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Qty + Add button */}
-      <div className="flex items-center gap-1.5">
-        <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
-          <button
-            onClick={() => setCurQty(q => Math.max(1, q - 1))}
-            className="px-1.5 py-1 text-gray-500 hover:bg-gray-50 font-bold text-sm leading-none"
-          >−</button>
-          <span className="px-1.5 py-1 text-xs font-semibold text-[#1e2d3d] min-w-[1.5rem] text-center">{curQty}</span>
-          <button
-            onClick={() => setCurQty(q => q + 1)}
-            className="px-1.5 py-1 text-gray-500 hover:bg-gray-50 font-bold text-sm leading-none"
-          >+</button>
-        </div>
-        <button
-          onClick={handleAdd}
+    <details className="group rounded-lg bg-mbi-surface-soft">
+      <summary className="flex h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 text-sm font-semibold text-mbi-navy [&::-webkit-details-marker]:hidden">
+        <span className="inline-flex items-center gap-1.5">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add another size or colour
+        </span>
+        <svg className="transition-transform duration-150 ease-mbi-out group-open:rotate-180" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </summary>
+      <div className="space-y-4 px-3 pb-3 pt-1">
+        <SizeChips sizes={product.sizes ?? []} sizePricing={product.sizePricing} value={curSize} onChange={setCurSize} />
+        <ColourSwatches colours={product.colours ?? []} value={curColour} onChange={setCurColour} />
+        <AddVariantRow
+          qty={curQty}
+          onQty={setCurQty}
+          onAdd={handleAdd}
           disabled={!canAdd}
-          className={`flex-1 py-1 rounded-xl text-xs font-semibold transition-colors ${
-            added
-              ? "bg-green-500 text-white"
-              : canAdd
-              ? "bg-[#F2AA25] text-white hover:opacity-90"
-              : "bg-gray-100 text-gray-400 cursor-not-allowed"
-          }`}
-        >
-          {added ? "✓ Added to cart!" : `Add · GHS ${curPrice.toLocaleString()}`}
-        </button>
+          label={added ? "Added to cart" : canAdd ? `Add · ${money(curPrice)}` : "Choose options"}
+        />
       </div>
-    </div>
+    </details>
   );
 }
 
 // One card per product — every size/colour variant of that product currently in the
-// cart is listed as a compact row inside it, instead of each variant getting its own
-// separate card.
+// cart is listed as a row inside it, instead of each variant getting its own card.
 function ProductGroupCard({ group, addToCart, updateQuantity, removeFromCart }) {
   const { product, variants } = group;
   const hasVariantOptions = (product.sizes?.length ?? 0) > 0 || (product.colours?.length ?? 0) > 0;
   const groupTotal = variants.reduce((s, v) => s + v.unit_price * v.quantity, 0);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-1.5 sm:p-2">
-      <div className="flex gap-2 items-center mb-1">
-        <img
-          src={thumbUrl(product.product_image_url, 160)}
-          onError={imgFallback(product.product_image_url)}
-          alt={product.product_name}
-          className="w-11 h-14 sm:w-14 sm:h-[4.5rem] object-cover rounded-xl flex-shrink-0"
-        />
-        <h3 className="font-semibold text-sm text-[#1e2d3d] truncate flex-1 min-w-0">{product.product_name}</h3>
+    <article className="rounded-mbi-card border border-mbi-hairline bg-white p-4">
+      <div className="flex items-center gap-3">
+        <Link to={productPath({ id: product.id, product_name: product.product_name })} className="shrink-0">
+          <img
+            src={thumbUrl(product.product_image_url, 160)}
+            onError={imgFallback(product.product_image_url)}
+            alt={product.product_name}
+            className="size-16 rounded-lg bg-mbi-surface-soft object-cover"
+          />
+        </Link>
+        <div className="min-w-0 flex-1">
+          <h2 className="line-clamp-2 text-base font-semibold leading-snug text-mbi-navy">
+            <Link to={productPath({ id: product.id, product_name: product.product_name })} className="hover:underline">{product.product_name}</Link>
+          </h2>
+          {product.product_status && <p className="mt-0.5 text-sm text-mbi-slate">{product.product_status}</p>}
+        </div>
       </div>
 
-      <div className="divide-y divide-gray-100">
-        {variants.map(v => (
-          <div key={v.cartKey} className="flex items-center gap-1.5 py-1">
-            <span className="text-xs text-gray-600 truncate flex-1 min-w-0">
-              {[v.size, v.colour].filter(Boolean).join(" · ") || "Standard"}
-            </span>
-            <span className="text-xs font-semibold text-[#1e2d3d] flex-shrink-0">
-              GHS {(v.unit_price * v.quantity).toLocaleString()}
-            </span>
-            <div className="flex items-center gap-1 border border-gray-200 rounded-lg px-1 py-0.5 flex-shrink-0">
+      <ul className="mt-3 divide-y divide-mbi-hairline-soft border-t border-mbi-hairline-soft">
+        {variants.map(v => {
+          const label = [v.size, v.colour].filter(Boolean).join(" · ") || "Standard";
+          return (
+            <li key={v.cartKey} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-3">
+              <div className="min-w-0 sm:flex-1">
+                <p className="truncate text-sm font-medium text-mbi-navy">{label}</p>
+                <p className="text-sm text-mbi-slate tabular">
+                  {money(v.unit_price)} each
+                  {v.original_price != null && v.original_price > v.unit_price && <s className="ml-1.5">{money(v.original_price)}</s>}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+              <QtyStepper compact value={v.quantity} onChange={q => updateQuantity(v.cartKey, q)} label={`Quantity of ${label}`} />
+              <span className="ml-auto min-w-24 text-right text-base font-bold text-mbi-navy tabular sm:ml-0">{money(v.unit_price * v.quantity)}</span>
               <button
-                onClick={() => updateQuantity(v.cartKey, v.quantity - 1)}
-                className="w-5 h-5 flex items-center justify-center font-bold text-[#1e2d3d] hover:text-[#F2AA25] text-xs"
-              >−</button>
-              <span className="w-4 text-center text-xs font-semibold">{v.quantity}</span>
-              <button
-                onClick={() => updateQuantity(v.cartKey, v.quantity + 1)}
-                className="w-5 h-5 flex items-center justify-center font-bold text-[#1e2d3d] hover:text-[#F2AA25] text-xs"
-              >+</button>
-            </div>
-            <button
-              onClick={() => removeFromCart(v.cartKey)}
-              className="text-red-400 hover:text-red-600 transition-colors p-0.5 flex-shrink-0"
-              aria-label="Remove item"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-              </svg>
-            </button>
-          </div>
-        ))}
-      </div>
+                type="button"
+                onClick={() => removeFromCart(v.cartKey)}
+                className="mbi-press grid size-9 shrink-0 place-items-center rounded-full text-mbi-slate hover:bg-mbi-error-tint hover:text-mbi-error"
+                aria-label={`Remove ${product.product_name} ${label}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
 
       {hasVariantOptions && (
         <div className="mt-1">
@@ -198,11 +130,13 @@ function ProductGroupCard({ group, addToCart, updateQuantity, removeFromCart }) 
         </div>
       )}
 
-      <div className="flex justify-between items-center pt-1 mt-1 border-t border-gray-100">
-        <span className="text-xs font-semibold text-[#1e2d3d]">Total</span>
-        <span className="text-xs font-bold text-[#1e2d3d]">GHS {groupTotal.toLocaleString()}</span>
-      </div>
-    </div>
+      {variants.length > 1 && (
+        <div className="mt-3 flex items-center justify-between border-t border-mbi-hairline-soft pt-3 text-sm">
+          <span className="font-semibold text-mbi-navy">Product total</span>
+          <span className="font-bold text-mbi-navy tabular">{money(groupTotal)}</span>
+        </div>
+      )}
+    </article>
   );
 }
 
@@ -213,6 +147,7 @@ export default function CartPage() {
 
   const isPreorder = s => typeof s === "string" && s.toLowerCase().includes("pre");
   const hasBlockedPreorders = ordersClosed && cartItems.some(i => isPreorder(i.product_status));
+  const itemCount = cartItems.reduce((s, i) => s + Number(i.quantity ?? 0), 0);
 
   // One group per product — every cart line (a distinct size/colour combination) for
   // that product id is collected together so it can render as rows inside one card.
@@ -225,32 +160,41 @@ export default function CartPage() {
     return Array.from(map.values());
   }, [cartItems]);
 
-  if (cartItems.length === 0) {
+  // Phones get a pinned checkout bar; lift the chat launcher above it.
+  const hasItems = cartItems.length > 0;
+  useEffect(() => {
+    if (!hasItems) return;
+    document.documentElement.dataset.actionBar = "on";
+    return () => { delete document.documentElement.dataset.actionBar; };
+  }, [hasItems]);
+
+  const goToCheckout = () => { if (!hasBlockedPreorders) navigate("/checkout"); };
+
+  if (!hasItems) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12 text-center">
-        <div className="text-4xl sm:text-5xl mb-3">🛒</div>
-        <h2 className="text-lg sm:text-xl font-bold text-[#1e2d3d] mb-2">Your cart is empty</h2>
-        <p className="text-gray-400 text-sm mb-6">Looks like you haven't added anything yet.</p>
-        <Link
-          to="/shop"
-          className="inline-block bg-[#F2AA25] text-white font-bold px-6 py-2.5 rounded-2xl hover:opacity-90 transition-opacity"
-        >
-          Start Shopping
-        </Link>
+      <div className="max-w-7xl mx-auto px-4 py-16 flex flex-col items-center text-center">
+        <div className="grid size-16 place-items-center rounded-full bg-mbi-surface-soft text-mbi-slate">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+        </div>
+        <h1 className="mt-4 text-xl font-bold text-mbi-navy">Your cart is empty</h1>
+        <p className="mt-1 text-base text-mbi-slate">Looks like you haven't added anything yet.</p>
+        <Link to="/shop" className={`${primaryButtonClass()} mt-6 !w-auto`}>Start shopping</Link>
       </div>
     );
   }
 
+  const checkoutLabel = hasBlockedPreorders ? "Pre-orders are closed" : "Proceed to checkout";
+
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
-      <h1 className="text-base sm:text-xl font-bold text-[#1e2d3d] mb-2 sm:mb-3">
-        My Cart <span className="text-gray-400 text-sm font-normal">({cartItems.length} {cartItems.length === 1 ? "item" : "items"})</span>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-8 pb-40 lg:pb-12">
+      <h1 className="text-2xl sm:text-[28px] font-bold tracking-[-0.4px] text-mbi-navy">
+        Your cart <span className="text-base font-medium tracking-normal text-mbi-slate">({itemCount} {itemCount === 1 ? "item" : "items"})</span>
       </h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-5">
-        {/* Items list */}
-        <div className="lg:col-span-2 flex flex-col gap-1.5 sm:gap-2">
-
+      <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
+        <div className="flex flex-col gap-3 lg:col-span-2">
           {groupedCartItems.map(group => (
             <ProductGroupCard
               key={group.product.id}
@@ -260,59 +204,71 @@ export default function CartPage() {
               removeFromCart={removeFromCart}
             />
           ))}
+          <Link to="/shop" className="mbi-press mt-1 inline-flex h-11 w-fit items-center gap-1.5 rounded-lg px-1 text-sm font-semibold text-mbi-navy hover:underline">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+            Continue shopping
+          </Link>
         </div>
 
-        {/* Summary */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm p-2.5 sm:p-3 sticky top-12">
-            <h2 className="font-bold text-[#1e2d3d] text-sm mb-2">Order Summary</h2>
-            <div className="flex flex-col gap-1 text-xs mb-2">
+        <aside className="lg:col-span-1">
+          <div className="rounded-mbi-card border border-mbi-hairline bg-white p-5 lg:sticky lg:top-24">
+            <h2 className="text-xl font-bold text-mbi-navy">Order summary</h2>
+            <ul className="mt-3 space-y-2 text-sm">
               {cartItems.map(item => (
-                <div key={item.cartKey} className="flex justify-between text-gray-600">
-                  <span className="truncate flex-1 mr-2">{item.product_name} × {item.quantity}</span>
-                  <span className="font-medium flex-shrink-0">GHS {(item.unit_price * item.quantity).toLocaleString()}</span>
-                </div>
+                <li key={item.cartKey} className="flex justify-between gap-3 text-mbi-navy-body">
+                  <span className="min-w-0 flex-1 truncate">{item.product_name} × {item.quantity}</span>
+                  <span className="shrink-0 font-medium tabular">{money(item.unit_price * item.quantity)}</span>
+                </li>
               ))}
-            </div>
-            <div className="border-t border-gray-100 pt-2 mb-2">
-              <div className="flex justify-between font-bold text-[#1e2d3d] text-sm">
+            </ul>
+            <div className="mt-4 space-y-1.5 border-t border-mbi-hairline pt-4">
+              <div className="flex justify-between text-base font-bold text-mbi-navy tabular">
                 <span>Subtotal</span>
-                <span className="text-[#DC2626]">GHS {subtotal.toLocaleString()}</span>
+                <span>{money(subtotal)}</span>
               </div>
               {totalSavings > 0 && (
-                <div className="flex justify-between text-green-600 text-xs font-semibold mt-1">
+                <div className="flex justify-between text-sm font-semibold text-mbi-available tabular">
                   <span>You save</span>
-                  <span>− GHS {totalSavings.toLocaleString()}</span>
+                  <span>− {money(totalSavings)}</span>
                 </div>
               )}
-              <p className="text-xs text-gray-400 mt-1">Delivery fee calculated at checkout</p>
+              <p className="text-sm text-mbi-slate">Delivery fee is calculated at checkout.</p>
             </div>
-            <p className="text-xs text-gray-400 leading-relaxed mb-2">
-              Please review your cart carefully before checking out — Miss Betty Import is not responsible for errors in size, colour, or style chosen by the customer.
+            <p className="mt-4 rounded-lg bg-mbi-surface-soft px-3 py-2.5 text-sm leading-relaxed text-mbi-navy-body">
+              Please check sizes, colours and styles before checking out. Miss Betty Import is not responsible for errors in the options you choose.
             </p>
             <button
-              onClick={() => !hasBlockedPreorders && navigate("/checkout")}
+              type="button"
+              onClick={goToCheckout}
               disabled={hasBlockedPreorders}
-              className={`w-full font-bold text-sm py-2 sm:py-2.5 rounded-2xl transition-opacity ${
-                hasBlockedPreorders
-                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                  : "bg-[#F2AA25] text-white hover:opacity-90"
-              }`}
+              className={`mt-4 hidden lg:inline-flex ${hasBlockedPreorders ? secondaryButtonClass({ disabled: true }) : primaryButtonClass()}`}
             >
-              {hasBlockedPreorders ? "Pre-orders Closed" : "Proceed to Checkout"}
+              {checkoutLabel}
             </button>
             {hasBlockedPreorders && (
-              <p className="text-xs text-red-500 text-center mt-1.5">
-                Your cart contains pre-order items which are currently unavailable. Remove them to proceed.
+              <p role="alert" className="mt-3 text-sm font-medium text-mbi-error">
+                Your cart has pre-order items, and pre-orders are closed right now. Remove them to check out.
               </p>
             )}
-            <Link
-              to="/shop"
-              className="block text-center text-xs text-[#1e2d3d] font-medium mt-2 hover:text-[#F2AA25] transition-colors"
-            >
-              ← Continue Shopping
-            </Link>
           </div>
+        </aside>
+      </div>
+
+      {/* Phones: subtotal and checkout within thumb reach, above the bottom tab bar. */}
+      <div className="fixed inset-x-0 bottom-16 z-30 border-t border-mbi-hairline bg-white px-4 py-3 shadow-mbi-float lg:hidden">
+        <div className="mx-auto flex max-w-xl items-center gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-mbi-slate">Subtotal</p>
+            <p className="text-lg font-bold text-mbi-navy tabular">{money(subtotal)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={goToCheckout}
+            disabled={hasBlockedPreorders}
+            className={`flex-1 ${hasBlockedPreorders ? secondaryButtonClass({ disabled: true }) : primaryButtonClass()}`}
+          >
+            {hasBlockedPreorders ? "Orders closed" : "Checkout"}
+          </button>
         </div>
       </div>
     </div>

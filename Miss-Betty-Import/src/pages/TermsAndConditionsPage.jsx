@@ -4,7 +4,7 @@ import useSeo from "../hooks/useSeo";
 function Section({ title, children }) {
   return (
     <section>
-      <h2 className="text-base sm:text-lg font-semibold text-[#1e2d3d] mb-2">{title}</h2>
+      <h2 className="text-base sm:text-lg font-semibold text-mbi-navy mb-2">{title}</h2>
       <div className="space-y-2">{children}</div>
     </section>
   );
@@ -13,17 +13,17 @@ function Section({ title, children }) {
 export default function TermsAndConditionsPage() {
   useSeo({ title: "Terms and Conditions", description: "Terms for ordering from Miss Betty Import: payments, pre-orders, shipping fees, delivery, cancellations and returns in Ghana.", path: "/terms" });
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-white">
       {/* Header */}
-      <div className="bg-[#1e2d3d] text-white py-10 px-4 text-center">
+      <div className="bg-mbi-navy text-white py-10 px-4 text-center">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">Terms and Conditions</h1>
-        <p className="text-[#F2AA25] text-sm font-semibold">
+        <p className="text-mbi-amber text-sm font-semibold">
           !! Read, understand and agree before placing an order !!
         </p>
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto px-4 py-10 sm:py-14 space-y-8 text-gray-700 text-sm sm:text-base leading-relaxed">
+      <div className="max-w-3xl mx-auto px-4 py-10 sm:py-14 space-y-8 text-mbi-navy-body text-sm sm:text-base leading-relaxed">
 
         <Section title="1. Shipping Duration">
           <p>
@@ -115,15 +115,15 @@ export default function TermsAndConditionsPage() {
               href="https://wa.me/233202697541"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#F2AA25] hover:underline font-medium"
+              className="text-mbi-amber-ink hover:underline font-medium"
             >
-              💬 Chat with us on WhatsApp
+              Chat with us on WhatsApp
             </a>
           </p>
         </Section>
 
-        <section className="border-t border-gray-200 pt-6">
-          <p className="italic text-gray-500 text-sm">
+        <section className="border-t border-mbi-hairline pt-6">
+          <p className="italic text-mbi-slate text-sm">
             By placing an order with Miss Betty Imports, customers acknowledge that they have read,
             understood, and agreed to these Terms and Conditions. Please note that these Terms and
             Conditions are subject to change without notice.
@@ -131,18 +131,12 @@ export default function TermsAndConditionsPage() {
         </section>
 
         <div className="pt-2">
-          <Link to="/" className="text-[#F2AA25] hover:underline text-sm font-medium">
+          <Link to="/" className="text-mbi-amber-ink hover:underline text-sm font-medium">
             ← Back to Home
           </Link>
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-[#1e2d3d] text-white px-4 py-6 text-center">
-        <p className="text-gray-500 text-xs">
-          © {new Date().getFullYear()} Miss Betty Import. All rights reserved.
-        </p>
-      </footer>
     </div>
   );
 }

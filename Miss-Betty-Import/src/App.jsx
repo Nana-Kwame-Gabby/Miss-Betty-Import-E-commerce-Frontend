@@ -1,11 +1,11 @@
 import "./App.css";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useParams, useLocation } from "react-router-dom";
 import { setPostAuthRedirect } from "./utils/postAuthRedirect";
 import { CartProvider } from "./context/CartContext";
 import { UserProvider } from "./context/UserContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { AppSettingsProvider } from "./context/AppSettingsContext";
+import { AppSettingsProvider, useAppSettings } from "./context/AppSettingsContext";
 import { NotificationProvider } from "./context/NotificationContext";
 
 const LoginPage = lazy(() => import("./components/LoginPage"));
@@ -67,6 +67,17 @@ function LoadingSpinner() {
   );
 }
 
+// Sign-in pages have no site header, so the announcement strip (placed under the header)
+// would float over the form. The once-per-visit announcement pop-up still shows here.
+function HeaderlessPages() {
+  const { setPageShowsNotice } = useAppSettings();
+  useEffect(() => {
+    setPageShowsNotice(true);
+    return () => setPageShowsNotice(false);
+  }, [setPageShowsNotice]);
+  return <Outlet />;
+}
+
 function PublicOnlyRoute() {
   const { session, loading, isAdmin } = useAuth();
   if (loading) return <LoadingSpinner />;
@@ -114,22 +125,24 @@ function App() {
               {/* Fully public */}
               <Route path="/" element={<HomePage />} />
               <Route path="/home" element={<Navigate to="/" replace />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-              <Route path="/terms" element={<TermsAndConditionsPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               <Route path="/product/:id" element={<ProductShareGateway />} />
               {/* Public catalogue: anyone (and search engines) can browse; buying needs login */}
               <Route path="/shop" element={<ShopPage />} />
               <Route element={<Layout />}>
                 <Route path="/shop/:id" element={<ProductDetailPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms" element={<TermsAndConditionsPage />} />
               </Route>
               {/* Public-only — redirect to /shop if already logged in */}
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route element={<PublicOnlyRoute />}>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignUp />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route element={<HeaderlessPages />}>
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route element={<PublicOnlyRoute />}>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<SignUp />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                </Route>
               </Route>
 
               {/* Admin — role-gated */}

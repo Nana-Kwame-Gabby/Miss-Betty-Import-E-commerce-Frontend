@@ -24,8 +24,8 @@ function StarRating({ rating, hovered, onRate, onHover, onLeave }) {
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
             <path
               d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-              fill={star <= (hovered || rating) ? "#F2AA25" : "none"}
-              stroke={star <= (hovered || rating) ? "#F2AA25" : "#d1d5db"}
+              fill={star <= (hovered || rating) ? "#1e2d3d" : "none"}
+              stroke={star <= (hovered || rating) ? "#1e2d3d" : "#c9d1da"}
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -131,17 +131,17 @@ export default function ReviewModal({ isOpen, onClose, onSubmitted, product }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
+      <div className="absolute inset-0 bg-mbi-navy/50" onClick={onClose} />
+      <div className="relative bg-white rounded-mbi-card shadow-mbi-float w-full max-w-md flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-mbi-hairline-soft flex-shrink-0">
           <div>
-            <h2 className="text-sm font-bold text-[#1e2d3d]">Write a Review</h2>
-            <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[260px]">{product.product_name}</p>
+            <h2 className="text-sm font-bold text-mbi-navy">Write a Review</h2>
+            <p className="text-xs text-mbi-slate mt-0.5 truncate max-w-[260px]">{product.product_name}</p>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors text-gray-400 hover:text-gray-600"
+            className="w-7 h-7 rounded-full hover:bg-mbi-surface-soft flex items-center justify-center transition-colors text-mbi-slate hover:text-mbi-navy-body"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -153,7 +153,7 @@ export default function ReviewModal({ isOpen, onClose, onSubmitted, product }) {
         <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
           {/* Star rating */}
           <div>
-            <p className="text-xs font-semibold text-[#1e2d3d] mb-2">Your Rating *</p>
+            <p className="text-xs font-semibold text-mbi-navy mb-2">Your Rating *</p>
             <StarRating
               rating={rating}
               hovered={hovered}
@@ -162,7 +162,7 @@ export default function ReviewModal({ isOpen, onClose, onSubmitted, product }) {
               onLeave={() => setHovered(0)}
             />
             {(hovered || rating) > 0 && (
-              <p className="text-xs text-[#F2AA25] font-semibold mt-1">
+              <p className="text-xs text-mbi-amber-ink font-semibold mt-1">
                 {LABELS[hovered || rating]}
               </p>
             )}
@@ -170,40 +170,40 @@ export default function ReviewModal({ isOpen, onClose, onSubmitted, product }) {
 
           {/* Comment */}
           <div>
-            <label className="block text-xs font-semibold text-[#1e2d3d] mb-1">
-              Comment <span className="text-gray-400 font-normal">(optional)</span>
+            <label className="block text-xs font-semibold text-mbi-navy mb-1">
+              Comment <span className="text-mbi-slate font-normal">(optional)</span>
             </label>
             <textarea
               value={comment}
               onChange={e => setComment(e.target.value)}
               rows={4}
               placeholder="Share your experience with this product…"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#F2AA25] resize-none"
+              className="w-full border border-mbi-hairline rounded-lg px-3 py-2 text-sm outline-none focus:border-mbi-navy resize-none"
             />
           </div>
 
           {/* Image upload */}
           <div>
-            <p className="text-xs font-semibold text-[#1e2d3d] mb-2">
-              Photo <span className="text-gray-400 font-normal">(optional)</span>
+            <p className="text-xs font-semibold text-mbi-navy mb-2">
+              Photo <span className="text-mbi-slate font-normal">(optional)</span>
             </p>
             {imagePreview ? (
               <div className="relative w-24 h-24">
                 <img
                   src={imagePreview}
                   alt="Preview"
-                  className="w-24 h-24 object-cover rounded-xl border border-gray-200"
+                  className="w-24 h-24 object-cover rounded-lg border border-mbi-hairline"
                 />
                 <button
                   type="button"
                   onClick={clearImage}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-mbi-error text-white rounded-full text-xs flex items-center justify-center hover:bg-mbi-error transition-colors"
                 >×</button>
               </div>
             ) : (
               <label className="flex items-center gap-2 cursor-pointer w-fit">
                 <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                <span className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-[#1e2d3d] font-semibold text-xs px-3 py-2 rounded-xl transition-colors">
+                <span className="flex items-center gap-2 bg-mbi-surface-soft hover:bg-mbi-surface-strong text-mbi-navy font-semibold text-xs px-3 py-2 rounded-lg transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                   </svg>
@@ -214,23 +214,23 @@ export default function ReviewModal({ isOpen, onClose, onSubmitted, product }) {
           </div>
 
           {error && (
-            <p className="text-red-500 text-xs bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>
+            <p className="text-mbi-error text-xs bg-mbi-error-tint border border-mbi-error/30 rounded-lg px-3 py-2">{error}</p>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 flex-shrink-0">
+        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-mbi-hairline-soft flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors px-4 py-2 rounded-xl hover:bg-gray-100"
+            className="text-sm font-semibold text-mbi-slate hover:text-mbi-navy-body transition-colors px-4 py-2 rounded-lg hover:bg-mbi-surface-soft"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="bg-[#F2AA25] text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2"
+            className="mbi-press bg-mbi-amber text-mbi-navy font-bold text-sm px-6 py-2.5 rounded-lg hover:bg-mbi-amber-press transition-opacity disabled:opacity-60 flex items-center gap-2"
           >
             {submitting ? <><Spinner /> Submitting…</> : "Submit Review"}
           </button>

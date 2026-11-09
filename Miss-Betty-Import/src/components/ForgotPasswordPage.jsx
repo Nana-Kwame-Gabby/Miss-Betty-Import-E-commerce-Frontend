@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-6">
+    <div className="min-h-screen flex items-center justify-center bg-mbi-surface-soft px-4 py-6">
       <style>{`
         .spin-vertical {
           animation: spinY 5s linear infinite;
@@ -46,9 +46,10 @@ export default function ForgotPasswordPage() {
           from { transform: rotateY(0deg); }
           to   { transform: rotateY(360deg); }
         }
+        @media (prefers-reduced-motion: reduce) { .spin-vertical { animation: none; } }
       `}</style>
 
-      <div className="bg-white rounded-2xl shadow-lg w-full max-w-md px-5 py-6 sm:px-8 sm:py-8 flex flex-col items-center">
+      <div className="bg-white rounded-mbi-card shadow-mbi-float w-full max-w-md px-5 py-6 sm:px-8 sm:py-8 flex flex-col items-center">
         <img
           src={logo}
           alt="Miss Betty Import Logo"
@@ -58,25 +59,24 @@ export default function ForgotPasswordPage() {
         {submitted ? (
           /* Success state */
           <div className="w-full flex flex-col items-center text-center">
-            <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-14 h-14 bg-mbi-available-tint rounded-full flex items-center justify-center mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" className="text-mbi-available" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </div>
-            <h1 className="font-bold text-lg sm:text-xl text-center mb-1" style={{ color: "#5c2d0e" }}>
+            <h1 className="text-2xl sm:text-[28px] font-bold tracking-[-0.4px] text-mbi-navy text-center mb-1">
               Check your email
             </h1>
-            <p className="text-xs sm:text-sm text-gray-500 text-center mb-1">
+            <p className="text-sm text-mbi-slate text-center mb-1">
               We've sent a password reset link to
             </p>
-            <p className="text-xs sm:text-sm font-semibold text-[#1e2d3d] mb-5 break-all">{email}</p>
-            <p className="text-xs text-gray-400 text-center mb-5 leading-relaxed">
+            <p className="text-xs sm:text-sm font-semibold text-mbi-navy mb-5 break-all">{email}</p>
+            <p className="text-xs text-mbi-slate text-center mb-5 leading-relaxed">
               Click the link in the email to reset your password. Check your spam folder if you don't see it.
             </p>
             <Link
               to="/"
-              className="w-full font-bold text-sm sm:text-base rounded-2xl py-2.5 sm:py-3 text-white text-center block"
-              style={{ backgroundColor: "#F2AA25" }}
+              className="mbi-press w-full h-12 rounded-lg bg-mbi-amber text-mbi-navy text-base font-semibold hover:bg-mbi-amber-press cursor-pointer flex items-center justify-center"
             >
               Back to Login
             </Link>
@@ -84,16 +84,16 @@ export default function ForgotPasswordPage() {
         ) : (
           /* Email entry form */
           <>
-            <h1 className="font-bold text-lg sm:text-xl text-center mb-1" style={{ color: "#5c2d0e" }}>
+            <h1 className="text-2xl sm:text-[28px] font-bold tracking-[-0.4px] text-mbi-navy text-center mb-1">
               Forgot Password?
             </h1>
-            <p className="text-xs sm:text-sm text-gray-500 text-center mb-4">
+            <p className="text-sm text-mbi-slate text-center mb-4">
               Enter your email and we'll send you a reset link
             </p>
 
             <form onSubmit={handleSubmit} className="w-full flex flex-col items-center">
               <div className="w-full mb-4">
-                <label className="block font-semibold text-[#1e2d3d] mb-1.5 text-xs sm:text-sm">
+                <label className="block font-semibold text-mbi-navy mb-1.5 text-sm">
                   Email Address
                 </label>
                 <input
@@ -101,12 +101,12 @@ export default function ForgotPasswordPage() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="your@email.com"
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-2.5 sm:py-3 text-sm outline-none focus:border-[#F2AA25]"
+                  className="w-full h-12 border border-mbi-border-strong rounded-lg px-4 text-base text-mbi-navy bg-white placeholder:text-mbi-slate outline-none focus:border-mbi-navy focus:ring-2 focus:ring-mbi-amber/40"
                 />
               </div>
 
               {error && (
-                <p className="w-full text-red-500 text-xs mb-3 bg-red-50 border border-red-100 rounded-xl px-3 py-1.5">
+                <p className="w-full text-mbi-error text-xs mb-3 bg-mbi-error-tint border border-mbi-error/30 rounded-lg px-3 py-1.5">
                   {error}
                 </p>
               )}
@@ -114,8 +114,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full font-bold text-sm sm:text-base rounded-2xl py-2.5 sm:py-3 mb-4 text-white cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
-                style={{ backgroundColor: "#F2AA25" }}
+                className="mbi-press w-full h-12 rounded-lg bg-mbi-amber text-mbi-navy text-base font-semibold hover:bg-mbi-amber-press cursor-pointer mb-4 disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -129,9 +128,9 @@ export default function ForgotPasswordPage() {
               </button>
             </form>
 
-            <p className="font-medium text-[#1e2d3d] text-xs sm:text-sm text-center">
+            <p className="text-sm text-mbi-navy-body text-center">
               Remember your password?{" "}
-              <Link to="/" className="font-semibold" style={{ color: "#F2AA25" }}>
+              <Link to="/" className="font-semibold text-mbi-amber-ink underline-offset-2 hover:underline">
                 Login
               </Link>
             </p>

@@ -68,21 +68,21 @@ function countryName(code) {
 }
 
 function Change({ now, before }) {
-  if (!before) return <span className="text-xs text-gray-400">no earlier data</span>;
+  if (!before) return <span className="text-xs text-mbi-slate">no earlier data</span>;
   const pct = Math.round(((now - before) / before) * 100);
   const up = pct >= 0;
   return (
-    <span className={`text-xs font-semibold ${up ? "text-green-600" : "text-red-500"}`}>
-      {up ? "▲" : "▼"} {Math.abs(pct)}% <span className="font-normal text-gray-400">vs previous</span>
+    <span className={`text-xs font-semibold ${up ? "text-mbi-available" : "text-mbi-error"}`}>
+      {up ? "▲" : "▼"} {Math.abs(pct)}% <span className="font-normal text-mbi-slate">vs previous</span>
     </span>
   );
 }
 
 function StatCard({ label, value, sub, accent }) {
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${accent ?? "text-[#1e2d3d]"}`}>{value}</p>
+    <div className="bg-white rounded-mbi-card p-4 border border-mbi-hairline">
+      <p className="text-xs font-semibold text-mbi-slate uppercase tracking-wide">{label}</p>
+      <p className={`text-2xl font-bold mt-1 ${accent ?? "text-mbi-navy"}`}>{value}</p>
       <div className="mt-1 min-h-4">{sub}</div>
     </div>
   );
@@ -112,12 +112,12 @@ function TrendChart({ series, bucket }) {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2 min-h-5">
-        <div className="flex items-center gap-4 text-xs text-gray-500">
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-[#F2AA25]" /> Visitors</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-[#1e2d3d]" /> Page views</span>
+        <div className="flex items-center gap-4 text-xs text-mbi-slate">
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-mbi-amber" /> Visitors</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-mbi-navy" /> Page views</span>
         </div>
         {shown && (
-          <p className="text-xs text-[#1e2d3d]">
+          <p className="text-xs text-mbi-navy">
             <span className="font-semibold">{bucketLabel(shown.t, bucket)}</span>
             {" · "}{fmt(shown.visitors)} visitors · {fmt(shown.sessions)} visits · {fmt(shown.views)} page views
           </p>
@@ -127,7 +127,7 @@ function TrendChart({ series, bucket }) {
         {[0, 0.5, 1].map(f => (
           <g key={f}>
             <line x1={padL} x2={W} y1={y(niceMax * f)} y2={y(niceMax * f)} stroke="#eef0f3" />
-            <text x={padL - 6} y={y(niceMax * f) + 3} textAnchor="end" fontSize="10" fill="#9ca3af">{fmt(Math.round(niceMax * f))}</text>
+            <text x={padL - 6} y={y(niceMax * f) + 3} textAnchor="end" fontSize="10" fill="#5c6b7a">{fmt(Math.round(niceMax * f))}</text>
           </g>
         ))}
         {series.map((s, i) => {
@@ -137,7 +137,7 @@ function TrendChart({ series, bucket }) {
               {hover === i && <rect x={padL + colW * i} y={padT} width={colW} height={H - padT - padB} fill="#f8fafc" />}
               <rect x={x(i) - bw / 2} y={y(s.visitors)} width={bw} height={Math.max(0, H - padB - y(s.visitors))} rx="2" fill="#F2AA25" />
               {i % labelEvery === 0 && (
-                <text x={x(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="#9ca3af">{bucketLabel(s.t, bucket)}</text>
+                <text x={x(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="#5c6b7a">{bucketLabel(s.t, bucket)}</text>
               )}
             </g>
           );
@@ -157,25 +157,25 @@ function BarList({ title, note, items, labelOf, empty = "No data yet" }) {
   const total = items.reduce((s, i) => s + Number(i.count), 0);
   const max = Math.max(1, ...items.map(i => Number(i.count)));
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm">
+    <div className="bg-white rounded-mbi-card p-4 border border-mbi-hairline">
       <div className="flex items-baseline justify-between gap-2 mb-3">
-        <h2 className="text-sm font-bold text-[#1e2d3d]">{title}</h2>
-        {note && <span className="text-[11px] text-gray-400">{note}</span>}
+        <h2 className="text-sm font-bold text-mbi-navy">{title}</h2>
+        {note && <span className="text-xs text-mbi-slate">{note}</span>}
       </div>
       {items.length === 0 ? (
-        <p className="text-sm text-gray-400 py-4 text-center">{empty}</p>
+        <p className="text-sm text-mbi-slate py-4 text-center">{empty}</p>
       ) : (
         <ul className="space-y-2">
           {items.map(i => (
             <li key={i.label}>
               <div className="flex items-center justify-between gap-3 text-sm mb-1">
-                <span className="truncate text-gray-700">{labelOf ? labelOf(i.label) : i.label}</span>
-                <span className="flex-shrink-0 font-semibold text-[#1e2d3d]">
-                  {fmt(i.count)} <span className="font-normal text-gray-400 text-xs">{total ? Math.round((i.count / total) * 100) : 0}%</span>
+                <span className="truncate text-mbi-navy-body">{labelOf ? labelOf(i.label) : i.label}</span>
+                <span className="flex-shrink-0 font-semibold text-mbi-navy">
+                  {fmt(i.count)} <span className="font-normal text-mbi-slate text-xs">{total ? Math.round((i.count / total) * 100) : 0}%</span>
                 </span>
               </div>
-              <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                <div className="h-full rounded-full bg-[#F2AA25]" style={{ width: `${(Number(i.count) / max) * 100}%` }} />
+              <div className="h-1.5 rounded-full bg-mbi-surface-soft overflow-hidden">
+                <div className="h-full rounded-full bg-mbi-amber" style={{ width: `${(Number(i.count) / max) * 100}%` }} />
               </div>
             </li>
           ))}
@@ -214,40 +214,40 @@ export default function AdminAnalyticsPage() {
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
-        <h1 className="text-xl font-bold text-[#1e2d3d]">Website Visitors</h1>
+        <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy">Website Visitors</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex bg-white rounded-xl shadow-sm p-1">
+          <div className="inline-flex bg-white rounded-lg border border-mbi-hairline p-1">
             {PRESETS.map(p => (
               <button key={p.id} onClick={() => setPreset(p.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${preset === p.id ? "bg-[#1e2d3d] text-white" : "text-gray-500 hover:text-[#1e2d3d]"}`}>
+                className={`mbi-press px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${preset === p.id ? "bg-mbi-navy text-white" : "text-mbi-slate hover:text-mbi-navy"}`}>
                 {p.label}
               </button>
             ))}
           </div>
         </div>
       </div>
-      <p className="text-sm text-gray-400 mb-4">
+      <p className="text-sm text-mbi-slate mb-4">
         Anonymous visits to the website. Admins, bots and visitors who opt out of tracking aren't counted.
       </p>
 
       {preset === "custom" && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4 flex flex-wrap items-end gap-3">
-          <label className="text-xs font-semibold text-gray-500">From
+        <div className="bg-white rounded-mbi-card p-4 border border-mbi-hairline mb-4 flex flex-wrap items-end gap-3">
+          <label className="text-xs font-semibold text-mbi-slate">From
             <input type="date" value={custom.from} max={custom.to || today}
               onChange={e => setCustom(c => ({ ...c, from: e.target.value }))}
-              className="block mt-1 border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#1e2d3d]" />
+              className="block mt-1 border border-mbi-hairline rounded-lg px-3 py-2 text-sm text-mbi-navy" />
           </label>
-          <label className="text-xs font-semibold text-gray-500">To
+          <label className="text-xs font-semibold text-mbi-slate">To
             <input type="date" value={custom.to} min={custom.from} max={today}
               onChange={e => setCustom(c => ({ ...c, to: e.target.value }))}
-              className="block mt-1 border border-gray-200 rounded-lg px-3 py-2 text-sm text-[#1e2d3d]" />
+              className="block mt-1 border border-mbi-hairline rounded-lg px-3 py-2 text-sm text-mbi-navy" />
           </label>
-          {!customValid && <p className="text-xs text-red-500 pb-2">Choose a start date on or before the end date.</p>}
+          {!customValid && <p className="text-xs text-mbi-error pb-2">Choose a start date on or before the end date.</p>}
         </div>
       )}
 
       {result.error && !loading && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl px-4 py-3 mb-4">
+        <div className="bg-mbi-error-tint border border-mbi-error/30 text-mbi-error text-sm rounded-mbi-card px-4 py-3 mb-4">
           Could not load analytics: {result.error}
         </div>
       )}
@@ -259,38 +259,38 @@ export default function AdminAnalyticsPage() {
           <StatCard label="Page Views" value={fmt(t.views)} sub={<Change now={t.views} before={prev.views} />} />
           <StatCard label="Pages per Visit" value={perVisit} />
           <StatCard label="New / Returning" value={`${fmt(d?.new_visitors)} / ${fmt(d?.returning_visitors)}`}
-            sub={<span className="text-xs text-gray-400">visitors in this period</span>} />
-          <StatCard label="All-time Visitors" value={fmt(d?.all_time_visitors)} accent="text-[#F2AA25]"
-            sub={<span className="text-xs text-gray-400">since tracking began</span>} />
+            sub={<span className="text-xs text-mbi-slate">visitors in this period</span>} />
+          <StatCard label="All-time Visitors" value={fmt(d?.all_time_visitors)} accent="text-mbi-amber-ink"
+            sub={<span className="text-xs text-mbi-slate">since tracking began</span>} />
         </div>
 
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-          <h2 className="text-sm font-bold text-[#1e2d3d] mb-2">
-            Visitor Trend <span className="font-normal text-gray-400 text-xs">({d?.bucket === "hour" ? "per hour" : "per day"})</span>
+        <div className="bg-white rounded-mbi-card p-4 border border-mbi-hairline mb-4">
+          <h2 className="text-sm font-bold text-mbi-navy mb-2">
+            Visitor Trend <span className="font-normal text-mbi-slate text-xs">({d?.bucket === "hour" ? "per hour" : "per day"})</span>
           </h2>
           {d?.series?.length ? <TrendChart series={d.series} bucket={d.bucket} /> : (
-            <p className="text-sm text-gray-400 py-10 text-center">{loading ? "Loading…" : "No data yet"}</p>
+            <p className="text-sm text-mbi-slate py-10 text-center">{loading ? "Loading…" : "No data yet"}</p>
           )}
         </div>
 
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+        <div className="bg-white rounded-mbi-card p-4 border border-mbi-hairline mb-4">
           <div className="flex items-baseline justify-between gap-2 mb-3">
-            <h2 className="text-sm font-bold text-[#1e2d3d]">Most Visited Pages</h2>
-            <span className="text-[11px] text-gray-400">page views · visitors</span>
+            <h2 className="text-sm font-bold text-mbi-navy">Most Visited Pages</h2>
+            <span className="text-xs text-mbi-slate">page views · visitors</span>
           </div>
           {(d?.pages ?? []).length === 0 ? (
-            <p className="text-sm text-gray-400 py-4 text-center">No data yet</p>
+            <p className="text-sm text-mbi-slate py-4 text-center">No data yet</p>
           ) : (
-            <ul className="divide-y divide-gray-50">
+            <ul className="divide-y divide-mbi-hairline-soft">
               {d.pages.map(p => (
                 <li key={p.path} className="flex items-center justify-between gap-3 py-2 text-sm">
                   <div className="min-w-0">
-                    <p className="truncate text-gray-700">{pageName(p)}</p>
-                    <p className="truncate text-[11px] text-gray-400">{p.path}</p>
+                    <p className="truncate text-mbi-navy-body">{pageName(p)}</p>
+                    <p className="truncate text-xs text-mbi-slate">{p.path}</p>
                   </div>
                   <p className="flex-shrink-0 text-right">
-                    <span className="font-semibold text-[#1e2d3d]">{fmt(p.views)}</span>
-                    <span className="text-gray-400 text-xs"> · {fmt(p.visitors)}</span>
+                    <span className="font-semibold text-mbi-navy">{fmt(p.views)}</span>
+                    <span className="text-mbi-slate text-xs"> · {fmt(p.visitors)}</span>
                   </p>
                 </li>
               ))}

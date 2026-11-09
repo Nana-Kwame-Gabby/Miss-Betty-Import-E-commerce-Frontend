@@ -3,6 +3,21 @@ import { useLocation, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useCart } from "../context/CartContext";
 import { imgFallback, thumbUrl } from "../lib/imageUrl";
+import { money, primaryButtonClass, secondaryButtonClass } from "../lib/buyBoxStyles";
+
+// One centred status card (processing / cancelled / failed / nothing found).
+function StatusCard({ icon, tone, title, children, actions }) {
+  return (
+  <div className="flex flex-col items-center px-4 py-16">
+    <div className="w-full max-w-sm rounded-mbi-card border border-mbi-hairline bg-white p-6 text-center sm:p-8">
+      {icon && <div className={`mx-auto mb-4 grid size-14 place-items-center rounded-full ${tone}`}>{icon}</div>}
+      <h1 className="text-xl font-bold text-mbi-navy">{title}</h1>
+      <div className="mt-2 text-base text-mbi-navy-body">{children}</div>
+      {actions && <div className="mt-6 flex flex-col gap-3">{actions}</div>}
+    </div>
+  </div>
+  );
+}
 
 export default function OrderConfirmationPage() {
   const [searchParams] = useSearchParams();
@@ -221,157 +236,132 @@ export default function OrderConfirmationPage() {
     processOrder();
   }, [phase, urlOrderId, clearCart, removeCartKeys]);
 
+  const retryActions = (
+    <>
+      <Link to="/checkout" className={primaryButtonClass()}>Try again</Link>
+      <Link to="/shop" className={secondaryButtonClass()}>Back to shop</Link>
+    </>
+  );
+
   if (phase === "processing") {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4">
-        <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 max-w-sm w-full text-center">
-          <div className="w-12 h-12 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <h2 className="text-lg font-bold text-[#1e2d3d] mb-1">Processing Your Payment</h2>
-          <p className="text-sm text-gray-400">Confirming your order, please don't close this page…</p>
-        </div>
-      </div>
+      <StatusCard
+        title="Confirming your payment"
+        icon={<div className="size-8 animate-spin rounded-full border-4 border-mbi-amber border-t-transparent" />}
+        tone="bg-mbi-amber-tint"
+      >
+        <p role="status">Please don't close this page while we confirm your order.</p>
+      </StatusCard>
     );
   }
 
   if (phase === "cancelled") {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4">
-        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8 max-w-sm w-full text-center">
-          <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="15" y1="9" x2="9" y2="15"/>
-              <line x1="9" y1="9" x2="15" y2="15"/>
-            </svg>
-          </div>
-          <h2 className="text-lg font-bold text-[#1e2d3d] mb-2">Payment Cancelled</h2>
-          <p className="text-sm text-gray-500 mb-6">You cancelled the payment. Your order was not placed.</p>
-          <div className="flex flex-col gap-3">
-            <Link to="/checkout" className="w-full bg-[#F2AA25] text-white font-bold py-2.5 sm:py-3 rounded-2xl hover:opacity-90 transition-opacity text-sm">
-              Try Again
-            </Link>
-            <Link to="/shop" className="w-full border-2 border-[#1e2d3d] text-[#1e2d3d] font-bold py-2.5 sm:py-3 rounded-2xl hover:bg-[#1e2d3d] hover:text-white transition-colors text-sm">
-              Back to Shop
-            </Link>
-          </div>
-        </div>
-      </div>
+      <StatusCard
+        title="Payment cancelled"
+        tone="bg-mbi-amber-tint text-mbi-amber-ink"
+        icon={<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>}
+        actions={retryActions}
+      >
+        <p>You cancelled the payment, so your order was not placed. Your cart is still saved.</p>
+      </StatusCard>
     );
   }
 
   if (phase === "failed") {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4">
-        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-8 max-w-sm w-full text-center">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-          </div>
-          <h2 className="text-lg font-bold text-[#1e2d3d] mb-2">Payment Unsuccessful</h2>
-          <p className="text-sm text-gray-500 mb-6">Your payment could not be processed. Please try again.</p>
-          <div className="flex flex-col gap-3">
-            <Link to="/checkout" className="w-full bg-[#F2AA25] text-white font-bold py-2.5 sm:py-3 rounded-2xl hover:opacity-90 transition-opacity text-sm">
-              Try Again
-            </Link>
-            <Link to="/shop" className="w-full border-2 border-[#1e2d3d] text-[#1e2d3d] font-bold py-2.5 sm:py-3 rounded-2xl hover:bg-[#1e2d3d] hover:text-white transition-colors text-sm">
-              Back to Shop
-            </Link>
-          </div>
-        </div>
-      </div>
+      <StatusCard
+        title="Payment unsuccessful"
+        tone="bg-mbi-error-tint text-mbi-error"
+        icon={<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
+        actions={retryActions}
+      >
+        <p>Your payment could not be processed and you were not charged for this order. Please try again, or chat with us on WhatsApp.</p>
+      </StatusCard>
     );
   }
 
   if (phase === "no-order" || !orderData) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-        <p className="text-4xl sm:text-5xl mb-3">📋</p>
-        <p className="text-gray-500 font-medium text-lg">No order details found.</p>
-        <Link to="/shop" className="mt-4 inline-block text-[#F2AA25] font-semibold hover:underline">Go Shopping</Link>
-      </div>
+      <StatusCard
+        title="No order details found"
+        tone="bg-mbi-surface-soft text-mbi-slate"
+        icon={<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}
+        actions={<><Link to="/my-orders" className={primaryButtonClass()}>View my orders</Link><Link to="/shop" className={secondaryButtonClass()}>Go shopping</Link></>}
+      >
+        <p>If you just paid, your order will appear in My orders shortly.</p>
+      </StatusCard>
     );
   }
 
   const { form, items, subtotal, discount = 0, orderId } = orderData;
 
   return (
-    <div className="max-w-2xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-      <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-5 text-center mb-3 sm:mb-4">
-        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-12">
+      <section className="rounded-mbi-card border border-mbi-hairline bg-white p-6 text-center">
+        <div className="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-mbi-available-tint text-mbi-available">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         </div>
-        <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-1">Payment Successful 🎉</h1>
-        <p className="text-gray-500 mb-3">
-          Thank you, <strong>{form.fullName}</strong>! Your order has been placed and is being processed.
+        <h1 className="text-2xl sm:text-[28px] font-bold tracking-[-0.4px] text-mbi-navy">Payment successful</h1>
+        <p className="mt-2 text-base text-mbi-navy-body">
+          Thank you, <strong className="font-semibold text-mbi-navy">{form.fullName}</strong>. Your order is placed and we're getting it ready.
         </p>
-        <div className="inline-block bg-gray-50 border border-gray-100 rounded-xl px-4 py-2">
-          <p className="text-xs text-gray-400 font-medium">Order ID</p>
-          <p className="text-[#F2AA25] font-bold text-base">{orderId ?? '—'}</p>
+        <div className="mt-4 inline-block rounded-lg bg-mbi-surface-soft px-4 py-2.5">
+          <p className="text-xs font-medium text-mbi-slate">Order number</p>
+          <p className="text-base font-bold text-mbi-navy tabular">{orderId ?? "—"}</p>
         </div>
-      </div>
+      </section>
 
-      <div className="bg-white rounded-2xl shadow-sm p-3 sm:p-4 mb-3 sm:mb-4">
-        <h2 className="font-bold text-[#1e2d3d] mb-3">Order Details</h2>
-        <div className="flex flex-col gap-2.5 mb-3">
-          {items.map(item => (
-            <div key={item.cartKey} className="flex items-center gap-3">
-              {item.product_image_url ? (
-                <img src={thumbUrl(item.product_image_url, 120)} onError={imgFallback(item.product_image_url)} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl" />
-              ) : (
-                <div className="w-10 h-12 bg-gray-100 rounded-xl flex-shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[#1e2d3d] truncate">{item.product_name}</p>
-                <p className="text-xs text-gray-400">{item.size} · {item.colour} · ×{item.quantity}</p>
-              </div>
-              <p className="text-sm font-bold text-[#1e2d3d] flex-shrink-0">
-                GHS {(item.unit_price * item.quantity).toLocaleString()}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className="border-t border-gray-100 pt-3">
+      <section className="mt-4 rounded-mbi-card border border-mbi-hairline bg-white p-5" aria-labelledby="order-details-heading">
+        <h2 id="order-details-heading" className="text-xl font-bold text-mbi-navy">Order details</h2>
+        <ul className="mt-4 flex flex-col gap-3">
+          {items.map(item => {
+            const options = [item.size, item.colour].filter(Boolean).join(" · ");
+            return (
+              <li key={item.cartKey} className="flex items-center gap-3">
+                {item.product_image_url ? (
+                  <img src={thumbUrl(item.product_image_url, 120)} onError={imgFallback(item.product_image_url)} alt={item.product_name} className="size-14 shrink-0 rounded-lg bg-mbi-surface-soft object-cover" />
+                ) : (
+                  <div className="size-14 shrink-0 rounded-lg bg-mbi-surface-soft" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-mbi-navy">{item.product_name}</p>
+                  <p className="text-sm text-mbi-slate">{options ? `${options} · ` : ""}Qty {item.quantity}</p>
+                </div>
+                <p className="shrink-0 text-sm font-bold text-mbi-navy tabular">{money(item.unit_price * item.quantity)}</p>
+              </li>
+            );
+          })}
+        </ul>
+        <dl className="mt-4 space-y-2 border-t border-mbi-hairline pt-4 text-sm">
           {discount > 0 && (
-            <div className="flex justify-between text-green-600 text-sm font-semibold mb-2">
-              <span>Coupon discount</span>
-              <span>− GHS {discount.toLocaleString()}</span>
+            <div className="flex justify-between font-semibold text-mbi-available tabular">
+              <dt>Coupon discount</dt>
+              <dd>− {money(discount)}</dd>
             </div>
           )}
-          <div className="flex justify-between font-bold text-[#1e2d3d]">
-            <span>Total</span>
-            <span className="text-[#DC2626]">GHS {(subtotal - discount).toLocaleString()}</span>
+          <div className="flex justify-between text-lg font-bold text-mbi-navy tabular">
+            <dt>Total paid</dt>
+            <dd>{money(subtotal - discount)}</dd>
           </div>
-        </div>
-      </div>
+        </dl>
+      </section>
 
-      <div className="bg-white rounded-2xl shadow-sm p-3 sm:p-4 mb-3 sm:mb-4">
-        <h2 className="font-bold text-[#1e2d3d] mb-2">Delivery To</h2>
-        <div className="text-sm text-gray-600 flex flex-col gap-1">
-          <p><strong>{form.fullName}</strong></p>
+      <section className="mt-4 rounded-mbi-card border border-mbi-hairline bg-white p-5" aria-labelledby="delivery-to-heading">
+        <h2 id="delivery-to-heading" className="text-xl font-bold text-mbi-navy">Delivery to</h2>
+        <div className="mt-2 flex flex-col gap-1 text-base text-mbi-navy-body">
+          <p className="font-semibold text-mbi-navy">{form.fullName}</p>
           <p>{form.email}</p>
-          <p>{form.phone}</p>
-          <p>{form.town}, {form.region}</p>
+          <p className="tabular">{form.phone}</p>
+          <p>{[form.town, form.region].filter(Boolean).join(", ")}</p>
         </div>
-      </div>
+      </section>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Link
-          to="/shop"
-          className="flex-1 text-center bg-[#F2AA25] text-white font-bold py-2.5 sm:py-3 rounded-2xl hover:opacity-90 transition-opacity text-sm"
-        >
-          Continue Shopping
-        </Link>
-        <Link
-          to="/my-orders"
-          className="flex-1 text-center border-2 border-[#1e2d3d] text-[#1e2d3d] font-bold py-2.5 sm:py-3 rounded-2xl hover:bg-[#1e2d3d] hover:text-white transition-colors text-sm"
-        >
-          View My Orders
-        </Link>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <Link to="/my-orders" className={primaryButtonClass()}>View my orders</Link>
+        <Link to="/shop" className={secondaryButtonClass()}>Continue shopping</Link>
       </div>
     </div>
   );

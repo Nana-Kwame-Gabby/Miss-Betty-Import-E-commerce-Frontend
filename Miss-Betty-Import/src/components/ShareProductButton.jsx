@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { photoButtonClass, photoIconClass } from "../lib/photoButton";
 
-export default function ShareProductButton({ productId, productName, productPrice, originalPrice = null, isFromPrice = false, positionClassName = "top-2 left-2" }) {
+// Small circular photo control (DESIGN.md icon-button-circle); styles in lib/photoButton.js.
+export default function ShareProductButton({ productId, productName, productPrice, originalPrice = null, isFromPrice = false, positionClassName = "top-1.5 right-1.5 sm:top-2 sm:right-2" }) {
   const [copied, setCopied] = useState(false);
 
   async function handleShare(e) {
@@ -34,18 +36,20 @@ export default function ShareProductButton({ productId, productName, productPric
   return (
     <div className={`absolute ${positionClassName}`}>
       <button
+        type="button"
         onClick={handleShare}
+        aria-label={`Share ${productName}`}
         title="Share product"
-        className="bg-black/50 hover:bg-black/70 text-white rounded-lg p-1.5 transition-colors"
+        className={photoButtonClass}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={photoIconClass}>
           <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
           <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
         </svg>
       </button>
       {copied && (
-        <span className="absolute top-full left-0 mt-1 whitespace-nowrap bg-[#1e2d3d] text-white text-[10px] font-semibold px-2 py-1 rounded-md shadow-sm">
-          Copied!
+        <span role="status" className="absolute top-full right-0 mt-1.5 whitespace-nowrap bg-mbi-navy text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+          Link copied
         </span>
       )}
     </div>

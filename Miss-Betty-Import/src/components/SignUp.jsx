@@ -90,12 +90,12 @@ export default function SignUp() {
   }
 
   const inputClass =
-    "w-full border border-gray-300 rounded-2xl px-4 py-2.5 sm:py-3 text-sm outline-none focus:border-[#F2AA25]";
+    "w-full h-12 border border-mbi-border-strong rounded-lg px-4 text-base text-mbi-navy bg-white placeholder:text-mbi-slate outline-none focus:border-mbi-navy focus:ring-2 focus:ring-mbi-amber/40";
 
-  const labelClass = "block font-semibold text-[#1e2d3d] mb-1.5 text-xs sm:text-sm";
+  const labelClass = "block font-semibold text-mbi-navy mb-1.5 text-sm";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-6">
+    <div className="min-h-screen flex items-center justify-center bg-mbi-surface-soft px-4 py-6">
       <style>{`
         .spin-vertical {
           animation: spinY 5s linear infinite;
@@ -106,28 +106,29 @@ export default function SignUp() {
           from { transform: rotateY(0deg); }
           to   { transform: rotateY(360deg); }
         }
+        @media (prefers-reduced-motion: reduce) { .spin-vertical { animation: none; } }
       `}</style>
 
-      <div className="bg-white rounded-2xl shadow-lg w-full max-w-md px-5 py-5 sm:px-8 sm:py-7 flex flex-col items-center">
+      <div className="bg-white rounded-mbi-card shadow-mbi-float w-full max-w-md px-5 py-5 sm:px-8 sm:py-7 flex flex-col items-center">
         <img
           src={logo}
           alt="Miss Betty Import Logo"
           className="h-16 sm:h-20 mx-auto spin-vertical mb-2"
         />
 
-        <h1 className="font-bold text-xl sm:text-2xl text-center mb-1" style={{ color: "#5c2d0e" }}>
+        <h1 className="text-2xl sm:text-[28px] font-bold tracking-[-0.4px] text-mbi-navy text-center mb-1">
           Create Account
         </h1>
-        <p className="text-xs sm:text-sm text-gray-500 text-center mb-4">
+        <p className="text-sm text-mbi-slate text-center mb-4">
           Join Miss Betty Imports today
         </p>
 
         {oauthDenied && (
-          <div className="w-full bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 text-center">
-            <p className="text-sm font-semibold text-amber-800 mb-1">
+          <div className="w-full bg-mbi-amber-tint border border-mbi-amber/40 rounded-lg px-4 py-3 mb-4 text-center">
+            <p className="text-sm font-semibold text-mbi-amber-ink mb-1">
               No account found for this Google address.
             </p>
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-mbi-amber-ink">
               Please complete sign-up below to continue. You'll be able to use Google sign-in afterward.
             </p>
           </div>
@@ -160,7 +161,7 @@ export default function SignUp() {
           </div>
 
           <div className="w-full mb-4">
-            <label className={labelClass}>Referral Code <span className="text-gray-400 font-normal">(optional)</span></label>
+            <label className={labelClass}>Referral Code <span className="text-mbi-slate font-normal">(optional)</span></label>
             <input
               type="text"
               value={referralCode}
@@ -170,20 +171,20 @@ export default function SignUp() {
               className={inputClass}
             />
             {codeStatus === "checking" && (
-              <p className="text-xs text-gray-400 mt-1">Checking…</p>
+              <p className="text-xs text-mbi-slate mt-1">Checking…</p>
             )}
             {codeStatus === "valid" && (
-              <p className="text-xs text-green-600 mt-1">✓ Valid referral code</p>
+              <p className="text-xs text-mbi-available mt-1">✓ Valid referral code</p>
             )}
             {codeStatus === "invalid" && (
-              <p className="text-xs text-amber-600 mt-1">
+              <p className="text-xs text-mbi-amber-ink mt-1">
                 This code doesn't exist — you can still sign up, but no referral will be credited.
               </p>
             )}
           </div>
 
           {error && (
-            <p className="w-full text-red-500 text-xs mb-3 bg-red-50 border border-red-100 rounded-xl px-3 py-1.5">
+            <p className="w-full text-mbi-error text-xs mb-3 bg-mbi-error-tint border border-mbi-error/30 rounded-lg px-3 py-1.5">
               {error}
             </p>
           )}
@@ -193,15 +194,15 @@ export default function SignUp() {
               type="checkbox"
               checked={agreedToTerms}
               onChange={e => setAgreedToTerms(e.target.checked)}
-              className="mt-0.5 w-4 h-4 flex-shrink-0 accent-[#F2AA25]"
+              className="mt-0.5 w-4 h-4 flex-shrink-0 accent-mbi-navy"
             />
-            <span className="text-xs text-gray-600 leading-relaxed">
+            <span className="text-xs text-mbi-navy-body leading-relaxed">
               I have read and agree to the{" "}
-              <Link to="/terms" className="text-[#F2AA25] hover:underline font-medium" target="_blank">
+              <Link to="/terms" className="text-mbi-amber-ink hover:underline font-medium" target="_blank">
                 Terms & Conditions
               </Link>
               {" "}and{" "}
-              <Link to="/privacy-policy" className="text-[#F2AA25] hover:underline font-medium" target="_blank">
+              <Link to="/privacy-policy" className="text-mbi-amber-ink hover:underline font-medium" target="_blank">
                 Privacy Policy
               </Link>
             </span>
@@ -210,8 +211,7 @@ export default function SignUp() {
           <button
             type="submit"
             disabled={loading || !agreedToTerms}
-            className="w-full font-bold text-sm sm:text-base rounded-2xl py-2.5 sm:py-3 mb-4 text-white cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
-            style={{ backgroundColor: "#F2AA25" }}
+            className="mbi-press w-full h-12 rounded-lg bg-mbi-amber text-mbi-navy text-base font-semibold hover:bg-mbi-amber-press cursor-pointer mb-4 disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -225,9 +225,9 @@ export default function SignUp() {
           </button>
         </form>
 
-        <p className="font-medium text-[#1e2d3d] text-xs sm:text-sm text-center">
+        <p className="text-sm text-mbi-navy-body text-center">
           Already have an account?{" "}
-          <Link to="/login" className="font-semibold" style={{ color: "#F2AA25" }}>
+          <Link to="/login" className="font-semibold text-mbi-amber-ink underline-offset-2 hover:underline">
             Login
           </Link>
         </p>

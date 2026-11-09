@@ -41,9 +41,9 @@ async function renderPreview(body) {
 function Counts({ c }) {
   return (
     <span className="text-xs whitespace-nowrap">
-      <span className="text-green-600 font-semibold">{nf.format(c.sent)} sent</span>
-      {c.failed > 0 && <span className="text-red-500 font-semibold"> · {nf.format(c.failed)} failed</span>}
-      {c.waiting > 0 && <span className="text-yellow-600 font-semibold"> · {nf.format(c.waiting)} sending</span>}
+      <span className="text-mbi-available font-semibold">{nf.format(c.sent)} sent</span>
+      {c.failed > 0 && <span className="text-mbi-error font-semibold"> · {nf.format(c.failed)} failed</span>}
+      {c.waiting > 0 && <span className="text-mbi-amber-ink font-semibold"> · {nf.format(c.waiting)} sending</span>}
     </span>
   );
 }
@@ -55,7 +55,7 @@ function Modal({ children, onClose, wide = false }) {
   }, []);
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 sm:p-4" onClick={onClose}>
-      <div className={`bg-white rounded-2xl w-full ${wide ? "max-w-2xl" : "max-w-md"} shadow-xl max-h-[94vh] flex flex-col`} onClick={e => e.stopPropagation()}>
+      <div className={`bg-white rounded-mbi-card w-full ${wide ? "max-w-2xl" : "max-w-md"} shadow-mbi-float max-h-[94vh] flex flex-col`} onClick={e => e.stopPropagation()}>
         {children}
       </div>
     </div>
@@ -73,34 +73,34 @@ function HistoryDetail({ campaign, onClose }) {
   }, [campaign.id]);
   return (
     <Modal onClose={onClose} wide>
-      <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-gray-100">
+      <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-mbi-hairline-soft">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase">{KIND_LABELS[campaign.kind]}</p>
-          <h2 className="text-base font-bold text-[#1e2d3d] break-words">{campaign.subject}</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs font-semibold text-mbi-slate uppercase">{KIND_LABELS[campaign.kind]}</p>
+          <h2 className="text-base font-bold text-mbi-navy break-words">{campaign.subject}</h2>
+          <p className="text-xs text-mbi-slate mt-0.5">
             {fmt(campaign.created_at)} · {nf.format(campaign.recipient_count)} recipients{campaign.created_by_email ? ` · sent by ${campaign.created_by_email}` : ""}
           </p>
           <div className="mt-1"><Counts c={campaign} /></div>
         </div>
-        <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-gray-100 text-gray-400 text-xl leading-none flex-shrink-0">×</button>
+        <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-mbi-surface-soft text-mbi-slate text-xl leading-none flex-shrink-0">×</button>
       </div>
       <div className="overflow-y-auto px-5 py-4">
-        {error && <p className="text-sm text-red-600 mb-3">Could not load the email: {error}</p>}
+        {error && <p className="text-sm text-mbi-error mb-3">Could not load the email: {error}</p>}
         {html
-          ? <iframe title="Sent email" srcDoc={html} sandbox="" className="w-full h-[460px] bg-gray-100 rounded-xl border border-gray-200" />
-          : !error && <p className="text-sm text-gray-400 py-10 text-center">Loading…</p>}
+          ? <iframe title="Sent email" srcDoc={html} sandbox="" className="w-full h-[460px] bg-mbi-surface-soft rounded-lg border border-mbi-hairline" />
+          : !error && <p className="text-sm text-mbi-slate py-10 text-center">Loading…</p>}
         {failures.length > 0 && (
           <div className="mt-4">
-            <h3 className="text-sm font-bold text-[#1e2d3d] mb-2">Failed recipients ({failures.length})</h3>
-            <ul className="divide-y divide-gray-50 text-sm">
+            <h3 className="text-sm font-bold text-mbi-navy mb-2">Failed recipients ({failures.length})</h3>
+            <ul className="divide-y divide-mbi-hairline-soft text-sm">
               {failures.map(f => (
                 <li key={f.id} className="py-2">
-                  <p className="text-[#1e2d3d]">{f.recipient_name ? `${f.recipient_name} · ` : ""}{f.recipient}</p>
-                  <p className="text-[11px] text-red-500 break-words">{f.last_error}</p>
+                  <p className="text-mbi-navy">{f.recipient_name ? `${f.recipient_name} · ` : ""}{f.recipient}</p>
+                  <p className="text-xs text-mbi-error break-words">{f.last_error}</p>
                 </li>
               ))}
             </ul>
-            <Link to="/admin/emails" className="text-xs font-semibold text-[#1e2d3d] underline">Retry failed emails on the Emails page</Link>
+            <Link to="/admin/emails" className="text-xs font-semibold text-mbi-navy underline">Retry failed emails on the Emails page</Link>
           </div>
         )}
       </div>
@@ -225,63 +225,63 @@ export default function AdminBulkEmailPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Bulk Email</h1>
-      <p className="text-sm text-gray-400 mb-4">
+      <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy mb-1">Bulk Email</h1>
+      <p className="text-sm text-mbi-slate mb-4">
         Send an announcement, promotion or update to every customer. Each customer receives their own copy; nobody sees other customers' addresses.
       </p>
 
       {activeId && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4 border-l-4 border-[#F2AA25]">
+        <div className="bg-white rounded-mbi-card p-4 border border-mbi-hairline mb-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-gray-400 uppercase">{active?.waiting ? "Sending…" : "Finished"}</p>
-              <p className="text-sm font-bold text-[#1e2d3d] truncate">{active?.subject ?? "…"}</p>
+              <p className="text-xs font-semibold text-mbi-slate uppercase">{active?.waiting ? "Sending…" : "Finished"}</p>
+              <p className="text-sm font-bold text-mbi-navy truncate">{active?.subject ?? "…"}</p>
             </div>
             {active && <Counts c={active} />}
           </div>
           {active && (
-            <div className="h-2 rounded-full bg-gray-100 overflow-hidden mt-3 flex">
-              <div className="bg-green-500" style={{ width: `${(active.sent / Math.max(1, active.recipient_count)) * 100}%` }} />
-              <div className="bg-red-400" style={{ width: `${(active.failed / Math.max(1, active.recipient_count)) * 100}%` }} />
+            <div className="h-2 rounded-full bg-mbi-surface-soft overflow-hidden mt-3 flex">
+              <div className="bg-mbi-available" style={{ width: `${(active.sent / Math.max(1, active.recipient_count)) * 100}%` }} />
+              <div className="bg-mbi-error" style={{ width: `${(active.failed / Math.max(1, active.recipient_count)) * 100}%` }} />
             </div>
           )}
           {activeFailures.length > 0 && (
             <div className="mt-3 text-xs">
-              <p className="font-semibold text-red-600 mb-1">{activeFailures.length} could not be delivered:</p>
+              <p className="font-semibold text-mbi-error mb-1">{activeFailures.length} could not be delivered:</p>
               <ul className="space-y-1 max-h-40 overflow-y-auto">
-                {activeFailures.map(f => <li key={f.id} className="text-gray-600 break-words">{f.recipient}: <span className="text-red-500">{f.last_error}</span></li>)}
+                {activeFailures.map(f => <li key={f.id} className="text-mbi-navy-body break-words">{f.recipient}: <span className="text-mbi-error">{f.last_error}</span></li>)}
               </ul>
-              <Link to="/admin/emails" className="inline-block mt-2 font-semibold text-[#1e2d3d] underline">Retry on the Emails page</Link>
+              <Link to="/admin/emails" className="inline-block mt-2 font-semibold text-mbi-navy underline">Retry on the Emails page</Link>
             </div>
           )}
         </div>
       )}
 
-      <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm mb-4">
+      <div className="bg-white rounded-mbi-card p-4 sm:p-5 border border-mbi-hairline mb-4">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <h2 className="text-sm font-bold text-[#1e2d3d]">New email</h2>
-          <p className="text-xs text-gray-500">
-            Will be sent to <span className="font-bold text-[#1e2d3d]">{recipients == null ? "…" : nf.format(recipients)}</span> customers
+          <h2 className="text-sm font-bold text-mbi-navy">New email</h2>
+          <p className="text-xs text-mbi-slate">
+            Will be sent to <span className="font-bold text-mbi-navy">{recipients == null ? "…" : nf.format(recipients)}</span> customers
           </p>
         </div>
 
         {recipients > DAILY_LIMIT && (
-          <p className="text-xs bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-xl px-3 py-2 mb-3">
+          <p className="text-xs bg-mbi-amber-tint text-mbi-amber-ink border border-mbi-amber/40 rounded-lg px-3 py-2 mb-3">
             Your Brevo plan sends up to {DAILY_LIMIT} emails per day. Emails over the limit are retried automatically, but some may fail; upgrade the Brevo plan to send to everyone at once.
           </p>
         )}
 
-        <label className="block text-xs font-semibold text-gray-500 mb-1">Subject</label>
+        <label className="block text-xs font-semibold text-mbi-slate mb-1">Subject</label>
         <input value={draft.subject} maxLength={150} onChange={e => update({ subject: e.target.value })}
           placeholder="e.g. New arrivals are here!"
-          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#F2AA25] mb-3" />
+          className="w-full text-sm border border-mbi-hairline rounded-lg px-3 py-2 outline-none focus:border-mbi-navy mb-3" />
 
         <div className="flex flex-wrap items-end justify-between gap-2 mb-1">
-          <label className="text-xs font-semibold text-gray-500">Message</label>
+          <label className="text-xs font-semibold text-mbi-slate">Message</label>
           <div className="flex gap-1">
             {[["bold", <strong key="b">B</strong>, "Bold"], ["list", "• List", "Bullet list"], ["link", "🔗 Link", "Insert a link"]].map(([k, label, title]) => (
               <button key={k} type="button" title={title} onClick={() => format(k)}
-                className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:border-[#1e2d3d] hover:text-[#1e2d3d]">
+                className="mbi-press text-xs px-2.5 py-1 rounded-lg border border-mbi-hairline text-mbi-navy-body hover:border-mbi-navy hover:text-mbi-navy">
                 {label}
               </button>
             ))}
@@ -289,90 +289,90 @@ export default function AdminBulkEmailPage() {
         </div>
         <textarea ref={textRef} value={draft.message} maxLength={10000} rows={9} onChange={e => update({ message: e.target.value })}
           placeholder={"Write your message…\n\nTips: leave a blank line between paragraphs, start lines with \"- \" for a bullet list, and wrap words in **double stars** for bold."}
-          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#F2AA25] resize-y font-[inherit]" />
-        <p className="text-[11px] text-gray-400 mb-3">
+          className="w-full text-sm border border-mbi-hairline rounded-lg px-3 py-2 outline-none focus:border-mbi-navy resize-y font-[inherit]" />
+        <p className="text-xs text-mbi-slate mb-3">
           Customers see “Hi &#123;their name&#125;,” before your message, plus the Miss Betty Import logo, header and footer.
         </p>
 
         <div className="grid sm:grid-cols-2 gap-3 mb-1">
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Button text (optional)</label>
+            <label className="block text-xs font-semibold text-mbi-slate mb-1">Button text (optional)</label>
             <input value={draft.buttonLabel} maxLength={60} onChange={e => update({ buttonLabel: e.target.value })}
               placeholder="Visit missbettyimport.com"
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#F2AA25]" />
+              className="w-full text-sm border border-mbi-hairline rounded-lg px-3 py-2 outline-none focus:border-mbi-navy" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Button link (optional)</label>
+            <label className="block text-xs font-semibold text-mbi-slate mb-1">Button link (optional)</label>
             <input value={draft.buttonUrl} maxLength={500} onChange={e => update({ buttonUrl: e.target.value })}
               placeholder="https://www.missbettyimport.com"
-              className={`w-full text-sm border rounded-xl px-3 py-2 outline-none focus:border-[#F2AA25] ${urlOk ? "border-gray-200" : "border-red-300"}`} />
-            {!urlOk && <p className="text-[11px] text-red-500 mt-1">Use a full secure link starting with https://</p>}
+              className={`w-full text-sm border rounded-lg px-3 py-2 outline-none focus:border-mbi-navy ${urlOk ? "border-mbi-hairline" : "border-mbi-error/40"}`} />
+            {!urlOk && <p className="text-xs text-mbi-error mt-1">Use a full secure link starting with https://</p>}
           </div>
         </div>
 
         {notice && (
-          <div className={`text-sm rounded-xl px-3 py-2 mt-3 border ${notice.type === "error" ? "bg-red-50 text-red-700 border-red-200" : "bg-green-50 text-green-700 border-green-200"}`}>
+          <div className={`text-sm rounded-lg px-3 py-2 mt-3 border ${notice.type === "error" ? "bg-mbi-error-tint text-mbi-error border-mbi-error/30" : "bg-mbi-available-tint text-mbi-available border-mbi-available/30"}`}>
             {notice.text}
           </div>
         )}
 
         {preview && (
-          <div className="border border-gray-200 rounded-xl overflow-hidden mt-3">
-            <p className="text-[11px] text-gray-400 bg-gray-50 px-3 py-1.5 border-b border-gray-200">Preview · Subject: <span className="text-[#1e2d3d] font-semibold">{draft.subject}</span></p>
-            <iframe title="Email preview" srcDoc={preview} sandbox="" className="w-full h-[480px] bg-gray-100" />
+          <div className="border border-mbi-hairline rounded-lg overflow-hidden mt-3">
+            <p className="text-xs text-mbi-slate bg-mbi-surface-soft px-3 py-1.5 border-b border-mbi-hairline">Preview · Subject: <span className="text-mbi-navy font-semibold">{draft.subject}</span></p>
+            <iframe title="Email preview" srcDoc={preview} sandbox="" className="w-full h-[480px] bg-mbi-surface-soft" />
           </div>
         )}
 
         <div className="flex flex-wrap gap-2 justify-end mt-4">
           <button onClick={showPreview} disabled={!valid || !!busy}
-            className="px-4 py-2 rounded-xl text-sm font-semibold border border-gray-300 text-gray-600 hover:border-gray-400 disabled:opacity-40">
+            className="px-4 py-2 rounded-lg text-sm font-semibold border border-mbi-hairline text-mbi-navy-body hover:border-mbi-navy disabled:opacity-40">
             {busy === "preview" ? "Loading…" : "Preview"}
           </button>
           <button onClick={sendTest} disabled={!valid || !!busy}
-            className="px-4 py-2 rounded-xl text-sm font-semibold border border-[#1e2d3d] text-[#1e2d3d] hover:bg-gray-50 disabled:opacity-40">
+            className="mbi-press px-4 py-2 rounded-lg text-sm font-semibold border border-mbi-navy text-mbi-navy hover:bg-mbi-surface-soft disabled:opacity-40">
             {busy === "test" ? "Sending…" : "Send test to me"}
           </button>
           <button onClick={() => setConfirming(true)} disabled={!valid || !!busy || !recipients}
-            className="px-4 py-2 rounded-xl text-sm font-bold bg-[#F2AA25] text-white hover:opacity-90 disabled:opacity-40">
+            className="mbi-press px-4 py-2 rounded-lg text-sm font-bold bg-mbi-amber text-mbi-navy hover:bg-mbi-amber-press disabled:opacity-40">
             {busy === "send" ? "Sending…" : `Send to ${recipients == null ? "…" : nf.format(recipients)} customers`}
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-[#1e2d3d]">Sent emails</h2>
-          <button onClick={refreshHistory} className="text-xs font-semibold text-gray-500 hover:text-[#1e2d3d]">Refresh</button>
+      <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden mb-8">
+        <div className="px-4 py-3 border-b border-mbi-hairline-soft flex items-center justify-between">
+          <h2 className="text-sm font-bold text-mbi-navy">Sent emails</h2>
+          <button onClick={refreshHistory} className="text-xs font-semibold text-mbi-slate hover:text-mbi-navy">Refresh</button>
         </div>
-        {history.error && <p className="text-sm text-red-600 px-4 py-3">Could not load history: {history.error}</p>}
+        {history.error && <p className="text-sm text-mbi-error px-4 py-3">Could not load history: {history.error}</p>}
         {!history.loaded ? (
-          <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" /></div>
         ) : history.rows.length === 0 ? (
-          <p className="text-center text-gray-400 text-sm py-12">No bulk emails sent yet.</p>
+          <p className="text-center text-mbi-slate text-sm py-12">No bulk emails sent yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-100">
+              <thead className="bg-mbi-surface-soft border-b border-mbi-hairline-soft">
                 <tr>
                   {["Subject", "Sent", "Recipients", "Delivered", "Failed", "Sent by"].map(h => (
-                    <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold text-mbi-slate uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {history.rows.map(r => (
-                  <tr key={r.id} onClick={() => setOpened(r)} className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer">
+                  <tr key={r.id} onClick={() => setOpened(r)} className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft cursor-pointer">
                     <td className="px-4 py-2.5 max-w-[260px]">
-                      <p className="font-semibold text-[#1e2d3d] truncate">{r.subject}</p>
-                      <p className="text-[11px] text-gray-400">{KIND_LABELS[r.kind]}</p>
+                      <p className="font-semibold text-mbi-navy truncate">{r.subject}</p>
+                      <p className="text-xs text-mbi-slate">{KIND_LABELS[r.kind]}</p>
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap">{fmt(r.created_at)}</td>
-                    <td className="px-4 py-2.5 text-[#1e2d3d] font-semibold">{nf.format(r.recipient_count)}</td>
-                    <td className="px-4 py-2.5 text-green-600 font-semibold">
-                      {nf.format(r.sent)}{r.waiting > 0 && <span className="text-yellow-600 text-xs font-normal"> (+{nf.format(r.waiting)} sending)</span>}
+                    <td className="px-4 py-2.5 text-xs text-mbi-slate whitespace-nowrap">{fmt(r.created_at)}</td>
+                    <td className="px-4 py-2.5 text-mbi-navy font-semibold">{nf.format(r.recipient_count)}</td>
+                    <td className="px-4 py-2.5 text-mbi-available font-semibold">
+                      {nf.format(r.sent)}{r.waiting > 0 && <span className="text-mbi-amber-ink text-xs font-normal"> (+{nf.format(r.waiting)} sending)</span>}
                     </td>
-                    <td className={`px-4 py-2.5 font-semibold ${r.failed ? "text-red-500" : "text-gray-300"}`}>{nf.format(r.failed)}</td>
-                    <td className="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap">{r.created_by_email ?? "—"}</td>
+                    <td className={`px-4 py-2.5 font-semibold ${r.failed ? "text-mbi-error" : "text-mbi-slate"}`}>{nf.format(r.failed)}</td>
+                    <td className="px-4 py-2.5 text-xs text-mbi-slate whitespace-nowrap">{r.created_by_email ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -384,18 +384,18 @@ export default function AdminBulkEmailPage() {
       {confirming && (
         <Modal onClose={() => setConfirming(false)}>
           <div className="p-6">
-            <h3 className="text-base font-bold text-[#1e2d3d] mb-2">Send this email?</h3>
-            <p className="text-sm text-gray-600 mb-1">
-              You are about to send this email to <strong className="text-[#1e2d3d]">{nf.format(recipients)} customers</strong>. Are you sure you want to continue?
+            <h3 className="text-base font-bold text-mbi-navy mb-2">Send this email?</h3>
+            <p className="text-sm text-mbi-navy-body mb-1">
+              You are about to send this email to <strong className="text-mbi-navy">{nf.format(recipients)} customers</strong>. Are you sure you want to continue?
             </p>
-            <p className="text-xs text-gray-400 mb-5 break-words">Subject: “{draft.subject}”</p>
+            <p className="text-xs text-mbi-slate mb-5 break-words">Subject: “{draft.subject}”</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirming(false)}
-                className="flex-1 border border-gray-300 text-gray-600 font-semibold py-2.5 rounded-2xl text-sm hover:border-gray-400">
+                className="flex-1 border border-mbi-hairline text-mbi-navy-body font-semibold py-2.5 rounded-mbi-card text-sm hover:border-mbi-navy">
                 Cancel
               </button>
               <button onClick={sendAll}
-                className="flex-1 bg-[#F2AA25] text-white font-bold py-2.5 rounded-2xl text-sm hover:opacity-90">
+                className="mbi-press flex-1 bg-mbi-amber text-mbi-navy font-bold py-2.5 rounded-mbi-card text-sm hover:bg-mbi-amber-press">
                 Yes, send it
               </button>
             </div>

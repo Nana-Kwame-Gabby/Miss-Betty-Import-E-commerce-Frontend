@@ -1,110 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
-import MyAccountModal from "../MyAccountModal";
-import DeliveryDetailsModal from "../DeliveryDetailsModal";
 import NotificationBell from "../NotificationBell";
+import AccountDropdown from "../AccountDropdown";
 
-function AccountDropdown() {
-  const [open, setOpen] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
-  const [showDelivery, setShowDelivery] = useState(false);
-  const { signOut, isAdmin } = useAuth();
-  const navigate = useNavigate();
-  const ref = useRef(null);
-
-  useEffect(() => {
-    function handleOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handleOutside);
-    return () => document.removeEventListener("mousedown", handleOutside);
-  }, []);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 border border-gray-300 rounded-xl px-2.5 py-1.5 text-sm font-semibold text-[#1e2d3d] hover:border-[#F2AA25] hover:text-[#F2AA25] transition-colors"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-        </svg>
-        Account
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </button>
-
-      {open && (
-        <div className="absolute right-0 top-full mt-2 bg-white shadow-lg rounded-2xl py-2 w-44 z-50 border border-gray-100">
-          <button
-            onClick={() => { setOpen(false); setShowAccount(true); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
-          >
-            <span>👤</span> My account
-          </button>
-          <button
-            onClick={() => { setOpen(false); setShowDelivery(true); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors text-left"
-          >
-            <span>📍</span> Delivery Details
-          </button>
-          <Link
-            to="/my-orders"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
-          >
-            <span>📦</span> Orders
-          </Link>
-          <Link
-            to="/shipping-fees"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
-          >
-            <span>🚚</span> Shipping Fee
-          </Link>
-          <Link
-            to="/product-requests"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
-          >
-            <span>🛍️</span> Request a Product
-          </Link>
-          <Link
-            to="/contact"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
-          >
-            <span>📞</span> Contact Us
-          </Link>
-          {isAdmin && (
-            <Link
-              to="/admin"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#1e2d3d] hover:bg-gray-50 transition-colors"
-            >
-              <span>⚙️</span> Admin Panel
-            </Link>
-          )}
-          <div className="border-t border-gray-100 my-1" />
-          <button
-            onClick={async () => { setOpen(false); await signOut(); navigate("/"); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors text-left"
-          >
-            <span>🚪</span> Sign out
-          </button>
-        </div>
-      )}
-
-      {showAccount  && <MyAccountModal      onClose={() => setShowAccount(false)}  />}
-      {showDelivery && <DeliveryDetailsModal onClose={() => setShowDelivery(false)} />}
-    </div>
-  );
-}
-
+// Site header for every page inside the customer layout (product page, cart, checkout,
+// orders, …). Same chrome as the shop header (DESIGN.md "Top bar").
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { totalItems } = useCart();
@@ -112,46 +15,48 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const navClass = ({ isActive }) =>
-    isActive
-      ? "text-[#F2AA25] font-semibold border-b-2 border-[#F2AA25] pb-0.5"
-      : "text-[#1e2d3d] font-medium hover:text-[#F2AA25] transition-colors";
+    `relative inline-flex h-16 items-center text-[15px] font-semibold transition-colors duration-150 ${
+      isActive
+        ? "text-mbi-navy after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-mbi-navy"
+        : "text-mbi-navy-body hover:text-mbi-navy"
+    }`;
+  const mobileLink = ({ isActive }) =>
+    `flex h-12 items-center rounded-lg px-3 text-base font-semibold ${isActive ? "bg-mbi-surface-soft text-mbi-navy" : "text-mbi-navy-body hover:bg-mbi-surface-soft"}`;
+  const closeMenu = () => setMenuOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-sm">
+    <header className="sticky top-0 z-50 bg-white border-b border-mbi-hairline">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-12">
-
-          {/* Logo */}
-          <Link to="/shop" className="flex items-center gap-2 flex-shrink-0">
-            <img src={logo} alt="Miss Betty Import" className="h-12 w-auto" />
-            <span className="font-bold text-[#1e2d3d] hidden sm:block text-sm leading-tight">
-              Miss Betty<br /><span className="text-[#F2AA25] text-xs font-semibold">Import</span>
-            </span>
+        <div className="flex h-16 items-center justify-between gap-3">
+          <Link to="/shop" className="flex shrink-0 items-center gap-2.5 rounded-lg" aria-label="Miss Betty Import shop">
+            <img src={logo} alt="Miss Betty Import" className="h-10 sm:h-11 w-auto" />
+            <span className="hidden sm:block text-base font-bold leading-tight text-mbi-navy">Miss Betty Import</span>
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-5">
+          <nav aria-label="Main" className="hidden md:flex items-center gap-7">
             <NavLink to="/shop" className={navClass}>Shop</NavLink>
             {session ? (
               <>
-                <NavLink to="/my-orders" className={navClass}>My Orders</NavLink>
-                <NavLink to="/shipping-fees" className={navClass}>Shipping Fee</NavLink>
+                <NavLink to="/my-orders" className={navClass}>My orders</NavLink>
+                <NavLink to="/shipping-fees" className={navClass}>Shipping fees</NavLink>
               </>
             ) : (
-              <NavLink to="/contact" className={navClass}>Contact Us</NavLink>
+              <NavLink to="/contact" className={navClass}>Contact us</NavLink>
             )}
           </nav>
 
-          {/* Right */}
-          <div className="flex items-center gap-3">
-            {/* Cart */}
-            <Link to="/cart" aria-label="Cart" className="relative p-2 text-[#1e2d3d] hover:text-[#F2AA25] transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Link
+              to="/cart"
+              aria-label={totalItems > 0 ? `Cart, ${totalItems} item${totalItems === 1 ? "" : "s"}` : "Cart"}
+              className="mbi-press relative grid size-11 place-items-center rounded-full text-mbi-navy hover:bg-mbi-surface-soft"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
               </svg>
               {totalItems > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-[#F2AA25] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold leading-none">
+                <span className="absolute top-0.5 right-0.5 grid min-w-5 h-5 place-items-center rounded-full bg-mbi-amber px-1 text-xs font-bold leading-none text-mbi-navy tabular">
                   {totalItems > 9 ? "9+" : totalItems}
                 </span>
               )}
@@ -160,35 +65,34 @@ export default function Navbar() {
             {session ? (
               <>
                 <NotificationBell />
-
-                {/* Account dropdown */}
                 <div className="hidden sm:block">
                   <AccountDropdown />
                 </div>
               </>
             ) : (
-              <div className="flex items-center gap-2">
-                <Link to="/login" className="hidden sm:block text-sm font-semibold text-[#1e2d3d] border border-gray-300 px-3 py-1.5 rounded-xl hover:border-[#F2AA25] hover:text-[#F2AA25] transition-colors">
-                  Login
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Link to="/login" className="mbi-press hidden sm:inline-flex h-11 items-center rounded-lg px-4 text-sm font-semibold text-mbi-navy hover:bg-mbi-surface-soft">
+                  Log in
                 </Link>
-                <Link to="/signup" className="text-sm font-bold text-white px-3 py-1.5 rounded-xl hover:opacity-90 transition-opacity whitespace-nowrap" style={{ backgroundColor: "#F2AA25" }}>
-                  Sign Up
+                <Link to="/signup" className="mbi-press inline-flex h-11 items-center rounded-lg bg-mbi-amber px-3 sm:px-4 text-sm font-semibold text-mbi-navy hover:bg-mbi-amber-press whitespace-nowrap">
+                  Sign up
                 </Link>
               </div>
             )}
 
-            {/* Hamburger */}
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden p-2 text-[#1e2d3d]"
-              aria-label="Toggle menu"
+              type="button"
+              onClick={() => setMenuOpen(o => !o)}
+              className="mbi-press md:hidden grid size-11 place-items-center rounded-full text-mbi-navy hover:bg-mbi-surface-soft"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
             >
               {menuOpen ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
                 </svg>
               )}
@@ -196,23 +100,29 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-gray-100 py-3 flex flex-col gap-3 px-2">
-            <NavLink to="/shop" className={navClass} onClick={() => setMenuOpen(false)}>Shop</NavLink>
-            {session && <NavLink to="/my-orders" className={navClass} onClick={() => setMenuOpen(false)}>My Orders</NavLink>}
-            {session && <NavLink to="/shipping-fees" className={navClass} onClick={() => setMenuOpen(false)}>Shipping Fee</NavLink>}
-            {session && <NavLink to="/product-requests" className={navClass} onClick={() => setMenuOpen(false)}>Request a Product</NavLink>}
-            <NavLink to="/contact" className={navClass} onClick={() => setMenuOpen(false)}>Contact Us</NavLink>
+          <nav aria-label="Menu" className="md:hidden flex flex-col gap-1 border-t border-mbi-hairline-soft py-3">
+            <NavLink to="/shop" className={mobileLink} onClick={closeMenu}>Shop</NavLink>
+            {session && <NavLink to="/my-orders" className={mobileLink} onClick={closeMenu}>My orders</NavLink>}
+            {session && <NavLink to="/shipping-fees" className={mobileLink} onClick={closeMenu}>Shipping fees</NavLink>}
+            {session && <NavLink to="/my-referrals" className={mobileLink} onClick={closeMenu}>Referrals & coupons</NavLink>}
+            {session && <NavLink to="/product-requests" className={mobileLink} onClick={closeMenu}>Request a product</NavLink>}
+            <NavLink to="/contact" className={mobileLink} onClick={closeMenu}>Contact us</NavLink>
+            <div className="my-1 border-t border-mbi-hairline-soft" />
             {session ? (
-              <>
-                <Link to="/my-orders" className="flex items-center gap-2 text-[#1e2d3d] font-medium" onClick={() => setMenuOpen(false)}>📦 Orders</Link>
-                <button onClick={async () => { setMenuOpen(false); await signOut(); navigate("/"); }} className="flex items-center gap-2 text-red-500 font-medium text-left">🚪 Sign out</button>
-              </>
+              <button
+                type="button"
+                onClick={async () => { closeMenu(); await signOut(); navigate("/"); }}
+                className="flex h-12 items-center rounded-lg px-3 text-left text-base font-semibold text-mbi-error hover:bg-mbi-error-tint"
+              >
+                Sign out
+              </button>
             ) : (
-              <Link to="/login" className="flex items-center gap-2 text-[#1e2d3d] font-medium" onClick={() => setMenuOpen(false)}>🔑 Log in</Link>
+              <Link to="/login" onClick={closeMenu} className="flex h-12 items-center rounded-lg px-3 text-base font-semibold text-mbi-navy hover:bg-mbi-surface-soft">
+                Log in
+              </Link>
             )}
-          </div>
+          </nav>
         )}
       </div>
     </header>

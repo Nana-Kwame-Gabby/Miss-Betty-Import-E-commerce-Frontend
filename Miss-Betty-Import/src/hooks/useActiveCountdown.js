@@ -4,8 +4,9 @@ import { supabase } from "../lib/supabase";
 function breakdown(remainingMs) {
   const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
   const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
-  return { days, minutes };
+  return { days, hours, minutes };
 }
 
 // Loads the single active admin-managed promotional countdown (if any), corrects for
@@ -69,6 +70,6 @@ export default function useActiveCountdown() {
   if (effectiveNow < startMs) return null; // scheduled, not started yet
   if (effectiveNow >= endMs) return null; // expired — disappears entirely
 
-  const { days, minutes } = breakdown(endMs - effectiveNow);
-  return { title: countdown.title, days, minutes };
+  const { days, hours, minutes } = breakdown(endMs - effectiveNow);
+  return { title: countdown.title, days, hours, minutes };
 }

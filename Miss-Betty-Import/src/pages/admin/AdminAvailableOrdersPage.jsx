@@ -6,8 +6,8 @@ import PeriodSwitcher from "../../components/PeriodSwitcher";
 
 const PROCUREMENT_OPTIONS = ["Ordered", "Not Ordered"];
 const PROCUREMENT_COLORS = {
-  "Ordered":     "bg-green-100 text-green-700",
-  "Not Ordered": "bg-gray-100 text-gray-500",
+  "Ordered":     "bg-mbi-available-tint text-mbi-available",
+  "Not Ordered": "bg-mbi-surface-soft text-mbi-slate",
 };
 
 function groupByProduct(rows) {
@@ -167,39 +167,39 @@ export default function AdminAvailableOrdersPage() {
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
-        <h1 className="text-xl font-bold text-[#1e2d3d]">Available Goods Orders</h1>
+        <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy">Available Goods Orders</h1>
         <PeriodSwitcher periods={periods} selectedId={selectedId} activeId={activePeriod?.id} onChange={selectPeriod} loading={periodsLoading} />
       </div>
-      <p className="text-sm text-gray-400 mb-6">Manage and dispatch in-stock orders</p>
+      <p className="text-sm text-mbi-slate mb-6">Manage and dispatch in-stock orders</p>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <>
           {/* ── Section 1: Product Orders ───────────────────────────────── */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
-            <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-sm font-bold text-[#1e2d3d]">
+          <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden mb-8">
+            <div className="px-5 py-4 border-b border-mbi-hairline-soft flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-bold text-mbi-navy">
                 Product Orders ({productRows.length})
               </h2>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleDownloadExcel}
                   disabled={productRows.length === 0}
-                  className="flex items-center gap-1.5 bg-[#1e2d3d] text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+                  className="mbi-press flex items-center gap-1.5 bg-mbi-navy text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-mbi-navy-hover transition-colors disabled:opacity-40"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
                   Download Excel
                 </button>
-                <span className="w-px h-5 bg-gray-200 mx-1" />
+                <span className="w-px h-5 bg-mbi-surface-strong mx-1" />
                 <button
                   onClick={() => setConfirmDelete(true)}
                   disabled={productRows.length === 0}
-                  className="flex items-center gap-1.5 bg-red-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+                  className="flex items-center gap-1.5 bg-mbi-error text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-mbi-error/90 transition-colors disabled:opacity-40"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
@@ -211,27 +211,27 @@ export default function AdminAvailableOrdersPage() {
             </div>
 
             {productRows.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 text-sm">No available goods orders.</div>
+              <div className="text-center py-12 text-mbi-slate text-sm">No available goods orders.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Product Name</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Size / Colour</th>
-                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Qty</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Procurement</th>
+                    <tr className="border-b border-mbi-hairline-soft bg-mbi-surface-soft">
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Product Name</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden sm:table-cell">Size / Colour</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Qty</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Procurement</th>
                     </tr>
                   </thead>
                   <tbody>
                     {productRows.map(row => (
-                      <tr key={row.product_id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3 font-semibold text-[#1e2d3d]">{row.product_name}</td>
+                      <tr key={row.product_id} className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft transition-colors">
+                        <td className="px-5 py-3 font-semibold text-mbi-navy">{row.product_name}</td>
                         <td className="px-4 py-3 hidden sm:table-cell">
-                          <div className="flex flex-col gap-0.5 text-xs text-gray-500 leading-snug">
+                          <div className="flex flex-col gap-0.5 text-xs text-mbi-slate leading-snug">
                             {Object.entries(row.sizeColourMap).map(([size, colourMap]) => (
                               <span key={size}>
-                                <span className="font-semibold text-[#1e2d3d]">{size}:</span>{" "}
+                                <span className="font-semibold text-mbi-navy">{size}:</span>{" "}
                                 {Object.entries(colourMap).map(([colour, cell]) =>
                                   `${colour} (${cell.qty})${cell.rmb_price != null ? ` · ¥${Number(cell.rmb_price).toLocaleString()}` : ""}`
                                 ).join(", ")}
@@ -239,7 +239,7 @@ export default function AdminAvailableOrdersPage() {
                             ))}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-center font-bold text-[#1e2d3d]">{row.total_quantity}</td>
+                        <td className="px-4 py-3 text-center font-bold text-mbi-navy">{row.total_quantity}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${PROCUREMENT_COLORS[row.procurement_status] ?? PROCUREMENT_COLORS["Not Ordered"]}`}>
@@ -249,7 +249,7 @@ export default function AdminAvailableOrdersPage() {
                               value={row.procurement_status}
                               disabled={updatingId === row.product_id}
                               onChange={e => handleProcurementChange(row.product_id, e.target.value)}
-                              className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-[#F2AA25] disabled:opacity-60 cursor-pointer"
+                              className="text-xs border border-mbi-hairline rounded-lg px-2 py-1 outline-none focus:border-mbi-navy disabled:opacity-60 cursor-pointer"
                             >
                               {PROCUREMENT_OPTIONS.map(s => (
                                 <option key={s} value={s}>{s}</option>
@@ -266,33 +266,33 @@ export default function AdminAvailableOrdersPage() {
           </div>
 
           {/* ── Section 2: Delivery Details ─────────────────────────────── */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-bold text-[#1e2d3d]">
+          <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden">
+            <div className="px-5 py-4 border-b border-mbi-hairline-soft">
+              <h2 className="text-sm font-bold text-mbi-navy">
                 Delivery Details ({deliveryRows.length})
               </h2>
             </div>
 
             {deliveryRows.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 text-sm">No delivery info yet.</div>
+              <div className="text-center py-12 text-mbi-slate text-sm">No delivery info yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer Name</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Phone</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Town</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Region</th>
+                    <tr className="border-b border-mbi-hairline-soft bg-mbi-surface-soft">
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Customer Name</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Phone</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden sm:table-cell">Town</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden sm:table-cell">Region</th>
                     </tr>
                   </thead>
                   <tbody>
                     {deliveryRows.map(row => (
-                      <tr key={row.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3 font-semibold text-[#1e2d3d]">{row.customer_name}</td>
-                        <td className="px-4 py-3 text-gray-500">{row.telephone}</td>
-                        <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{row.delivery_town}</td>
-                        <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{row.delivery_region}</td>
+                      <tr key={row.id} className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft transition-colors">
+                        <td className="px-5 py-3 font-semibold text-mbi-navy">{row.customer_name}</td>
+                        <td className="px-4 py-3 text-mbi-slate">{row.telephone}</td>
+                        <td className="px-4 py-3 text-mbi-slate hidden sm:table-cell">{row.delivery_town}</td>
+                        <td className="px-4 py-3 text-mbi-slate hidden sm:table-cell">{row.delivery_region}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -305,22 +305,22 @@ export default function AdminAvailableOrdersPage() {
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
-            <h3 className="text-base font-bold text-[#1e2d3d] mb-2">Delete All Orders?</h3>
-            <p className="text-sm text-gray-500 mb-5">
+          <div className="bg-white rounded-mbi-card shadow-mbi-float p-6 max-w-sm w-full">
+            <h3 className="text-base font-bold text-mbi-navy mb-2">Delete All Orders?</h3>
+            <p className="text-sm text-mbi-slate mb-5">
               This will clear all orders from the admin view. Customer order histories are not affected.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setConfirmDelete(false)}
-                className="text-sm font-semibold px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50"
+                className="text-sm font-semibold px-4 py-2 rounded-lg border border-mbi-hairline hover:bg-mbi-surface-soft"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAll}
                 disabled={deleting}
-                className="text-sm font-semibold px-4 py-2 rounded-xl bg-red-500 text-white hover:opacity-90 disabled:opacity-60"
+                className="text-sm font-semibold px-4 py-2 rounded-lg bg-mbi-error text-white hover:bg-mbi-error/90 disabled:opacity-60"
               >
                 {deleting ? 'Deleting…' : 'Delete All'}
               </button>

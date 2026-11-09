@@ -240,22 +240,22 @@ export default function AdminDashboard() {
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
-        <h1 className="text-xl font-bold text-[#1e2d3d]">Pre-order Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy">Pre-order Dashboard</h1>
         <PeriodSwitcher periods={periods} selectedId={selectedId} activeId={activePeriod?.id} onChange={selectPeriod} loading={periodsLoading} />
       </div>
-      <p className="text-sm text-gray-400 mb-4">Pre-order goods sales and shipping. Available Goods sales are on the Available Goods Dashboard.</p>
+      <p className="text-sm text-mbi-slate mb-4">Pre-order goods sales and shipping. Available Goods sales are on the Available Goods Dashboard.</p>
 
       {/* Pre-Order Control */}
-      <div className={`rounded-2xl shadow-sm p-4 mb-5 border-2 ${ordersClosed ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}>
+      <div className={`rounded-mbi-card p-4 mb-5 border-2 ${ordersClosed ? "bg-mbi-error-tint border-mbi-error/30" : "bg-mbi-available-tint border-mbi-available/30"}`}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-0.5">
-              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${ordersClosed ? "bg-red-500" : "bg-green-500"}`} />
-              <h2 className="font-bold text-[#1e2d3d] text-sm">
+              <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${ordersClosed ? "bg-mbi-error" : "bg-mbi-available"}`} />
+              <h2 className="font-bold text-mbi-navy text-sm">
                 {ordersClosed ? "Pre-Orders Closed" : "Pre-Orders Open"}
               </h2>
             </div>
-            <p className="text-xs text-gray-500 ml-4.5">
+            <p className="text-xs text-mbi-slate ml-4.5">
               {ordersClosed
                 ? "Customers cannot purchase pre-order items. Available products are unaffected."
                 : "Customers can purchase both available and pre-order products normally."}
@@ -265,7 +265,7 @@ export default function AdminDashboard() {
             onClick={handleToggleOrders}
             disabled={toggling}
             className={`relative inline-flex h-7 w-14 flex-shrink-0 items-center rounded-full transition-colors duration-200 disabled:opacity-60 ${
-              ordersClosed ? "bg-red-500" : "bg-green-500"
+              ordersClosed ? "bg-mbi-error" : "bg-mbi-available"
             }`}
             title={ordersClosed ? "Click to re-open pre-orders" : "Click to close pre-orders"}
           >
@@ -275,27 +275,27 @@ export default function AdminDashboard() {
           </button>
         </div>
         {ordersClosed && (
-          <p className="mt-3 text-xs font-semibold text-red-600 bg-red-100 border border-red-200 rounded-xl px-3 py-2">
+          <p className="mt-3 text-xs font-semibold text-mbi-error bg-mbi-error-tint border border-mbi-error/30 rounded-lg px-3 py-2">
             ⚠️ Pre-orders are closed. Available products can still be purchased. Toggle off to re-enable pre-orders.
           </p>
         )}
 
         {/* Announcement message */}
         <div className="mt-3 border-t border-black/10 pt-3">
-          <label className="text-xs font-semibold text-[#1e2d3d] mb-1.5 block">
-            Customer Announcement <span className="text-gray-400 font-normal">(shown as banner when pre-orders are closed)</span>
+          <label className="text-xs font-semibold text-mbi-navy mb-1.5 block">
+            Customer Announcement <span className="text-mbi-slate font-normal">(shown as banner when pre-orders are closed)</span>
           </label>
           <textarea
             value={localMessage}
             onChange={e => setLocalMessage(e.target.value)}
             rows={2}
             placeholder="e.g. Pre-orders are paused for the holiday season. We'll reopen on 27 Dec."
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#F2AA25] resize-none transition-colors"
+            className="w-full border border-mbi-hairline rounded-lg px-3 py-2 text-xs outline-none focus:border-mbi-navy resize-none transition-colors"
           />
           <button
             onClick={handleSaveMessage}
             disabled={savingMessage}
-            className="mt-2 bg-[#1e2d3d] text-white text-xs font-semibold px-4 py-1.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="mbi-press mt-2 bg-mbi-navy text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-mbi-navy-hover transition-colors disabled:opacity-50"
           >
             {savingMessage ? "Saving…" : "Save Message"}
           </button>
@@ -303,16 +303,16 @@ export default function AdminDashboard() {
       </div>
 
       {/* Transaction Status Check */}
-      <div className="bg-white rounded-2xl shadow-sm p-4 mb-5 border border-gray-100">
+      <div className="bg-white rounded-mbi-card p-4 mb-5 border border-mbi-hairline-soft">
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="w-8 h-8 rounded-lg bg-mbi-preorder-tint flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e2d3d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </div>
           <div>
-            <h2 className="font-bold text-[#1e2d3d] text-sm">Transaction Status Check</h2>
-            <p className="text-xs text-gray-400">Look up a Hubtel payment status by order ID</p>
+            <h2 className="font-bold text-mbi-navy text-sm">Transaction Status Check</h2>
+            <p className="text-xs text-mbi-slate">Look up a Hubtel payment status by order ID</p>
           </div>
         </div>
 
@@ -323,12 +323,12 @@ export default function AdminDashboard() {
             onChange={e => { setStatusRef(e.target.value); setStatusResult(null); setStatusError(""); }}
             onKeyDown={e => e.key === "Enter" && handleCheckStatus()}
             placeholder="e.g. ORD-2026-1234"
-            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#3b82f6] transition-colors"
+            className="flex-1 border border-mbi-hairline rounded-lg px-3 py-2 text-xs outline-none focus:border-[#3b82f6] transition-colors"
           />
           <button
             onClick={handleCheckStatus}
             disabled={checkingStatus || !statusRef.trim()}
-            className="bg-[#1e2d3d] text-white text-xs font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap flex items-center gap-1.5"
+            className="mbi-press bg-mbi-navy text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-mbi-navy-hover transition-colors disabled:opacity-50 whitespace-nowrap flex items-center gap-1.5"
           >
             {checkingStatus ? (
               <>
@@ -343,7 +343,7 @@ export default function AdminDashboard() {
         </div>
 
         {statusError && (
-          <div className="mt-3 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 text-xs text-red-700 font-medium">
+          <div className="mt-3 bg-mbi-error-tint border border-mbi-error/30 rounded-lg px-3 py-2.5 text-xs text-mbi-error font-medium">
             🚫 {statusError}
           </div>
         )}
@@ -357,16 +357,16 @@ export default function AdminDashboard() {
           const hasData     = d.status || d.clientReference || d.transactionId || d.amount != null;
           if (!hasEnvelope && !hasData) {
             return (
-              <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2.5 text-xs text-yellow-700 font-medium">
+              <div className="mt-3 bg-mbi-amber-tint border border-mbi-amber/40 rounded-lg px-3 py-2.5 text-xs text-mbi-amber-ink font-medium">
                 ⚠️ No transaction data found for this Order ID. Verify the ID is correct and that payment was initiated via Hubtel.
               </div>
             );
           }
           const statusColor =
-            d.status === "Paid"     ? "bg-green-100 text-green-700" :
-            d.status === "Unpaid"   ? "bg-amber-100 text-amber-700" :
-            d.status === "Refunded" ? "bg-blue-100 text-blue-700"   :
-            "bg-gray-100 text-gray-500";
+            d.status === "Paid"     ? "bg-mbi-available-tint text-mbi-available" :
+            d.status === "Unpaid"   ? "bg-mbi-amber-tint text-mbi-amber-ink" :
+            d.status === "Refunded" ? "bg-mbi-preorder-tint text-mbi-navy"   :
+            "bg-mbi-surface-soft text-mbi-slate";
           const rows = [
             ["Date",                d.date],
             ["Client Reference",    d.clientReference],
@@ -380,32 +380,32 @@ export default function AdminDashboard() {
             ["Fulfilled",           d.isFulfilled     != null ? (d.isFulfilled ? "Yes" : "No") : null],
           ].filter(([, v]) => v != null && v !== "");
           return (
-            <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl px-3 py-3 text-xs space-y-1.5">
+            <div className="mt-3 bg-mbi-preorder-tint border border-mbi-navy/15 rounded-lg px-3 py-3 text-xs space-y-1.5">
               {/* Top-level envelope fields */}
               {statusResult.responseCode && (
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-500 font-medium">Response Code</span>
-                  <span className="text-[#1e2d3d] font-semibold text-right">{statusResult.responseCode}</span>
+                  <span className="text-mbi-slate font-medium">Response Code</span>
+                  <span className="text-mbi-navy font-semibold text-right">{statusResult.responseCode}</span>
                 </div>
               )}
               {statusResult.message && (
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-500 font-medium">Message</span>
-                  <span className="text-[#1e2d3d] font-semibold text-right">{statusResult.message}</span>
+                  <span className="text-mbi-slate font-medium">Message</span>
+                  <span className="text-mbi-navy font-semibold text-right">{statusResult.message}</span>
                 </div>
               )}
               {/* Status badge */}
               {d.status && (
                 <div className="flex justify-between items-center gap-4">
-                  <span className="text-gray-500 font-medium">Status</span>
+                  <span className="text-mbi-slate font-medium">Status</span>
                   <span className={`px-2.5 py-0.5 rounded-full font-semibold ${statusColor}`}>{d.status}</span>
                 </div>
               )}
               {/* Remaining data fields */}
               {rows.map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-4">
-                  <span className="text-gray-500 font-medium">{label}</span>
-                  <span className="text-[#1e2d3d] font-semibold text-right break-all">{String(value)}</span>
+                  <span className="text-mbi-slate font-medium">{label}</span>
+                  <span className="text-mbi-navy font-semibold text-right break-all">{String(value)}</span>
                 </div>
               ))}
             </div>
@@ -415,18 +415,18 @@ export default function AdminDashboard() {
 
       <SalesStatCards stats={stats} loading={loading} shippingCollected={stats.shippingCollected} />
 
-      <div className="bg-white rounded-2xl p-5 shadow-sm mb-8">
-        <h2 className="text-sm font-bold text-[#1e2d3d] mb-3">Quick Links</h2>
+      <div className="bg-white rounded-mbi-card p-5 border border-mbi-hairline mb-8">
+        <h2 className="text-sm font-bold text-mbi-navy mb-3">Quick Links</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { label: "Upload a Product", to: "/admin/products", color: "bg-blue-500" },
-            { label: "View Orders", to: "/admin/orders", color: "bg-amber-500" },
-            { label: "View Invoices", to: "/admin/invoices", color: "bg-green-500" },
+            { label: "Upload a Product", to: "/admin/products" },
+            { label: "View Orders", to: "/admin/orders" },
+            { label: "View Invoices", to: "/admin/invoices" },
           ].map(link => (
             <a
               key={link.to}
               href={link.to}
-              className={`${link.color} text-white text-sm font-semibold px-4 py-3 rounded-xl hover:opacity-90 transition-opacity text-center block`}
+              className="mbi-press block text-center text-sm font-semibold px-4 py-3 rounded-lg bg-white text-mbi-navy border border-mbi-navy/25 hover:border-mbi-navy transition-colors"
             >
               {link.label}
             </a>
@@ -435,26 +435,26 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Customer Shipping Fee Status ───────────────────────────────── */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden">
+        <div className="px-5 py-4 border-b border-mbi-hairline-soft flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-bold text-[#1e2d3d]">Customer Shipping Fee Status</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Click a customer to see per-product shipping fee details</p>
+            <h2 className="text-sm font-bold text-mbi-navy">Customer Shipping Fee Status</h2>
+            <p className="text-xs text-mbi-slate mt-0.5">Click a customer to see per-product shipping fee details</p>
           </div>
 
           {/* Search */}
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-mbi-slate" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Filter by customer name…"
-              className="border border-gray-200 rounded-xl pl-8 pr-4 py-2 text-xs outline-none focus:border-[#F2AA25] transition-colors w-52"
+              className="border border-mbi-hairline rounded-lg pl-8 pr-4 py-2 text-xs outline-none focus:border-mbi-navy transition-colors w-52"
             />
             {query && (
-              <button onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-mbi-slate hover:text-mbi-navy-body">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             )}
@@ -463,7 +463,7 @@ export default function AdminDashboard() {
           <button
             onClick={handleDownloadShippingPayments}
             disabled={filteredCustomers.length === 0}
-            className="flex items-center gap-1.5 bg-[#1e2d3d] text-white text-xs font-semibold px-3 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+            className="mbi-press flex items-center gap-1.5 bg-mbi-navy text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-mbi-navy-hover transition-colors disabled:opacity-40"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -474,7 +474,7 @@ export default function AdminDashboard() {
           <button
             onClick={() => setConfirmDelete(true)}
             disabled={paymentRows.length === 0}
-            className="flex items-center gap-1.5 bg-red-500 text-white text-xs font-semibold px-3 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+            className="flex items-center gap-1.5 bg-mbi-error text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-mbi-error/90 transition-colors disabled:opacity-40"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
@@ -486,22 +486,22 @@ export default function AdminDashboard() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-7 h-7 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filteredCustomers.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 text-sm">
+          <div className="text-center py-12 text-mbi-slate text-sm">
             {query ? `No customers match "${query}".` : "No orders placed yet."}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Products</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Total Fee</th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Paid</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                <tr className="border-b border-mbi-hairline-soft bg-mbi-surface-soft">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Customer</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden sm:table-cell">Products</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden sm:table-cell">Total Fee</th>
+                  <th className="text-right px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden sm:table-cell">Paid</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Status</th>
                   <th className="px-4 py-3 w-8" />
                 </tr>
               </thead>
@@ -511,33 +511,33 @@ export default function AdminDashboard() {
                     <tr
                       key={cust.customerId}
                       onClick={() => setExpandedCustomer(expandedCustomer === cust.customerId ? null : cust.customerId)}
-                      className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                      className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft cursor-pointer transition-colors"
                     >
                       <td className="px-5 py-3 font-bold">
-                        <span className={cust.totalFee === 0 ? "text-gray-500" : cust.isFullyPaid ? "text-green-600" : "text-red-500"}>
+                        <span className={cust.totalFee === 0 ? "text-mbi-slate" : cust.isFullyPaid ? "text-mbi-available" : "text-mbi-error"}>
                           {cust.customerName}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center text-gray-500 hidden sm:table-cell">
+                      <td className="px-4 py-3 text-center text-mbi-slate hidden sm:table-cell">
                         {cust.products.length}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-[#1e2d3d] hidden sm:table-cell">
+                      <td className="px-4 py-3 text-right font-semibold text-mbi-navy hidden sm:table-cell">
                         {cust.totalFee > 0 ? `GHS ${cust.totalFee.toLocaleString()}` : '—'}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-green-600 hidden sm:table-cell">
+                      <td className="px-4 py-3 text-right font-semibold text-mbi-available hidden sm:table-cell">
                         {cust.totalPaid > 0 ? `GHS ${cust.totalPaid.toLocaleString()}` : '—'}
                       </td>
                       <td className="px-4 py-3">
                         {cust.totalFee === 0
-                          ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">No Fee Set</span>
+                          ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-mbi-surface-soft text-mbi-slate">No Fee Set</span>
                           : cust.isFullyPaid
-                            ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">Fully Paid</span>
-                            : <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-600">
+                            ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-mbi-available-tint text-mbi-available">Fully Paid</span>
+                            : <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-mbi-error-tint text-mbi-error">
                                 Owes GHS {(cust.totalFee - cust.totalPaid).toLocaleString()}
                               </span>
                         }
                       </td>
-                      <td className="px-4 py-3 text-gray-400 text-right">
+                      <td className="px-4 py-3 text-mbi-slate text-right">
                         <svg
                           className={`inline-block transition-transform duration-200 ${expandedCustomer === cust.customerId ? "rotate-180" : ""}`}
                           xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
@@ -550,11 +550,11 @@ export default function AdminDashboard() {
 
                     {expandedCustomer === cust.customerId && (
                       <tr key={`${cust.customerId}-detail`}>
-                        <td colSpan={6} className="p-0 bg-gray-50">
-                          <div className="px-6 py-3 border-b border-gray-100">
+                        <td colSpan={6} className="p-0 bg-mbi-surface-soft">
+                          <div className="px-6 py-3 border-b border-mbi-hairline-soft">
                             <table className="w-full text-xs">
                               <thead>
-                                <tr className="text-gray-400 uppercase tracking-wide">
+                                <tr className="text-mbi-slate uppercase tracking-wide">
                                   <th className="text-left pb-2 font-semibold">Product</th>
                                   <th className="text-left pb-2 font-semibold hidden sm:table-cell">Size</th>
                                   <th className="text-center pb-2 font-semibold hidden sm:table-cell">Qty</th>
@@ -565,20 +565,20 @@ export default function AdminDashboard() {
                               </thead>
                               <tbody>
                                 {cust.products.map((p, idx) => (
-                                  <tr key={idx} className="border-t border-gray-200">
-                                    <td className="py-2 pr-3 font-semibold text-[#1e2d3d]">{p.productName}</td>
-                                    <td className="py-2 pr-3 text-gray-500 hidden sm:table-cell">{p.sizeDisplay}</td>
-                                    <td className="py-2 pr-3 text-center text-gray-500 hidden sm:table-cell">{p.totalQty}</td>
-                                    <td className="py-2 pr-3 text-right text-gray-500 hidden sm:table-cell">
+                                  <tr key={idx} className="border-t border-mbi-hairline">
+                                    <td className="py-2 pr-3 font-semibold text-mbi-navy">{p.productName}</td>
+                                    <td className="py-2 pr-3 text-mbi-slate hidden sm:table-cell">{p.sizeDisplay}</td>
+                                    <td className="py-2 pr-3 text-center text-mbi-slate hidden sm:table-cell">{p.totalQty}</td>
+                                    <td className="py-2 pr-3 text-right text-mbi-slate hidden sm:table-cell">
                                       {p.feePerItem > 0 ? `GHS ${p.feePerItem.toLocaleString()}` : '—'}
                                     </td>
-                                    <td className="py-2 pr-3 text-right font-semibold text-[#1e2d3d]">
+                                    <td className="py-2 pr-3 text-right font-semibold text-mbi-navy">
                                       {p.totalFee > 0 ? `GHS ${p.totalFee.toLocaleString()}` : '—'}
                                     </td>
                                     <td className="py-2 text-right">
                                       {p.isPaid
-                                        ? <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">Paid</span>
-                                        : <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold">Unpaid</span>
+                                        ? <span className="px-2 py-0.5 rounded-full bg-mbi-available-tint text-mbi-available font-semibold">Paid</span>
+                                        : <span className="px-2 py-0.5 rounded-full bg-mbi-error-tint text-mbi-error font-semibold">Unpaid</span>
                                       }
                                     </td>
                                   </tr>
@@ -599,22 +599,22 @@ export default function AdminDashboard() {
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
-            <h3 className="text-base font-bold text-[#1e2d3d] mb-2">Delete All Payments?</h3>
-            <p className="text-sm text-gray-500 mb-5">
+          <div className="bg-white rounded-mbi-card shadow-mbi-float p-6 max-w-sm w-full">
+            <h3 className="text-base font-bold text-mbi-navy mb-2">Delete All Payments?</h3>
+            <p className="text-sm text-mbi-slate mb-5">
               This will permanently delete all shipping fee payment records. This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setConfirmDelete(false)}
-                className="text-sm font-semibold px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50"
+                className="text-sm font-semibold px-4 py-2 rounded-lg border border-mbi-hairline hover:bg-mbi-surface-soft"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAll}
                 disabled={deleting}
-                className="text-sm font-semibold px-4 py-2 rounded-xl bg-red-500 text-white hover:opacity-90 disabled:opacity-60"
+                className="text-sm font-semibold px-4 py-2 rounded-lg bg-mbi-error text-white hover:bg-mbi-error/90 disabled:opacity-60"
               >
                 {deleting ? 'Deleting…' : 'Delete All'}
               </button>

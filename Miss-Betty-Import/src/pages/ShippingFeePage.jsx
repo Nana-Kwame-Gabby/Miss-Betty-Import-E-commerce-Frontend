@@ -49,7 +49,7 @@ function PayAllButton({ amount, paying, onClick, block = false }) {
     <button
       onClick={onClick}
       disabled={!!paying}
-      className={`${block ? "w-full py-2.5 text-sm" : "px-4 py-2 text-xs"} inline-flex items-center justify-center gap-2 bg-[#F2AA25] text-white font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 whitespace-nowrap`}
+      className={`mbi-press ${block ? "w-full h-12 text-base" : "h-11 px-4 text-sm"} inline-flex items-center justify-center gap-2 bg-mbi-amber text-mbi-navy font-semibold rounded-lg hover:bg-mbi-amber-press disabled:opacity-60 whitespace-nowrap`}
     >
       {paying === 'all' ? <><Spinner /> Redirecting…</> : `Pay All Shipping Fees — GHS ${amount.toLocaleString()}`}
     </button>
@@ -61,11 +61,11 @@ function PayAllButton({ amount, paying, onClick, block = false }) {
 function PaymentBanner({ shpMsg, onClose }) {
   if (!shpMsg) return null;
   const styles = {
-    confirming: "bg-blue-50 border-blue-200 text-blue-800",
-    success:    "bg-green-50 border-green-200 text-green-800",
-    cancelled:  "bg-yellow-50 border-yellow-200 text-yellow-800",
-    pending:    "bg-yellow-50 border-yellow-200 text-yellow-800",
-    error:      "bg-red-50 border-red-200 text-red-700",
+    confirming: "bg-mbi-preorder-tint border-mbi-navy/15 text-mbi-navy",
+    success:    "bg-mbi-available-tint border-mbi-available/30 text-mbi-available",
+    cancelled:  "bg-mbi-amber-tint border-mbi-amber/40 text-mbi-navy",
+    pending:    "bg-mbi-amber-tint border-mbi-amber/40 text-mbi-navy",
+    error:      "bg-mbi-error-tint border-mbi-error/30 text-mbi-error",
   };
   const text = {
     confirming: "Confirming your payment with Hubtel…",
@@ -75,7 +75,7 @@ function PaymentBanner({ shpMsg, onClose }) {
     error:      shpMsg.msg,
   };
   return (
-    <div className={`flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 mb-3 text-sm font-medium border ${styles[shpMsg.type]}`}>
+    <div className={`flex items-center justify-between gap-3 rounded-mbi-card px-3 py-2.5 mb-3 text-sm font-medium border ${styles[shpMsg.type]}`}>
       <span className="flex items-center gap-2">{shpMsg.type === "confirming" && <Spinner />}{text[shpMsg.type]}</span>
       {shpMsg.type !== "confirming" && (
         <button onClick={onClose} aria-label="Dismiss" className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
@@ -267,7 +267,7 @@ export default function ShippingFeePage() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -280,22 +280,24 @@ export default function ShippingFeePage() {
         )}
         {shpMsg?.type === "success" ? (
           <>
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <div className="w-16 h-16 bg-mbi-available-tint rounded-full flex items-center justify-center mx-auto mb-3">
               <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
               </svg>
             </div>
-            <h2 className="text-lg sm:text-xl font-bold text-[#1e2d3d] mb-2">All shipping fees have been paid.</h2>
-            <p className="text-gray-400 text-sm mb-6">Thank you! Your payment has been confirmed.</p>
+            <h2 className="text-lg sm:text-xl font-bold text-mbi-navy mb-2">All shipping fees have been paid.</h2>
+            <p className="text-mbi-slate text-sm mb-6">Thank you! Your payment has been confirmed.</p>
           </>
         ) : (
           <>
-            <div className="text-4xl sm:text-5xl mb-3">🚚</div>
-            <h2 className="text-lg sm:text-xl font-bold text-[#1e2d3d] mb-2">No shipping fees pending</h2>
-            <p className="text-gray-400 text-sm mb-6">Shipping fees will appear here once your orders are processed.</p>
+            <div className="mx-auto mb-4 grid size-16 place-items-center rounded-full bg-mbi-surface-soft text-mbi-slate">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        </div>
+            <h2 className="text-lg sm:text-xl font-bold text-mbi-navy mb-2">No shipping fees pending</h2>
+            <p className="text-mbi-slate text-sm mb-6">Shipping fees will appear here once your orders are processed.</p>
           </>
         )}
-        <Link to="/shop" className="inline-block bg-[#F2AA25] text-white font-bold px-6 py-2.5 rounded-2xl hover:opacity-90">
+        <Link to="/shop" className="mbi-press inline-flex h-12 items-center bg-mbi-amber text-mbi-navy font-semibold px-6 rounded-lg hover:bg-mbi-amber-press">
           {shpMsg?.type === "success" ? "Continue Shopping" : "Shop Now"}
         </Link>
       </div>
@@ -307,18 +309,18 @@ export default function ShippingFeePage() {
 
       <PaymentBanner shpMsg={shpMsg} onClose={() => setShpMsg(null)} />
 
-      <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-1">Shipping Fees</h1>
-      <p className="text-sm text-gray-400 mb-3 sm:mb-5">
+      <h1 className="text-2xl sm:text-[28px] font-bold tracking-[-0.4px] text-mbi-navy mb-1">Shipping fees</h1>
+      <p className="text-sm text-mbi-slate mb-3 sm:mb-5">
         Shipping fees are assigned by our team. Pay for one product at a time, or pay everything at once.
       </p>
 
       {/* Desktop table */}
-      <div className="hidden sm:block bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="hidden sm:block bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-100">
+          <thead className="bg-mbi-surface-soft border-b border-mbi-hairline-soft">
             <tr>
               {["Product", "Size", "Qty", "Fee / Item (GHS)", "Total Shipping (GHS)", ""].map((h, i) => (
-                <th key={i} className={`text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap ${i === 5 ? "text-right" : ""}`}>{h}</th>
+                <th key={i} className={`text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide whitespace-nowrap ${i === 5 ? "text-right" : ""}`}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -328,17 +330,17 @@ export default function ShippingFeePage() {
               const hasFee   = group.feePerItem > 0;
               const isPaying = paying === groupKey;
               return (
-                <tr key={groupKey} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
-                  <td className="px-4 py-3 font-semibold text-[#1e2d3d]">
+                <tr key={groupKey} className={i % 2 === 0 ? "bg-white" : "bg-mbi-surface-soft/60"}>
+                  <td className="px-4 py-3 font-semibold text-mbi-navy">
                     {group.productName}
-                    {group.periodName && <span className="block text-xs font-normal text-gray-400">{group.periodName}</span>}
+                    {group.periodName && <span className="block text-xs font-normal text-mbi-slate">{group.periodName}</span>}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{group.sizeDisplay}</td>
-                  <td className="px-4 py-3 text-gray-600">{group.totalQty}</td>
-                  <td className="px-4 py-3 font-semibold text-[#1e2d3d]">
-                    {hasFee ? `GHS ${group.feePerItem.toLocaleString()}` : <span className="text-gray-400">—</span>}
+                  <td className="px-4 py-3 text-mbi-slate">{group.sizeDisplay}</td>
+                  <td className="px-4 py-3 text-mbi-navy-body">{group.totalQty}</td>
+                  <td className="px-4 py-3 font-semibold text-mbi-navy">
+                    {hasFee ? `GHS ${group.feePerItem.toLocaleString()}` : <span className="text-mbi-slate">—</span>}
                   </td>
-                  <td className="px-4 py-3 font-bold text-[#DC2626]">
+                  <td className="px-4 py-3 font-bold text-mbi-navy">
                     {hasFee ? `GHS ${group.totalFee.toLocaleString()}` : '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -346,7 +348,7 @@ export default function ShippingFeePage() {
                       <button
                         onClick={() => handlePayGroup(group)}
                         disabled={!!paying}
-                        className="inline-flex items-center gap-2 bg-[#F2AA25] text-white font-bold text-xs px-3 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 whitespace-nowrap"
+                        className="mbi-press inline-flex h-11 items-center gap-2 border border-mbi-navy/25 bg-white text-mbi-navy font-semibold hover:border-mbi-navy hover:bg-mbi-navy hover:text-white disabled:opacity-60 text-sm px-4 rounded-lg whitespace-nowrap"
                       >
                         {isPaying ? (
                           <>
@@ -366,7 +368,7 @@ export default function ShippingFeePage() {
                         )}
                       </button>
                     ) : (
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 whitespace-nowrap">
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-mbi-amber-tint text-mbi-amber-ink whitespace-nowrap">
                         Awaiting Shipping Fee
                       </span>
                     )}
@@ -377,9 +379,9 @@ export default function ShippingFeePage() {
           </tbody>
           {payableTotal > 0 && (
             <tfoot>
-              <tr className="border-t-2 border-[#1e2d3d] bg-gray-50">
-                <td colSpan={4} className="px-4 py-3 text-right font-bold text-[#1e2d3d] text-sm">Total Outstanding</td>
-                <td className="px-4 py-3 font-bold text-[#DC2626] text-sm">GHS {payableTotal.toLocaleString()}</td>
+              <tr className="border-t-2 border-mbi-navy bg-mbi-surface-soft">
+                <td colSpan={4} className="px-4 py-3 text-right font-bold text-mbi-navy text-sm">Total Outstanding</td>
+                <td className="px-4 py-3 font-bold text-mbi-navy text-sm">GHS {payableTotal.toLocaleString()}</td>
                 <td className="px-4 py-3 text-right">
                   <PayAllButton amount={payableTotal} paying={paying} onClick={handlePayAll} />
                 </td>
@@ -396,33 +398,33 @@ export default function ShippingFeePage() {
           const hasFee   = group.feePerItem > 0;
           const isPaying = paying === groupKey;
           return (
-            <div key={groupKey} className="bg-white rounded-2xl shadow-sm p-3">
+            <div key={groupKey} className="bg-white rounded-mbi-card p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-[#1e2d3d] text-sm">
+                <span className="font-bold text-mbi-navy text-sm">
                   {group.productName}
-                  {group.periodName && <span className="block text-xs font-normal text-gray-400">{group.periodName}</span>}
+                  {group.periodName && <span className="block text-xs font-normal text-mbi-slate">{group.periodName}</span>}
                 </span>
                 {hasFee ? (
-                  <span className="text-xs font-bold text-white bg-[#F2AA25] px-2.5 py-1 rounded-full">
+                  <span className="text-xs font-bold text-mbi-navy bg-mbi-amber px-2.5 py-1 rounded-full">
                     GHS {group.totalFee.toLocaleString()}
                   </span>
                 ) : (
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-mbi-amber-tint text-mbi-amber-ink">
                     Awaiting Fee
                   </span>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3">
-                <span><span className="font-semibold text-[#1e2d3d]">Size:</span> {group.sizeDisplay}</span>
-                <span><span className="font-semibold text-[#1e2d3d]">Qty:</span> {group.totalQty}</span>
+              <div className="grid grid-cols-2 gap-2 text-xs text-mbi-slate mb-3">
+                <span><span className="font-semibold text-mbi-navy">Size:</span> {group.sizeDisplay}</span>
+                <span><span className="font-semibold text-mbi-navy">Qty:</span> {group.totalQty}</span>
                 <span>
-                  <span className="font-semibold text-[#1e2d3d]">Fee/item:</span>{" "}
+                  <span className="font-semibold text-mbi-navy">Fee/item:</span>{" "}
                   {hasFee ? `GHS ${group.feePerItem.toLocaleString()}` : "—"}
                 </span>
               </div>
-              <div className="border-t border-gray-100 pt-2 flex justify-between items-center mb-2">
-                <span className="text-xs text-gray-400">Total Shipping</span>
-                <span className="font-bold text-[#1e2d3d] text-sm">
+              <div className="border-t border-mbi-hairline-soft pt-2 flex justify-between items-center mb-2">
+                <span className="text-xs text-mbi-slate">Total Shipping</span>
+                <span className="font-bold text-mbi-navy text-sm">
                   {hasFee ? `GHS ${group.totalFee.toLocaleString()}` : '—'}
                 </span>
               </div>
@@ -430,7 +432,7 @@ export default function ShippingFeePage() {
                 <button
                   onClick={() => handlePayGroup(group)}
                   disabled={!!paying}
-                  className="w-full bg-[#F2AA25] text-white font-bold text-sm py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="mbi-press w-full h-11 border border-mbi-navy/25 bg-white text-mbi-navy font-semibold hover:border-mbi-navy hover:bg-mbi-navy hover:text-white disabled:opacity-60 text-sm rounded-lg flex items-center justify-center gap-2"
                 >
                   {isPaying ? (
                     <>
@@ -443,8 +445,8 @@ export default function ShippingFeePage() {
                   ) : `Pay GHS ${group.totalFee.toLocaleString()} · Hubtel`}
                 </button>
               ) : (
-                <div className="border-t border-gray-100 pt-2 text-center">
-                  <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-amber-100 text-amber-700">
+                <div className="border-t border-mbi-hairline-soft pt-2 text-center">
+                  <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-mbi-amber-tint text-mbi-amber-ink">
                     Awaiting Shipping Fee
                   </span>
                 </div>
@@ -454,19 +456,19 @@ export default function ShippingFeePage() {
         })}
 
         {payableTotal > 0 && (
-          <div className="bg-[#1e2d3d] rounded-2xl p-3">
+          <div className="bg-mbi-navy rounded-mbi-card p-3">
             <div className="flex justify-between items-center mb-2.5">
               <span className="text-white font-semibold text-sm">Total Outstanding</span>
-              <span className="text-[#F2AA25] font-bold text-lg">GHS {payableTotal.toLocaleString()}</span>
+              <span className="text-mbi-amber font-bold text-lg tabular">GHS {payableTotal.toLocaleString()}</span>
             </div>
             <PayAllButton amount={payableTotal} paying={paying} onClick={handlePayAll} block />
-            <p className="text-gray-400 text-xs mt-2 text-center">Or pay each product's fee separately above</p>
+            <p className="text-white/70 text-sm mt-2 text-center">Or pay each product's fee separately above</p>
           </div>
         )}
       </div>
 
       <div className="mt-5 text-center">
-        <Link to="/shop" className="inline-block text-[#F2AA25] font-semibold hover:underline">
+        <Link to="/shop" className="inline-block text-mbi-amber-ink font-semibold hover:underline">
           ← Continue Shopping
         </Link>
       </div>

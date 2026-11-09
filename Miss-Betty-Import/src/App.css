@@ -1,1 +1,109 @@
 @import "tailwindcss";
+@import "@fontsource-variable/plus-jakarta-sans";
+
+/* Design tokens from DESIGN.md ("The Well-Lit Market Stall"). Use these (bg-mbi-amber,
+   text-mbi-navy, ease-mbi-out, …) for anything built on the new system. */
+@theme {
+  --font-sans: "Plus Jakarta Sans Variable", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+
+  --color-mbi-amber: #F2AA25;
+  --color-mbi-amber-press: #E09612;
+  --color-mbi-amber-tint: #FDF3DD;
+  --color-mbi-amber-ink: #9A5B00;
+  --color-mbi-navy: #1e2d3d;
+  --color-mbi-navy-hover: #2a3d52;
+  --color-mbi-navy-body: #33475b;
+  --color-mbi-slate: #5c6b7a;
+  --color-mbi-hairline: #e3e7ec;
+  --color-mbi-hairline-soft: #eef1f4;
+  --color-mbi-border-strong: #c9d1da;
+  --color-mbi-surface-soft: #f6f7f9;
+  --color-mbi-surface-strong: #eceff3;
+  --color-mbi-available: #067647;
+  --color-mbi-available-tint: #e7f6ee;
+  --color-mbi-preorder-tint: #e8eef5;
+  --color-mbi-error: #b42318;
+  --color-mbi-error-tint: #fdecea;
+  --color-mbi-whatsapp: #25D366;
+
+  --radius-mbi-card: 14px;
+
+  --ease-mbi-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-mbi-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --shadow-mbi-float: 0 0 0 1px rgba(15, 23, 32, 0.04), 0 2px 6px rgba(15, 23, 32, 0.06), 0 6px 16px rgba(15, 23, 32, 0.10);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    color: var(--color-mbi-navy);
+  }
+  ::selection {
+    background: var(--color-mbi-amber-tint);
+    color: var(--color-mbi-navy);
+  }
+  input, textarea {
+    caret-color: var(--color-mbi-navy);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-mbi-navy);
+    outline-offset: 2px;
+  }
+  a {
+    text-underline-offset: 3px;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-mbi-border-strong) transparent;
+  }
+}
+
+@layer utilities {
+  /* Tap feedback for buttons and linked cards (Emil Kowalski: scale 0.97, strong ease-out). */
+  .mbi-press {
+    transition-property: transform, background-color, border-color, color, box-shadow;
+    transition-duration: 160ms;
+    transition-timing-function: var(--ease-mbi-out);
+  }
+  .mbi-press:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Pages with a pinned bottom action bar (product page) set data-action-bar on <html>;
+   the chat launcher then rises above the bar on phones and tablets. */
+@media (max-width: 1023px) {
+  html[data-action-bar] .chat-launcher {
+    translate: 0 -76px;
+  }
+}
+
+/* A product sheet carries its own pinned action; the chat launcher steps aside while it is open. */
+html[data-sheet-open] .chat-launcher {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .mbi-press:active:not(:disabled) {
+    transform: none;
+  }
+}

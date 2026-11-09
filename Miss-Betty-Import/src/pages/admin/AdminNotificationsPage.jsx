@@ -106,51 +106,51 @@ export default function AdminNotificationsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Notifications</h1>
-      <p className="text-sm text-gray-400 mb-6">Send broadcast notifications to all registered customers</p>
+      <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy mb-1">Notifications</h1>
+      <p className="text-sm text-mbi-slate mb-6">Send broadcast notifications to all registered customers</p>
 
       {/* Compose */}
-      <div className="bg-white rounded-2xl shadow-sm p-5 mb-6">
-        <h2 className="text-sm font-bold text-[#1e2d3d] mb-3">Compose Notification</h2>
+      <div className="bg-white rounded-mbi-card border border-mbi-hairline p-5 mb-6">
+        <h2 className="text-sm font-bold text-mbi-navy mb-3">Compose Notification</h2>
 
         <div className="mb-3">
-          <label className="block font-semibold text-[#1e2d3d] mb-1.5 text-xs">Title</label>
+          <label className="block font-semibold text-mbi-navy mb-1.5 text-xs">Title</label>
           <input
             value={form.title}
             onChange={e => setForm(f => ({ ...f, title: e.target.value.slice(0, TITLE_MAX) }))}
             placeholder="e.g. New products just arrived!"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#F2AA25] transition-colors"
+            className="w-full border border-mbi-hairline rounded-lg px-3 py-2.5 text-sm outline-none focus:border-mbi-navy transition-colors"
           />
-          <p className="text-xs text-gray-400 mt-1">{form.title.length} / {TITLE_MAX}</p>
+          <p className="text-xs text-mbi-slate mt-1">{form.title.length} / {TITLE_MAX}</p>
         </div>
 
         <div className="mb-3">
-          <label className="block font-semibold text-[#1e2d3d] mb-1.5 text-xs">Message</label>
+          <label className="block font-semibold text-mbi-navy mb-1.5 text-xs">Message</label>
           <textarea
             value={form.message}
             onChange={e => setForm(f => ({ ...f, message: e.target.value.slice(0, MESSAGE_MAX) }))}
             placeholder="Type the notification message…"
             rows={4}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#F2AA25] resize-none transition-colors"
+            className="w-full border border-mbi-hairline rounded-lg px-3 py-2.5 text-sm outline-none focus:border-mbi-navy resize-none transition-colors"
           />
-          <p className="text-xs text-gray-400 mt-1">{form.message.length} / {MESSAGE_MAX}</p>
+          <p className="text-xs text-mbi-slate mt-1">{form.message.length} / {MESSAGE_MAX}</p>
         </div>
 
         <div className="mb-4">
-          <label className="block font-semibold text-[#1e2d3d] mb-1.5 text-xs">Link (optional)</label>
+          <label className="block font-semibold text-mbi-navy mb-1.5 text-xs">Link (optional)</label>
           <input
             value={form.link_url}
             onChange={e => setForm(f => ({ ...f, link_url: e.target.value }))}
             placeholder="e.g. /shop/12"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#F2AA25] transition-colors"
+            className="w-full border border-mbi-hairline rounded-lg px-3 py-2.5 text-sm outline-none focus:border-mbi-navy transition-colors"
           />
         </div>
 
         {banner && (
-          <div className={`mb-4 px-4 py-2.5 rounded-xl text-sm font-medium ${
+          <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm font-medium ${
             banner.type === "success"
-              ? "bg-green-50 text-green-700 border border-green-100"
-              : "bg-red-50 text-red-600 border border-red-100"
+              ? "bg-mbi-available-tint text-mbi-available border border-mbi-available/30"
+              : "bg-mbi-error-tint text-mbi-error border border-mbi-error/30"
           }`}>
             {banner.text}
           </div>
@@ -159,7 +159,7 @@ export default function AdminNotificationsPage() {
         <button
           onClick={() => setShowConfirm(true)}
           disabled={!canSend}
-          className="flex items-center gap-2 bg-[#1e2d3d] text-white font-semibold text-sm px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+          className="mbi-press flex items-center gap-2 bg-mbi-navy text-white font-semibold text-sm px-5 py-2.5 rounded-lg hover:bg-mbi-navy-hover transition-colors disabled:opacity-40"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -169,60 +169,60 @@ export default function AdminNotificationsPage() {
       </div>
 
       {/* History */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-bold text-[#1e2d3d]">Sent Notifications</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Previously sent notifications</p>
+      <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden">
+        <div className="px-5 py-4 border-b border-mbi-hairline-soft">
+          <h2 className="text-sm font-bold text-mbi-navy">Sent Notifications</h2>
+          <p className="text-xs text-mbi-slate mt-0.5">Previously sent notifications</p>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-7 h-7 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 text-sm">No notifications sent yet.</div>
+          <div className="text-center py-12 text-mbi-slate text-sm">No notifications sent yet.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Date & Time</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Message</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Type</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
+                <tr className="border-b border-mbi-hairline-soft bg-mbi-surface-soft">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Date & Time</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Title</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Message</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Type</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {notifications.map(n => (
-                  <tr key={n.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3 text-gray-500 whitespace-nowrap">
+                  <tr key={n.id} className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft transition-colors">
+                    <td className="px-5 py-3 text-mbi-slate whitespace-nowrap">
                       {new Date(n.created_at).toLocaleDateString("en-GH", {
                         day: "2-digit", month: "short", year: "numeric",
                         hour: "2-digit", minute: "2-digit",
                       })}
                     </td>
-                    <td className="px-4 py-3 text-[#1e2d3d] font-semibold max-w-[10rem]">
+                    <td className="px-4 py-3 text-mbi-navy font-semibold max-w-[10rem]">
                       <p className="truncate" title={n.title}>{n.title}</p>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 max-w-xs">
+                    <td className="px-4 py-3 text-mbi-slate max-w-xs">
                       <p className="truncate" title={n.message}>{n.message}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                         n.type === "new_product"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-gray-100 text-gray-600"
+                          ? "bg-mbi-preorder-tint text-mbi-navy"
+                          : "bg-mbi-surface-soft text-mbi-navy-body"
                       }`}>
                         {n.type === "new_product" ? "Auto: New Product" : "Manual"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <button onClick={() => openEdit(n)} className="text-xs font-semibold text-[#F2AA25] hover:underline">
+                        <button onClick={() => openEdit(n)} className="text-xs font-semibold text-mbi-amber-ink hover:underline">
                           Edit
                         </button>
-                        <button onClick={() => handleDelete(n)} className="text-xs font-semibold text-red-500 hover:underline">
+                        <button onClick={() => handleDelete(n)} className="text-xs font-semibold text-mbi-error hover:underline">
                           Delete
                         </button>
                       </div>
@@ -239,25 +239,25 @@ export default function AdminNotificationsPage() {
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowConfirm(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5">
-            <h3 className="text-base font-bold text-[#1e2d3d] mb-1">Send Notification?</h3>
-            <p className="text-sm text-gray-500 mb-4">
+          <div className="relative bg-white rounded-mbi-card shadow-mbi-float w-full max-w-sm p-5">
+            <h3 className="text-base font-bold text-mbi-navy mb-1">Send Notification?</h3>
+            <p className="text-sm text-mbi-slate mb-4">
               This will be visible to <strong>all registered customers</strong>. This action cannot be undone.
             </p>
-            <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 mb-5 text-sm text-gray-600">
-              <p className="font-semibold text-[#1e2d3d] mb-1">{form.title}</p>
+            <div className="bg-mbi-surface-soft border border-mbi-hairline-soft rounded-lg px-3 py-2.5 mb-5 text-sm text-mbi-navy-body">
+              <p className="font-semibold text-mbi-navy mb-1">{form.title}</p>
               <p className="italic line-clamp-3">"{form.message}"</p>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 border-2 border-gray-200 text-gray-600 font-semibold py-2 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                className="flex-1 border-2 border-mbi-hairline text-mbi-navy-body font-semibold py-2 rounded-lg hover:bg-mbi-surface-soft transition-colors text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreate}
-                className="flex-1 bg-[#1e2d3d] text-white font-semibold py-2 rounded-xl hover:opacity-90 transition-opacity text-sm"
+                className="mbi-press flex-1 bg-mbi-navy text-white font-semibold py-2 rounded-lg hover:bg-mbi-navy-hover transition-colors text-sm"
               >
                 Yes, Send Now
               </button>
@@ -270,53 +270,53 @@ export default function AdminNotificationsPage() {
       {editingNotification && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setEditingNotification(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5">
-            <h3 className="text-base font-bold text-[#1e2d3d] mb-1">Edit Notification</h3>
-            <p className="text-xs text-gray-400 mb-4">Editing won't re-notify customers who already saw this.</p>
+          <div className="relative bg-white rounded-mbi-card shadow-mbi-float w-full max-w-sm p-5">
+            <h3 className="text-base font-bold text-mbi-navy mb-1">Edit Notification</h3>
+            <p className="text-xs text-mbi-slate mb-4">Editing won't re-notify customers who already saw this.</p>
 
             <div className="mb-3">
-              <label className="block font-semibold text-[#1e2d3d] mb-1.5 text-xs">Title</label>
+              <label className="block font-semibold text-mbi-navy mb-1.5 text-xs">Title</label>
               <input
                 value={editForm.title}
                 onChange={e => setEditForm(f => ({ ...f, title: e.target.value.slice(0, TITLE_MAX) }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#F2AA25] transition-colors"
+                className="w-full border border-mbi-hairline rounded-lg px-3 py-2.5 text-sm outline-none focus:border-mbi-navy transition-colors"
               />
             </div>
 
             <div className="mb-3">
-              <label className="block font-semibold text-[#1e2d3d] mb-1.5 text-xs">Message</label>
+              <label className="block font-semibold text-mbi-navy mb-1.5 text-xs">Message</label>
               <textarea
                 value={editForm.message}
                 onChange={e => setEditForm(f => ({ ...f, message: e.target.value.slice(0, MESSAGE_MAX) }))}
                 rows={4}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#F2AA25] resize-none transition-colors"
+                className="w-full border border-mbi-hairline rounded-lg px-3 py-2.5 text-sm outline-none focus:border-mbi-navy resize-none transition-colors"
               />
             </div>
 
             <div className="mb-4">
-              <label className="block font-semibold text-[#1e2d3d] mb-1.5 text-xs">Link (optional)</label>
+              <label className="block font-semibold text-mbi-navy mb-1.5 text-xs">Link (optional)</label>
               <input
                 value={editForm.link_url}
                 onChange={e => setEditForm(f => ({ ...f, link_url: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#F2AA25] transition-colors"
+                className="w-full border border-mbi-hairline rounded-lg px-3 py-2.5 text-sm outline-none focus:border-mbi-navy transition-colors"
               />
             </div>
 
             {editError && (
-              <p className="text-xs text-red-500 font-medium mb-3">{editError}</p>
+              <p className="text-xs text-mbi-error font-medium mb-3">{editError}</p>
             )}
 
             <div className="flex gap-3">
               <button
                 onClick={() => setEditingNotification(null)}
-                className="flex-1 border-2 border-gray-200 text-gray-600 font-semibold py-2 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                className="flex-1 border-2 border-mbi-hairline text-mbi-navy-body font-semibold py-2 rounded-lg hover:bg-mbi-surface-soft transition-colors text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleEditSave}
                 disabled={editSubmitting}
-                className="flex-1 bg-[#1e2d3d] text-white font-semibold py-2 rounded-xl hover:opacity-90 transition-opacity text-sm disabled:opacity-40"
+                className="mbi-press flex-1 bg-mbi-navy text-white font-semibold py-2 rounded-lg hover:bg-mbi-navy-hover transition-colors text-sm disabled:opacity-40"
               >
                 {editSubmitting ? "Saving…" : "Save"}
               </button>

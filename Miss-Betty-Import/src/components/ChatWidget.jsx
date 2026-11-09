@@ -106,31 +106,28 @@ function ProductCard({ p, onNavigate }) {
     <Link
       to={p.url}
       onClick={onNavigate}
-      className="flex gap-2.5 bg-white border border-gray-100 rounded-xl p-2 hover:border-[#F2AA25] hover:shadow-sm transition-all"
+      className="mbi-press flex gap-2.5 bg-white border border-mbi-hairline-soft rounded-lg p-2 hover:border-mbi-navy transition-colors"
     >
       {p.image ? (
-        <img src={thumbUrl(p.image, 160)} onError={imgFallback(p.image)} alt={p.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0 bg-gray-100" />
+        <img src={thumbUrl(p.image, 160)} onError={imgFallback(p.image)} alt={p.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0 bg-mbi-surface-soft" />
       ) : (
-        <div className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0" />
+        <div className="w-16 h-16 rounded-lg bg-mbi-surface-soft flex-shrink-0" />
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-[#1e2d3d] line-clamp-2 leading-snug">{p.name}</p>
+        <p className="text-sm font-semibold text-mbi-navy line-clamp-2 leading-snug">{p.name}</p>
         <div className="flex items-baseline gap-1.5 flex-wrap mt-0.5">
-          <span className="text-[#DC2626] font-bold text-sm">{p.price_from ? "From " : ""}{money(p.price)}</span>
+          <span className="tabular text-mbi-navy font-bold text-sm">{p.price_from ? "From " : ""}{money(p.price)}</span>
           {p.original_price != null && (
-            <>
-              <span className="text-gray-400 text-[11px] line-through">{money(p.original_price)}</span>
-              <span className="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">SALE</span>
-            </>
+            <span className="text-mbi-slate text-xs line-through">{money(p.original_price)}</span>
           )}
         </div>
         <div className="flex items-center gap-1.5 flex-wrap mt-1">
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-            p.status === "Available" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-          }`}>{p.status}</span>
-          {!p.in_stock && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">Out of stock</span>}
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-mbi-navy-body">
+            <span className={`size-1.5 rounded-full ${!p.in_stock ? "bg-mbi-error" : p.status === "Available" ? "bg-mbi-available" : "bg-mbi-navy"}`} aria-hidden="true" />
+            {p.in_stock ? p.status : "Out of stock"}
+          </span>
           {(p.sizes.length > 0 || p.colours.length > 0) && (
-            <span className="text-[10px] text-gray-400 truncate">
+            <span className="text-xs text-mbi-slate truncate">
               {[p.sizes.slice(0, 4).join(", "), p.colours.slice(0, 3).join(", ")].filter(Boolean).join(" · ")}
             </span>
           )}
@@ -284,18 +281,18 @@ export default function ChatWidget() {
       <button
         onClick={() => (open ? setOpen(false) : openChat())}
         aria-label={open ? "Close chat" : "Ask Betty, our shopping assistant"}
-        className={`chat-launcher fixed right-4 ${buttonBottom} z-[61] flex items-center gap-2 bg-[#1e2d3d] text-white py-3 rounded-full shadow-lg hover:bg-[#2a3d52] transition-colors ${
+        className={`mbi-press chat-launcher fixed right-4 ${buttonBottom} z-[61] flex items-center gap-2 bg-mbi-navy text-white py-3 rounded-full shadow-mbi-float hover:bg-mbi-navy-hover transition-colors ${
           open ? "px-3 lg:hidden" : "pl-3.5 pr-4"
         } ${nudging ? "chat-nudge" : ""}`}
       >
         {nudging && <span aria-hidden="true" className="chat-ring absolute inset-0 rounded-full pointer-events-none" />}
         {open ? (
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F2AA25" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-mbi-amber" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         ) : (
           <>
-            <svg className="chat-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F2AA25" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="chat-icon text-mbi-amber" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
             </svg>
             <span className="text-sm font-semibold whitespace-nowrap">Ask Betty</span>
@@ -307,21 +304,21 @@ export default function ChatWidget() {
         <div
           role="dialog"
           aria-label="Shopping assistant"
-          className={`fixed z-[60] flex flex-col bg-gray-50 overflow-hidden rounded-2xl shadow-2xl border border-gray-200 right-4 ${panelPlacement} w-[min(88vw,340px)] sm:w-[380px] h-[50dvh] lg:bottom-4 lg:w-[380px] lg:h-[560px] lg:min-h-0 lg:max-h-[calc(100vh_-_2rem)]`}
+          className={`fixed z-[60] flex flex-col bg-mbi-surface-soft overflow-hidden rounded-mbi-card shadow-mbi-float border border-mbi-hairline right-4 ${panelPlacement} w-[min(88vw,340px)] sm:w-[380px] h-[50dvh] lg:bottom-4 lg:w-[380px] lg:h-[560px] lg:min-h-0 lg:max-h-[calc(100vh_-_2rem)]`}
         >
           {/* Header */}
-          <div className="flex items-center gap-2 px-3 py-2.5 lg:gap-3 lg:px-4 lg:py-3 bg-[#1e2d3d] text-white flex-shrink-0">
-            <div className="w-8 h-8 lg:w-9 lg:h-9 flex-shrink-0 rounded-full bg-[#F2AA25] flex items-center justify-center font-bold text-[#1e2d3d]">B</div>
+          <div className="flex items-center gap-2 px-3 py-2.5 lg:gap-3 lg:px-4 lg:py-3 bg-mbi-navy text-white flex-shrink-0">
+            <div className="w-8 h-8 lg:w-9 lg:h-9 flex-shrink-0 rounded-full bg-mbi-amber flex items-center justify-center font-bold text-mbi-navy">B</div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm leading-tight truncate"><span className="lg:hidden">Betty · Assistant</span><span className="hidden lg:inline">Betty · Shopping Assistant</span></p>
-              <p className="text-[11px] text-gray-300 truncate">AI assistant · can make mistakes</p>
+              <p className="font-bold text-sm leading-tight truncate">Betty</p>
+              <p className="text-xs leading-snug text-white/70">AI shopping assistant · can make mistakes</p>
             </div>
             <button
               onClick={toggleSound}
               title={soundOn ? "Mute notification sound" : "Turn on notification sound"}
               aria-label={soundOn ? "Mute notification sound" : "Turn on notification sound"}
               aria-pressed={!soundOn}
-              className="p-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+              className="mbi-press w-10 h-10 -my-1 flex items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
@@ -330,12 +327,12 @@ export default function ChatWidget() {
                   : <><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></>}
               </svg>
             </button>
-            <button onClick={resetChat} title="Start a new chat" className="p-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
+            <button onClick={resetChat} title="Start a new chat" className="mbi-press w-10 h-10 -my-1 flex items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
               </svg>
             </button>
-            <button onClick={() => setOpen(false)} aria-label="Close chat" className="p-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
+            <button onClick={() => setOpen(false)} aria-label="Close chat" className="mbi-press w-10 h-10 -my-1 flex items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
@@ -347,12 +344,12 @@ export default function ChatWidget() {
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[88%] ${m.role === "user" ? "" : "w-full sm:w-auto"}`}>
-                  <div className={`text-sm leading-relaxed px-3 py-2 rounded-2xl ${
+                  <div className={`text-sm leading-relaxed px-3 py-2 rounded-mbi-card ${
                     m.role === "user"
-                      ? "bg-[#F2AA25] text-[#1e2d3d] rounded-br-md whitespace-pre-wrap"
+                      ? "bg-mbi-amber text-mbi-navy rounded-br-md whitespace-pre-wrap"
                       : m.error
-                      ? "bg-red-50 text-red-700 border border-red-100 rounded-bl-md"
-                      : "bg-white text-[#1e2d3d] border border-gray-100 rounded-bl-md"
+                      ? "bg-mbi-error-tint text-mbi-error border border-mbi-error/30 rounded-bl-md"
+                      : "bg-white text-mbi-navy border border-mbi-hairline-soft rounded-bl-md"
                   }`}>
                     {m.role === "user" ? m.content : <FormattedText text={m.content} onNavigate={onNavigate} />}
                   </div>
@@ -367,10 +364,10 @@ export default function ChatWidget() {
 
             {sending && (
               <div className="flex justify-start" aria-live="polite">
-                <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-md px-3 py-3 flex items-center gap-1">
+                <div className="bg-white border border-mbi-hairline-soft rounded-mbi-card rounded-bl-md px-3 py-3 flex items-center gap-1">
                   <span className="sr-only">Betty is typing</span>
                   {[0, 150, 300].map(d => (
-                    <span key={d} className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                    <span key={d} className="w-2 h-2 rounded-full bg-mbi-slate chat-dot" style={{ animationDelay: `${d}ms` }} />
                   ))}
                 </div>
               </div>
@@ -382,7 +379,7 @@ export default function ChatWidget() {
                   <button
                     key={s}
                     onClick={() => send(s)}
-                    className="text-xs font-semibold text-[#1e2d3d] bg-white border border-[#F2AA25]/60 hover:bg-[#F2AA25]/10 px-3 py-1.5 rounded-full transition-colors"
+                    className="mbi-press h-9 text-sm font-medium text-mbi-navy bg-white border border-mbi-navy/25 hover:border-mbi-navy px-3.5 rounded-full transition-colors"
                   >
                     {s}
                   </button>
@@ -394,7 +391,7 @@ export default function ChatWidget() {
           {/* Input */}
           <form
             onSubmit={e => { e.preventDefault(); send(input); }}
-            className="flex items-end gap-2 px-3 py-2.5 bg-white border-t border-gray-100 flex-shrink-0"
+            className="flex items-end gap-2 px-3 py-2.5 bg-white border-t border-mbi-hairline-soft flex-shrink-0"
           >
             <textarea
               ref={inputRef}
@@ -404,13 +401,13 @@ export default function ChatWidget() {
               rows={1}
               maxLength={1000}
               placeholder="Ask Betty a question…"
-              className="flex-1 resize-none max-h-28 border border-gray-200 rounded-xl px-3 py-2 text-base lg:text-sm outline-none focus:border-[#F2AA25] transition-colors"
+              className="flex-1 resize-none max-h-28 border border-mbi-border-strong rounded-lg px-3 py-2 text-base lg:text-sm text-mbi-navy placeholder:text-mbi-slate outline-none focus:border-mbi-navy focus:ring-2 focus:ring-mbi-amber/40 transition-colors"
             />
             <button
               type="submit"
               disabled={sending || !input.trim()}
               aria-label="Send"
-              className="bg-[#1e2d3d] text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-[#2a3d52] disabled:opacity-40 transition-colors flex-shrink-0"
+              className="mbi-press bg-mbi-navy text-white w-10 h-10 rounded-lg flex items-center justify-center hover:bg-mbi-navy-hover disabled:opacity-40 transition-colors flex-shrink-0"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -446,12 +443,16 @@ export default function ChatWidget() {
           0%, 100% { box-shadow: 0 0 0 3px rgba(242, 170, 37, 0); }
           50%      { box-shadow: 0 0 0 3px rgba(242, 170, 37, 0.9), 0 0 18px 4px rgba(242, 170, 37, 0.5); }
         }
+        @keyframes chat-dot-fade { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+        @keyframes chat-dot { 0%, 100% { opacity: 0.35; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+        .chat-dot { animation: chat-dot 1s cubic-bezier(0.23, 1, 0.32, 1) infinite; }
         .chat-launcher { transform-origin: 50% 100%; }
         .chat-nudge { animation: chat-nudge 1.2s ease-in-out; will-change: transform; }
         .chat-nudge .chat-icon { animation: chat-wiggle 0.8s ease-in-out 0.1s; transform-origin: 50% 60%; }
         .chat-ring  { animation: chat-ring 1.2s ease-out; }
         @media (prefers-reduced-motion: reduce) {
           .chat-nudge, .chat-nudge .chat-icon { animation: none; }
+          .chat-dot { animation: chat-dot-fade 1.2s ease-in-out infinite; }
           .chat-ring { animation: chat-glow 1.3s ease-in-out; }
         }
       `}</style>

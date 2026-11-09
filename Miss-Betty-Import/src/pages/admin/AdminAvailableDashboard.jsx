@@ -37,25 +37,25 @@ export default function AdminAvailableDashboard() {
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
-        <h1 className="text-xl font-bold text-[#1e2d3d]">Available Goods Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy">Available Goods Dashboard</h1>
         <PeriodSwitcher periods={periods} selectedId={selectedId} activeId={activePeriod?.id} onChange={selectPeriod} loading={periodsLoading} />
       </div>
-      <p className="text-sm text-gray-400 mb-4">Available Goods sales only. Pre-order sales are on the Pre-order Dashboard.</p>
+      <p className="text-sm text-mbi-slate mb-4">Available Goods sales only. Pre-order sales are on the Pre-order Dashboard.</p>
 
       <SalesStatCards stats={stats} loading={loading} />
 
-      <div className="bg-white rounded-2xl p-5 shadow-sm mb-8">
-        <h2 className="text-sm font-bold text-[#1e2d3d] mb-3">Quick Links</h2>
+      <div className="bg-white rounded-mbi-card p-5 border border-mbi-hairline mb-8">
+        <h2 className="text-sm font-bold text-mbi-navy mb-3">Quick Links</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { label: "Upload a Product", to: "/admin/products", color: "bg-blue-500" },
-            { label: "View Available Orders", to: "/admin/available-orders", color: "bg-amber-500" },
-            { label: "View Invoices", to: "/admin/invoices", color: "bg-green-500" },
+            { label: "Upload a Product", to: "/admin/products" },
+            { label: "View Available Orders", to: "/admin/available-orders" },
+            { label: "View Invoices", to: "/admin/invoices" },
           ].map(link => (
             <a
               key={link.to}
               href={link.to}
-              className={`${link.color} text-white text-sm font-semibold px-4 py-3 rounded-xl hover:opacity-90 transition-opacity text-center block`}
+              className="mbi-press block text-center text-sm font-semibold px-4 py-3 rounded-lg bg-white text-mbi-navy border border-mbi-navy/25 hover:border-mbi-navy transition-colors"
             >
               {link.label}
             </a>

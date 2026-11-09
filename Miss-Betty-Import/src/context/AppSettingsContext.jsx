@@ -10,41 +10,56 @@ const AppSettingsContext = createContext({
   promoActive: false,
   promoMessage: "",
   savePromoAlert: async () => {},
+  setPageShowsNotice: () => {},
 });
 
-function AnnouncementModal({ visible, message }) {
-  const [dismissed, setDismissed] = useState(false);
+// Remembers, for this browser tab's visit, that a message was seen or dismissed.
+const seenKey = (kind, message) => `mbimport_notice_${kind}:${message}`;
+function wasSeen(kind, message) {
+  try { return sessionStorage.getItem(seenKey(kind, message)) === "1"; } catch { return false; }
+}
+function markSeen(kind, message) {
+  try { sessionStorage.setItem(seenKey(kind, message), "1"); } catch { /* storage unavailable */ }
+}
 
-  useEffect(() => { setDismissed(false); }, [message]);
+const CloseIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+);
+
+// Shown once per visit while pre-orders are closed and the admin has set an announcement.
+function AnnouncementModal({ visible, message }) {
+  const [dismissed, setDismissed] = useState(() => wasSeen("modal", message));
+
+  useEffect(() => { setDismissed(wasSeen("modal", message)); }, [message]);
 
   if (!visible || dismissed || !message) return null;
+  const close = () => { markSeen("modal", message); setDismissed(true); };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-      onClick={() => setDismissed(true)}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-mbi-navy/50" onClick={close}>
       <div
-        className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 relative"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="announcement-title"
+        className="bg-white rounded-mbi-card shadow-mbi-float max-w-sm w-full p-6 relative"
         onClick={e => e.stopPropagation()}
       >
         <button
-          onClick={() => setDismissed(true)}
-          className="absolute top-3 right-3 p-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-          aria-label="Dismiss"
+          type="button"
+          onClick={close}
+          className="mbi-press absolute top-3 right-3 grid place-items-center size-10 rounded-full text-mbi-slate hover:bg-mbi-surface-soft hover:text-mbi-navy"
+          aria-label="Close"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+          <CloseIcon />
         </button>
-        <div className="text-center px-2">
-          <span className="text-4xl mb-3 block">📢</span>
-          <h2 className="font-bold text-[#1e2d3d] text-lg mb-2">Notice</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">{message}</p>
-        </div>
+        <h2 id="announcement-title" className="pr-10 text-xl font-bold text-mbi-navy">A note from Miss Betty Import</h2>
+        <p className="mt-2 text-base leading-relaxed text-mbi-navy-body">{message}</p>
         <button
-          onClick={() => setDismissed(true)}
-          className="mt-5 w-full bg-[#F2AA25] text-white font-semibold py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+          type="button"
+          onClick={close}
+          className="mbi-press mt-5 w-full h-12 rounded-lg bg-mbi-amber font-semibold text-mbi-navy hover:bg-mbi-amber-press"
         >
           Got it
         </button>
@@ -53,28 +68,25 @@ function AnnouncementModal({ visible, message }) {
   );
 }
 
+// Site-wide strip for the same announcement. Pages that show it in their own notice band
+// (Shop, Home) switch this off through setPageShowsNotice.
 function AnnouncementBanner({ visible, message }) {
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => wasSeen("banner", message));
 
-  // Reset dismissed state whenever the message changes
-  useEffect(() => { setDismissed(false); }, [message]);
+  useEffect(() => { setDismissed(wasSeen("banner", message)); }, [message]);
 
   if (!visible || dismissed || !message) return null;
 
   return (
-    <div className="fixed top-12 left-0 right-0 z-40 bg-[#F2AA25] text-[#1e2d3d] px-4 py-2.5 flex items-center justify-between gap-4 shadow-md">
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <span className="flex-shrink-0 text-base">📢</span>
-        <p className="text-sm font-medium truncate">{message}</p>
-      </div>
+    <div role="status" className="fixed top-16 left-0 right-0 z-40 bg-mbi-amber-tint text-mbi-navy px-4 py-2 flex items-center justify-between gap-3 border-b border-mbi-hairline">
+      <p className="text-sm font-medium truncate">{message}</p>
       <button
-        onClick={() => setDismissed(true)}
-        className="flex-shrink-0 p-1 rounded-full hover:bg-black/10 transition-colors"
-        aria-label="Dismiss"
+        type="button"
+        onClick={() => { markSeen("banner", message); setDismissed(true); }}
+        className="mbi-press flex-shrink-0 grid place-items-center size-9 rounded-full hover:bg-mbi-navy/10"
+        aria-label="Dismiss announcement"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
+        <CloseIcon />
       </button>
     </div>
   );
@@ -86,6 +98,7 @@ export function AppSettingsProvider({ children }) {
   const [settingsLoading,     setSettingsLoading]     = useState(true);
   const [promoActive,         setPromoActive]         = useState(false);
   const [promoMessage,        setPromoMessage]        = useState("");
+  const [pageShowsNotice,     setPageShowsNotice]     = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -189,11 +202,11 @@ export function AppSettingsProvider({ children }) {
     <AppSettingsContext.Provider value={{
       ordersClosed, announcementMessage, settingsLoading,
       toggleOrdersClosed, updateAnnouncementMessage,
-      promoActive, promoMessage, savePromoAlert,
+      promoActive, promoMessage, savePromoAlert, setPageShowsNotice,
     }}>
       {children}
       <AnnouncementModal visible={ordersClosed && !!announcementMessage} message={announcementMessage} />
-      <AnnouncementBanner visible={ordersClosed && !!announcementMessage} message={announcementMessage} />
+      <AnnouncementBanner visible={ordersClosed && !!announcementMessage && !pageShowsNotice} message={announcementMessage} />
     </AppSettingsContext.Provider>
   );
 }

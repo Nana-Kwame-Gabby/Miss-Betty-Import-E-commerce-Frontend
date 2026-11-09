@@ -16,9 +16,9 @@ function getStatus(c) {
   const now = new Date();
   const start = new Date(c.start_at);
   const end = new Date(c.end_at);
-  if (now < start) return { label: "Scheduled", className: "bg-blue-100 text-blue-700" };
-  if (now >= end) return { label: "Expired", className: "bg-gray-100 text-gray-500" };
-  return { label: "Live", className: "bg-green-100 text-green-700" };
+  if (now < start) return { label: "Scheduled", className: "bg-mbi-preorder-tint text-mbi-navy" };
+  if (now >= end) return { label: "Expired", className: "bg-mbi-surface-soft text-mbi-slate" };
+  return { label: "Live", className: "bg-mbi-available-tint text-mbi-available" };
 }
 
 function ToggleSwitch({ active, onToggle, disabled }) {
@@ -27,7 +27,7 @@ function ToggleSwitch({ active, onToggle, disabled }) {
       onClick={onToggle}
       disabled={disabled}
       className={`relative inline-flex h-6 items-center rounded-full transition-colors focus:outline-none disabled:opacity-40 ${
-        active ? "bg-[#F2AA25]" : "bg-gray-300"
+        active ? "bg-mbi-amber" : "bg-mbi-border-strong"
       }`}
       style={{ width: "44px" }}
       aria-label="Toggle countdown active"
@@ -168,20 +168,20 @@ export default function AdminCountdownTimersPage() {
     setTogglingId(null);
   }
 
-  const inputClass = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#F2AA25] transition-colors";
-  const labelClass = "block font-semibold text-[#1e2d3d] mb-1.5 text-xs";
+  const inputClass = "w-full border border-mbi-border-strong rounded-lg px-3 py-2.5 text-base sm:text-sm text-mbi-navy bg-white outline-none focus:border-mbi-navy focus:ring-2 focus:ring-mbi-amber/40 transition-colors";
+  const labelClass = "block font-semibold text-mbi-navy mb-1.5 text-xs";
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Countdown Timers</h1>
-      <p className="text-sm text-gray-400 mb-6">
+      <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy mb-1">Countdown Timers</h1>
+      <p className="text-sm text-mbi-slate mb-6">
         Create promotional countdowns for Home and Shop. Only one countdown can be active at a time —
         activating one automatically deactivates any other.
       </p>
 
       {/* Create form */}
-      <div className="bg-white rounded-2xl shadow-sm p-5 mb-6">
-        <h2 className="text-sm font-bold text-[#1e2d3d] mb-3">Create Countdown</h2>
+      <div className="bg-white rounded-mbi-card border border-mbi-hairline p-5 mb-6">
+        <h2 className="text-sm font-bold text-mbi-navy mb-3">Create Countdown</h2>
 
         <div className="mb-3">
           <label className={labelClass}>Title</label>
@@ -215,10 +215,10 @@ export default function AdminCountdownTimersPage() {
         </div>
 
         {banner && (
-          <div className={`mb-4 px-4 py-2.5 rounded-xl text-sm font-medium ${
+          <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm font-medium ${
             banner.type === "success"
-              ? "bg-green-50 text-green-700 border border-green-100"
-              : "bg-red-50 text-red-600 border border-red-100"
+              ? "bg-mbi-available-tint text-mbi-available border border-mbi-available/30"
+              : "bg-mbi-error-tint text-mbi-error border border-mbi-error/30"
           }`}>
             {banner.text}
           </div>
@@ -227,51 +227,51 @@ export default function AdminCountdownTimersPage() {
         <button
           onClick={handleCreate}
           disabled={submitting}
-          className="bg-[#1e2d3d] text-white font-semibold text-sm px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+          className="mbi-press bg-mbi-navy text-white font-semibold text-sm px-5 py-2.5 rounded-lg hover:bg-mbi-navy-hover transition-colors disabled:opacity-40"
         >
           {submitting ? "Creating…" : "Create Countdown"}
         </button>
       </div>
 
       {/* List */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-bold text-[#1e2d3d]">All Countdowns</h2>
+      <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden">
+        <div className="px-5 py-4 border-b border-mbi-hairline-soft">
+          <h2 className="text-sm font-bold text-mbi-navy">All Countdowns</h2>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-7 h-7 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
           </div>
         ) : loadError ? (
-          <div className="text-center py-12 text-red-500 text-sm">{loadError}</div>
+          <div className="text-center py-12 text-mbi-error text-sm">{loadError}</div>
         ) : countdowns.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 text-sm">No countdowns created yet.</div>
+          <div className="text-center py-12 text-mbi-slate text-sm">No countdowns created yet.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Start</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">End</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Active</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
+                <tr className="border-b border-mbi-hairline-soft bg-mbi-surface-soft">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Title</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Start</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">End</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Active</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {countdowns.map(c => {
                   const status = getStatus(c);
                   return (
-                    <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-3 text-[#1e2d3d] font-semibold max-w-[10rem]">
+                    <tr key={c.id} className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft transition-colors">
+                      <td className="px-5 py-3 text-mbi-navy font-semibold max-w-[10rem]">
                         <p className="truncate" title={c.title}>{c.title}</p>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      <td className="px-4 py-3 text-mbi-slate whitespace-nowrap">
                         {new Date(c.start_at).toLocaleString("en-GH", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      <td className="px-4 py-3 text-mbi-slate whitespace-nowrap">
                         {new Date(c.end_at).toLocaleString("en-GH", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </td>
                       <td className="px-4 py-3">
@@ -288,10 +288,10 @@ export default function AdminCountdownTimersPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <button onClick={() => openEdit(c)} className="text-xs font-semibold text-[#F2AA25] hover:underline">
+                          <button onClick={() => openEdit(c)} className="text-xs font-semibold text-mbi-amber-ink hover:underline">
                             Edit
                           </button>
-                          <button onClick={() => handleDelete(c)} className="text-xs font-semibold text-red-500 hover:underline">
+                          <button onClick={() => handleDelete(c)} className="text-xs font-semibold text-mbi-error hover:underline">
                             Delete
                           </button>
                         </div>
@@ -309,8 +309,8 @@ export default function AdminCountdownTimersPage() {
       {editingCountdown && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setEditingCountdown(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5">
-            <h3 className="text-base font-bold text-[#1e2d3d] mb-4">Edit Countdown</h3>
+          <div className="relative bg-white rounded-mbi-card shadow-mbi-float w-full max-w-sm p-5">
+            <h3 className="text-base font-bold text-mbi-navy mb-4">Edit Countdown</h3>
 
             <div className="mb-3">
               <label className={labelClass}>Title</label>
@@ -343,20 +343,20 @@ export default function AdminCountdownTimersPage() {
             </div>
 
             {editError && (
-              <p className="text-xs text-red-500 font-medium mb-3">{editError}</p>
+              <p className="text-xs text-mbi-error font-medium mb-3">{editError}</p>
             )}
 
             <div className="flex gap-3">
               <button
                 onClick={() => setEditingCountdown(null)}
-                className="flex-1 border-2 border-gray-200 text-gray-600 font-semibold py-2 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                className="flex-1 border-2 border-mbi-hairline text-mbi-navy-body font-semibold py-2 rounded-lg hover:bg-mbi-surface-soft transition-colors text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleEditSave}
                 disabled={editSubmitting}
-                className="flex-1 bg-[#1e2d3d] text-white font-semibold py-2 rounded-xl hover:opacity-90 transition-opacity text-sm disabled:opacity-40"
+                className="mbi-press flex-1 bg-mbi-navy text-white font-semibold py-2 rounded-lg hover:bg-mbi-navy-hover transition-colors text-sm disabled:opacity-40"
               >
                 {editSubmitting ? "Saving…" : "Save"}
               </button>

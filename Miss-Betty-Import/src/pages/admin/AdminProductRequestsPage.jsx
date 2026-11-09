@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 const STATUS_STYLES = {
-  Pending:   "bg-yellow-100 text-yellow-700",
-  Reviewing: "bg-blue-100 text-blue-700",
-  Sourced:   "bg-green-100 text-green-700",
-  Declined:  "bg-red-100 text-red-700",
+  Pending:   "bg-mbi-amber-tint text-mbi-amber-ink",
+  Reviewing: "bg-mbi-preorder-tint text-mbi-navy",
+  Sourced:   "bg-mbi-available-tint text-mbi-available",
+  Declined:  "bg-mbi-error-tint text-mbi-error",
 };
 const STATUSES = ["Pending", "Reviewing", "Sourced", "Declined"];
 
@@ -16,7 +16,7 @@ function LightboxModal({ src, onClose }) {
   }, []);
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <img src={src} alt="Product request" className="max-w-full max-h-full rounded-xl object-contain" onClick={e => e.stopPropagation()} />
+      <img src={src} alt="Product request" className="max-w-full max-h-full rounded-lg object-contain" onClick={e => e.stopPropagation()} />
       <button onClick={onClose} className="absolute top-4 right-4 w-10 h-10 bg-white/20 text-white rounded-full flex items-center justify-center hover:bg-white/30 transition-colors text-xl">×</button>
     </div>
   );
@@ -26,8 +26,8 @@ function ImageThumb({ url }) {
   const [lightbox, setLightbox] = useState(false);
   if (!url) {
     return (
-      <div className="w-16 h-16 bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center flex-shrink-0">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <div className="w-16 h-16 bg-mbi-surface-soft rounded-lg border border-mbi-hairline flex items-center justify-center flex-shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5c6b7a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
         </svg>
       </div>
@@ -39,7 +39,7 @@ function ImageThumb({ url }) {
         src={url}
         alt="request"
         onClick={() => setLightbox(true)}
-        className="w-16 h-16 object-cover rounded-xl border border-gray-200 flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+        className="w-16 h-16 object-cover rounded-lg border border-mbi-hairline flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
       />
       {lightbox && <LightboxModal src={url} onClose={() => setLightbox(false)} />}
     </>
@@ -53,28 +53,28 @@ function ConfirmDeleteModal({ request, onConfirm, onCancel, deleting }) {
   }, []);
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onCancel}>
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl p-6" onClick={e => e.stopPropagation()}>
-        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="bg-white rounded-mbi-card w-full max-w-sm shadow-mbi-float p-6" onClick={e => e.stopPropagation()}>
+        <div className="w-12 h-12 bg-mbi-error-tint rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b42318" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
           </svg>
         </div>
-        <h3 className="text-base font-bold text-[#1e2d3d] text-center mb-1">Delete Request?</h3>
-        <p className="text-sm text-gray-500 text-center mb-5">
-          "<span className="font-semibold text-[#1e2d3d]">{request.product_name}</span>" will be permanently deleted.
+        <h3 className="text-base font-bold text-mbi-navy text-center mb-1">Delete Request?</h3>
+        <p className="text-sm text-mbi-slate text-center mb-5">
+          "<span className="font-semibold text-mbi-navy">{request.product_name}</span>" will be permanently deleted.
         </p>
         <div className="flex gap-3">
           <button
             onClick={onCancel}
             disabled={deleting}
-            className="flex-1 border border-gray-300 text-gray-600 font-semibold py-2.5 rounded-2xl text-sm hover:border-gray-400 transition-colors disabled:opacity-40"
+            className="flex-1 border border-mbi-hairline text-mbi-navy-body font-semibold py-2.5 rounded-mbi-card text-sm hover:border-mbi-navy transition-colors disabled:opacity-40"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={deleting}
-            className="flex-1 bg-red-500 text-white font-bold py-2.5 rounded-2xl text-sm hover:bg-red-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            className="flex-1 bg-mbi-error text-white font-bold py-2.5 rounded-mbi-card text-sm hover:bg-mbi-error/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {deleting ? (
               <>
@@ -105,12 +105,12 @@ function EmailStatus({ email }) {
   if (!email) return null;
   const fmt = (d) => new Date(d).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   if (email.status === "sent") {
-    return <p className="text-[11px] text-green-600 mt-1 whitespace-nowrap" title="Customer was emailed">✉ Emailed {fmt(email.sent_at)}</p>;
+    return <p className="text-xs text-mbi-available mt-1 whitespace-nowrap" title="Customer was emailed">✉ Emailed {fmt(email.sent_at)}</p>;
   }
   if (email.status === "failed") {
-    return <p className="text-[11px] text-red-500 mt-1 whitespace-nowrap" title={email.last_error ?? ""}>✉ Email failed · see Emails</p>;
+    return <p className="text-xs text-mbi-error mt-1 whitespace-nowrap" title={email.last_error ?? ""}>✉ Email failed · see Emails</p>;
   }
-  return <p className="text-[11px] text-gray-400 mt-1 whitespace-nowrap">✉ Email sending…</p>;
+  return <p className="text-xs text-mbi-slate mt-1 whitespace-nowrap">✉ Email sending…</p>;
 }
 
 // Shown when a request is set to "Sourced": optionally link the uploaded product so the
@@ -137,50 +137,50 @@ function SourcedDialog({ request, alreadyEmailed, onConfirm, onCancel, saving })
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onCancel}>
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl p-5 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <h3 className="text-base font-bold text-[#1e2d3d] mb-1">Mark as Sourced</h3>
-        <p className="text-sm text-gray-500 mb-3">
-          “<span className="font-semibold text-[#1e2d3d]">{request.product_name}</span>” requested by {request.customers?.customer_name ?? "a customer"}.
+      <div className="bg-white rounded-mbi-card w-full max-w-md shadow-mbi-float p-5 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <h3 className="text-base font-bold text-mbi-navy mb-1">Mark as Sourced</h3>
+        <p className="text-sm text-mbi-slate mb-3">
+          “<span className="font-semibold text-mbi-navy">{request.product_name}</span>” requested by {request.customers?.customer_name ?? "a customer"}.
         </p>
         {alreadyEmailed ? (
-          <p className="text-xs bg-gray-50 text-gray-500 rounded-xl px-3 py-2 mb-3">This customer was already notified, so no new email will be sent.</p>
+          <p className="text-xs bg-mbi-surface-soft text-mbi-slate rounded-lg px-3 py-2 mb-3">This customer was already notified, so no new email will be sent.</p>
         ) : (
-          <p className="text-xs bg-green-50 text-green-700 rounded-xl px-3 py-2 mb-3">The customer will be emailed that their product has been sourced.</p>
+          <p className="text-xs bg-mbi-available-tint text-mbi-available rounded-lg px-3 py-2 mb-3">The customer will be emailed that their product has been sourced.</p>
         )}
 
-        <label className="text-xs font-semibold text-gray-500 mb-1">Link the uploaded product (optional)</label>
+        <label className="text-xs font-semibold text-mbi-slate mb-1">Link the uploaded product (optional)</label>
         <input
           value={query}
           onChange={e => { setQuery(e.target.value); setPicked(null); }}
           placeholder="Search products…"
-          className="text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#F2AA25] mb-2"
+          className="text-sm border border-mbi-hairline rounded-lg px-3 py-2 outline-none focus:border-mbi-navy mb-2"
         />
         <div className="overflow-y-auto min-h-0 flex-1 -mx-1 px-1 mb-3">
           {matches.map(p => (
             <button
               key={p.product_id}
               onClick={() => setPicked(p)}
-              className={`w-full flex items-center gap-3 text-left p-2 rounded-xl transition-colors ${picked?.product_id === p.product_id ? "bg-[#F2AA25]/15 ring-1 ring-[#F2AA25]" : "hover:bg-gray-50"}`}
+              className={`mbi-press w-full flex items-center gap-3 text-left p-2 rounded-lg transition-colors ${picked?.product_id === p.product_id ? "bg-mbi-amber/15 ring-1 ring-mbi-navy" : "hover:bg-mbi-surface-soft"}`}
             >
               {p.product_image_url
                 ? <img src={p.product_image_url} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                : <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0" />}
-              <span className="text-sm text-[#1e2d3d] line-clamp-2">{p.product_name}</span>
+                : <div className="w-10 h-10 rounded-lg bg-mbi-surface-soft flex-shrink-0" />}
+              <span className="text-sm text-mbi-navy line-clamp-2">{p.product_name}</span>
             </button>
           ))}
-          {products.length > 0 && matches.length === 0 && <p className="text-xs text-gray-400 text-center py-3">No matching products</p>}
+          {products.length > 0 && matches.length === 0 && <p className="text-xs text-mbi-slate text-center py-3">No matching products</p>}
         </div>
-        <p className="text-[11px] text-gray-400 mb-3">
-          {picked ? <>The email will link to <strong className="text-[#1e2d3d]">{picked.product_name}</strong>.</> : "No product picked: the email will link to the shop."}
+        <p className="text-xs text-mbi-slate mb-3">
+          {picked ? <>The email will link to <strong className="text-mbi-navy">{picked.product_name}</strong>.</> : "No product picked: the email will link to the shop."}
         </p>
 
         <div className="flex gap-3">
           <button onClick={onCancel} disabled={saving}
-            className="flex-1 border border-gray-300 text-gray-600 font-semibold py-2.5 rounded-2xl text-sm hover:border-gray-400 transition-colors disabled:opacity-40">
+            className="flex-1 border border-mbi-hairline text-mbi-navy-body font-semibold py-2.5 rounded-mbi-card text-sm hover:border-mbi-navy transition-colors disabled:opacity-40">
             Cancel
           </button>
           <button onClick={() => onConfirm(picked?.product_id ?? null)} disabled={saving}
-            className="flex-1 bg-green-600 text-white font-bold py-2.5 rounded-2xl text-sm hover:bg-green-700 transition-colors disabled:opacity-60">
+            className="flex-1 bg-mbi-available text-white font-bold py-2.5 rounded-mbi-card text-sm hover:bg-mbi-available/90 transition-colors disabled:opacity-60">
             {saving ? "Saving…" : "Mark as Sourced"}
           </button>
         </div>
@@ -283,7 +283,7 @@ export default function AdminProductRequestsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -292,8 +292,8 @@ export default function AdminProductRequestsPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
-          <h1 className="text-xl font-bold text-[#1e2d3d]">Product Requests</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{requests.length} request{requests.length !== 1 ? "s" : ""} submitted</p>
+          <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy">Product Requests</h1>
+          <p className="text-sm text-mbi-slate mt-0.5">{requests.length} request{requests.length !== 1 ? "s" : ""} submitted</p>
         </div>
         {/* Search */}
         <div className="relative">
@@ -302,66 +302,66 @@ export default function AdminProductRequestsPage() {
             placeholder="Search by product name…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#F2AA25] w-64"
+            className="pl-9 pr-4 py-2 text-sm border border-mbi-hairline rounded-lg outline-none focus:border-mbi-navy w-64"
           />
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-mbi-slate" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           {search && (
-            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">×</button>
+            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-mbi-slate hover:text-mbi-navy-body">×</button>
           )}
         </div>
       </div>
 
       {statusError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl px-4 py-3 mb-4">{statusError}</div>
+        <div className="bg-mbi-error-tint border border-mbi-error/30 text-mbi-error text-sm rounded-mbi-card px-4 py-3 mb-4">{statusError}</div>
       )}
 
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-          <p className="text-gray-400 font-medium">{search ? "No requests match your search." : "No product requests yet."}</p>
+        <div className="bg-white rounded-mbi-card border border-mbi-hairline p-12 text-center">
+          <p className="text-mbi-slate font-medium">{search ? "No requests match your search." : "No product requests yet."}</p>
         </div>
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden sm:block bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="hidden sm:block bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-100">
+              <thead className="bg-mbi-surface-soft border-b border-mbi-hairline-soft">
                 <tr>
                   {["Image", "Product Name", "Details", "Requested By", "Date", "Status", ""].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((req, i) => (
-                  <tr key={req.id} className={`border-b border-gray-50 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
+                  <tr key={req.id} className={`border-b border-mbi-hairline-soft ${i % 2 === 0 ? "bg-white" : "bg-mbi-surface-soft/50"}`}>
                     <td className="px-4 py-3">
                       <ImageThumb url={req.image_url} />
                     </td>
-                    <td className="px-4 py-3 font-semibold text-[#1e2d3d] max-w-[160px]">
+                    <td className="px-4 py-3 font-semibold text-mbi-navy max-w-[160px]">
                       <p className="truncate">{req.product_name}</p>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 max-w-[200px]">
+                    <td className="px-4 py-3 text-mbi-slate max-w-[200px]">
                       {req.details ? (
                         <p className="line-clamp-2 text-xs">{req.details}</p>
                       ) : (
-                        <span className="text-gray-300 text-xs italic">—</span>
+                        <span className="text-mbi-slate text-xs italic">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">
+                    <td className="px-4 py-3 text-mbi-navy-body whitespace-nowrap text-xs">
                       {req.customers?.customer_name ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">
+                    <td className="px-4 py-3 text-mbi-slate whitespace-nowrap text-xs">
                       {new Date(req.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                       <br />
-                      <span className="text-gray-300">{new Date(req.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span className="text-mbi-slate">{new Date(req.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</span>
                     </td>
                     <td className="px-4 py-3">
                       <select
                         value={req.status}
                         onChange={e => handleStatusChange(req.id, e.target.value)}
-                        className={`text-xs font-semibold px-2.5 py-1.5 rounded-xl border-0 outline-none cursor-pointer ${STATUS_STYLES[req.status] ?? "bg-gray-100 text-gray-600"}`}
+                        className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border-0 outline-none cursor-pointer ${STATUS_STYLES[req.status] ?? "bg-mbi-surface-soft text-mbi-navy-body"}`}
                       >
                         {STATUSES.map(s => (
                           <option key={s} value={s}>{s}</option>
@@ -372,7 +372,7 @@ export default function AdminProductRequestsPage() {
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setConfirmTarget(req)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                        className="p-2 text-mbi-slate hover:text-mbi-error hover:bg-mbi-error-tint rounded-lg transition-colors"
                         title="Delete"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -389,25 +389,25 @@ export default function AdminProductRequestsPage() {
           {/* Mobile cards */}
           <div className="sm:hidden flex flex-col gap-3">
             {filtered.map(req => (
-              <div key={req.id} className="bg-white rounded-2xl shadow-sm p-4">
+              <div key={req.id} className="bg-white rounded-mbi-card border border-mbi-hairline p-4">
                 <div className="flex gap-3 mb-3">
                   <ImageThumb url={req.image_url} />
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[#1e2d3d] text-sm truncate">{req.product_name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{req.customers?.customer_name ?? "—"}</p>
-                    <p className="text-xs text-gray-300 mt-0.5">
+                    <p className="font-bold text-mbi-navy text-sm truncate">{req.product_name}</p>
+                    <p className="text-xs text-mbi-slate mt-0.5">{req.customers?.customer_name ?? "—"}</p>
+                    <p className="text-xs text-mbi-slate mt-0.5">
                       {new Date(req.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                     </p>
                   </div>
                 </div>
                 {req.details && (
-                  <p className="text-xs text-gray-500 mb-3 line-clamp-3">{req.details}</p>
+                  <p className="text-xs text-mbi-slate mb-3 line-clamp-3">{req.details}</p>
                 )}
-                <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+                <div className="flex items-center justify-between border-t border-mbi-hairline-soft pt-3">
                   <select
                     value={req.status}
                     onChange={e => handleStatusChange(req.id, e.target.value)}
-                    className={`text-xs font-semibold px-2.5 py-1.5 rounded-xl border-0 outline-none cursor-pointer ${STATUS_STYLES[req.status] ?? "bg-gray-100 text-gray-600"}`}
+                    className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border-0 outline-none cursor-pointer ${STATUS_STYLES[req.status] ?? "bg-mbi-surface-soft text-mbi-navy-body"}`}
                   >
                     {STATUSES.map(s => (
                       <option key={s} value={s}>{s}</option>
@@ -416,7 +416,7 @@ export default function AdminProductRequestsPage() {
                   <EmailStatus email={emails[req.id]} />
                   <button
                     onClick={() => setConfirmTarget(req)}
-                    className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 font-semibold px-3 py-1.5 rounded-xl hover:bg-red-50 transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-mbi-error hover:text-mbi-error font-semibold px-3 py-1.5 rounded-lg hover:bg-mbi-error-tint transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>

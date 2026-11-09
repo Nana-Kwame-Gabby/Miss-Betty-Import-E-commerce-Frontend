@@ -91,8 +91,8 @@ export default function AuthCallbackPage() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-10 h-10 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen flex items-center justify-center bg-mbi-surface-soft">
+      <div className="w-10 h-10 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }

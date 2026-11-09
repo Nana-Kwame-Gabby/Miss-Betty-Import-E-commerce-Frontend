@@ -98,20 +98,20 @@ function VariantImagesEditor({ sizes, colours, value, onChange }) {
     const v   = value[key];
     const src = typeof v === "string" ? v : v?.preview;
     return (
-      <div key={key} className="border border-gray-200 rounded-xl p-2 flex flex-col items-center gap-1.5 min-w-0">
-        <span className="text-[11px] font-semibold text-[#1e2d3d] truncate max-w-full" title={label}>{label}</span>
+      <div key={key} className="border border-mbi-hairline rounded-lg p-2 flex flex-col items-center gap-1.5 min-w-0">
+        <span className="text-xs font-semibold text-mbi-navy truncate max-w-full" title={label}>{label}</span>
         {src ? (
           <div className="relative">
-            <img src={src} alt={label} className="w-16 h-16 object-cover rounded-lg border border-gray-200" />
+            <img src={src} alt={label} className="w-16 h-16 object-cover rounded-lg border border-mbi-hairline" />
             <button
               type="button"
               onClick={() => setImage(key, null)}
               title="Remove image"
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-mbi-error text-white rounded-full text-xs flex items-center justify-center hover:bg-mbi-error/90 transition-colors"
             >×</button>
           </div>
         ) : (
-          <div className="w-16 h-16 rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-gray-300 text-[10px]">
+          <div className="w-16 h-16 rounded-lg border border-dashed border-mbi-hairline bg-mbi-surface-soft flex items-center justify-center text-mbi-slate text-xs">
             No image
           </div>
         )}
@@ -126,7 +126,7 @@ function VariantImagesEditor({ sizes, colours, value, onChange }) {
               e.target.value = "";
             }}
           />
-          <span className="block bg-gray-100 hover:bg-gray-200 text-[#1e2d3d] font-semibold text-[11px] px-2.5 py-1 rounded-lg transition-colors">
+          <span className="block bg-mbi-surface-soft hover:bg-mbi-surface-strong text-mbi-navy font-semibold text-xs px-2.5 py-1 rounded-lg transition-colors">
             {src ? "Replace" : "Choose"}
           </span>
         </label>
@@ -135,16 +135,16 @@ function VariantImagesEditor({ sizes, colours, value, onChange }) {
   }
 
   const gridClass = "grid grid-cols-2 sm:grid-cols-4 gap-2";
-  const groupLabel = "text-xs font-semibold text-gray-500 mb-1.5";
+  const groupLabel = "text-xs font-semibold text-mbi-slate mb-1.5";
   const combos = sizes.flatMap(size => colours.map(colour => ({ size, colour })));
   const comboCount = combos.filter(({ size, colour }) => value[`combo:${size}|${colour}`]).length;
 
   return (
     <div className="sm:col-span-2">
-      <p className="text-xs font-bold text-[#1e2d3d] mb-1 uppercase tracking-wide">
-        Variant Images <span className="text-gray-400 font-normal normal-case">(optional)</span>
+      <p className="text-xs font-bold text-mbi-navy mb-1 uppercase tracking-wide">
+        Variant Images <span className="text-mbi-slate font-normal normal-case">(optional)</span>
       </p>
-      <p className="text-xs text-gray-400 mb-3">
+      <p className="text-xs text-mbi-slate mb-3">
         Customers see the most specific image available: colour + size → colour → size → main image.
       </p>
       <div className="space-y-3">
@@ -165,7 +165,7 @@ function VariantImagesEditor({ sizes, colours, value, onChange }) {
             <button
               type="button"
               onClick={() => setShowCombos(s => !s)}
-              className="text-xs font-semibold text-[#F2AA25] hover:text-amber-600 transition-colors"
+              className="text-xs font-semibold text-mbi-amber-ink hover:text-mbi-amber-ink transition-colors"
             >
               {showCombos ? "Hide" : "Show"} {combos.length} colour + size combinations
               {comboCount > 0 && ` (${comboCount} with images)`}
@@ -614,8 +614,8 @@ export default function AdminProductsPage() {
     setEditSubmitting(false);
   }
 
-  const inputClass = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#F2AA25]";
-  const labelClass = "block text-xs font-semibold text-[#1e2d3d] mb-1";
+  const inputClass = "w-full border border-mbi-border-strong rounded-lg px-3 py-2 text-base sm:text-sm text-mbi-navy bg-white outline-none focus:border-mbi-navy focus:ring-2 focus:ring-mbi-amber/40 transition-colors";
+  const labelClass = "block text-xs font-semibold text-mbi-navy mb-1";
 
   const filteredProducts = products.filter(p => {
     const matchesSearch   = p.product_name.toLowerCase().includes(productSearch.toLowerCase());
@@ -625,14 +625,14 @@ export default function AdminProductsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Products</h1>
-      <p className="text-sm text-gray-400 mb-6">Upload and manage store products</p>
+      <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy mb-1">Products</h1>
+      <p className="text-sm text-mbi-slate mb-6">Upload and manage store products</p>
 
       <MediaStoragePanel onChanged={loadAll} />
 
       {/* ── Upload Form ── */}
-      <div className="bg-white rounded-2xl shadow-sm p-5 mb-8">
-        <h2 className="text-sm font-bold text-[#1e2d3d] mb-4">Upload New Product</h2>
+      <div className="bg-white rounded-mbi-card border border-mbi-hairline p-5 mb-8">
+        <h2 className="text-sm font-bold text-mbi-navy mb-4">Upload New Product</h2>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
@@ -672,30 +672,30 @@ export default function AdminProductsPage() {
           </div>
 
           <div>
-            <label className={labelClass}>RMB Price (¥) <span className="text-gray-400 font-normal">(internal only, optional)</span></label>
+            <label className={labelClass}>RMB Price (¥) <span className="text-mbi-slate font-normal">(internal only, optional)</span></label>
             <input name="rmb_price" type="number" min="0" step="0.01" value={form.rmb_price} onChange={handleChange} placeholder="0.00" className={inputClass} />
           </div>
 
           {!useSizePricing && (form.cost_price || form.profit || form.misc_amount) && (
-            <div className="sm:col-span-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-4 py-2.5">
+            <div className="sm:col-span-2 text-sm text-mbi-slate bg-mbi-surface-soft rounded-lg px-4 py-2.5">
               Selling Price:{" "}
-              <span className="font-bold text-[#1e2d3d]">
+              <span className="font-bold text-mbi-navy">
                 GHS {(Number(form.cost_price || 0) + Number(form.profit || 0) + Number(form.misc_amount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               {form.discount_price && Number(form.discount_price) > 0 && Number(form.discount_price) <= Number(form.profit || 0) && (
-                <span className="ml-2 text-green-700 font-bold">
+                <span className="ml-2 text-mbi-available font-bold">
                   → Discounted: GHS {(Number(form.cost_price || 0) + Number(form.profit || 0) + Number(form.misc_amount || 0) - Number(form.discount_price)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               )}
               {form.discount_price && Number(form.discount_price) > Number(form.profit || 0) && (
-                <span className="ml-2 text-red-600 font-semibold text-xs">Discount exceeds profit — reduce the amount.</span>
+                <span className="ml-2 text-mbi-error font-semibold text-xs">Discount exceeds profit — reduce the amount.</span>
               )}
             </div>
           )}
 
           {!useSizePricing && (
             <div>
-              <label className={labelClass}>Discount Amount (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+              <label className={labelClass}>Discount Amount (GHS) <span className="text-mbi-slate font-normal">(optional)</span></label>
               <input
                 name="discount_price"
                 type="number"
@@ -706,7 +706,7 @@ export default function AdminProductsPage() {
                 placeholder="Amount to deduct from profit"
                 className={inputClass}
               />
-              <p className="text-[10px] text-gray-400 mt-1">Deducted from profit only. Discount ≤ profit to apply.</p>
+              <p className="text-xs text-mbi-slate mt-1">Deducted from profit only. Discount ≤ profit to apply.</p>
             </div>
           )}
 
@@ -727,16 +727,16 @@ export default function AdminProductsPage() {
                 type="checkbox"
                 checked={useSizePricing}
                 onChange={e => setUseSizePricing(e.target.checked)}
-                className="w-4 h-4 accent-[#F2AA25]"
+                className="w-4 h-4 accent-mbi-navy"
               />
-              <span className="text-xs font-semibold text-[#1e2d3d]">
-                Enable size-based pricing <span className="text-gray-400 font-normal">(different price per size)</span>
+              <span className="text-xs font-semibold text-mbi-navy">
+                Enable size-based pricing <span className="text-mbi-slate font-normal">(different price per size)</span>
               </span>
             </label>
 
             {useSizePricing ? (
               <div className="space-y-2">
-                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
+                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-mbi-slate px-1">
                   <span>Size Name</span>
                   <span>Cost Price (GHS)</span>
                   <span>Profit (GHS)</span>
@@ -795,12 +795,12 @@ export default function AdminProductsPage() {
                         placeholder="0.00"
                         className={inputClass}
                       />
-                      <div className="border border-gray-100 bg-gray-50 rounded-xl px-3 py-2 text-xs font-semibold text-[#1e2d3d]">
+                      <div className="border border-mbi-hairline-soft bg-mbi-surface-soft rounded-lg px-3 py-2 text-xs font-semibold text-mbi-navy">
                         {row.cost_price !== "" || row.profit !== "" ? (
                           validSizeDiscount ? (
                             <>
-                              <span className="line-through text-gray-400">GHS {selling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                              {" "}<span className="text-green-700">GHS {discountedSelling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              <span className="line-through text-mbi-slate">GHS {selling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              {" "}<span className="text-mbi-available">GHS {discountedSelling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </>
                           ) : `GHS ${selling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                         ) : "—"}
@@ -812,13 +812,13 @@ export default function AdminProductsPage() {
                         value={row.discount_price}
                         onChange={e => setSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, discount_price: e.target.value } : r))}
                         placeholder="0.00"
-                        className={`${inputClass} ${row.discount_price && Number(row.discount_price) > 0 && Number(row.discount_price) > Number(row.profit || 0) ? "border-red-400 text-red-600" : ""}`}
+                        className={`${inputClass} ${row.discount_price && Number(row.discount_price) > 0 && Number(row.discount_price) > Number(row.profit || 0) ? "border-mbi-error text-mbi-error" : ""}`}
                       />
                       <button
                         type="button"
                         onClick={() => setSizePricingRows(prev => prev.filter((_, j) => j !== i))}
                         disabled={sizePricingRows.length === 1}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30 transition-colors"
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-mbi-error hover:text-mbi-error hover:bg-mbi-error-tint disabled:opacity-30 transition-colors"
                       >×</button>
                     </div>
                   );
@@ -826,12 +826,12 @@ export default function AdminProductsPage() {
                 <button
                   type="button"
                   onClick={() => setSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }])}
-                  className="text-xs font-semibold text-[#F2AA25] hover:text-amber-600 transition-colors mt-1"
+                  className="text-xs font-semibold text-mbi-amber-ink hover:text-mbi-amber-ink transition-colors mt-1"
                 >+ Add Size</button>
                 {sizePricingRows.some(r => r.size.trim() && r.cost_price !== "" && r.profit !== "") && (
-                  <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2">
+                  <p className="text-xs text-mbi-slate bg-mbi-surface-soft rounded-lg px-3 py-2">
                     Prices shown to customers:{" "}
-                    <span className="font-semibold text-[#1e2d3d]">
+                    <span className="font-semibold text-mbi-navy">
                       From GHS {Math.min(...sizePricingRows.filter(r => r.cost_price !== "" && r.profit !== "").map(r => Number(r.cost_price) + Number(r.profit) + Number(r.misc_amount || 0))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </p>
@@ -843,19 +843,19 @@ export default function AdminProductsPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Colours <span className="text-gray-400 font-normal">(comma-separated, optional)</span></label>
+            <label className={labelClass}>Colours <span className="text-mbi-slate font-normal">(comma-separated, optional)</span></label>
             <input name="colours" value={form.colours} onChange={handleChange} placeholder="Red,Blue,White" maxLength={200} className={inputClass} />
           </div>
 
           <div className="sm:col-span-2">
             <label className={labelClass}>
-              Stock Quantity <span className="text-gray-400 font-normal">(optional — leave blank to not track stock for this product)</span>
+              Stock Quantity <span className="text-mbi-slate font-normal">(optional — leave blank to not track stock for this product)</span>
             </label>
             <div className="space-y-1.5">
               {stockRows.map((row, i) => (
                 <div key={i} className="flex items-center gap-2">
                   {(row.size || row.colour) && (
-                    <span className="text-xs font-semibold text-gray-500 w-32 flex-shrink-0 truncate">
+                    <span className="text-xs font-semibold text-mbi-slate w-32 flex-shrink-0 truncate">
                       {[row.size, row.colour].filter(Boolean).join(" — ")}
                     </span>
                   )}
@@ -886,7 +886,7 @@ export default function AdminProductsPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Minimum Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+            <label className={labelClass}>Minimum Shipping Fee (GHS) <span className="text-mbi-slate font-normal">(optional)</span></label>
             <input
               name="estimated_shipping_fee_min"
               type="number"
@@ -900,7 +900,7 @@ export default function AdminProductsPage() {
           </div>
 
           <div>
-            <label className={labelClass}>Maximum Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+            <label className={labelClass}>Maximum Shipping Fee (GHS) <span className="text-mbi-slate font-normal">(optional)</span></label>
             <input
               name="estimated_shipping_fee_max"
               type="number"
@@ -913,14 +913,14 @@ export default function AdminProductsPage() {
             />
           </div>
 
-          {error   && <p className="sm:col-span-2 text-red-500 text-xs bg-red-50 border border-red-100 rounded-xl px-3 py-2">{error}</p>}
-          {success && <p className="sm:col-span-2 text-green-600 text-xs bg-green-50 border border-green-100 rounded-xl px-3 py-2">{success}</p>}
+          {error   && <p className="sm:col-span-2 text-mbi-error text-xs bg-mbi-error-tint border border-mbi-error/30 rounded-lg px-3 py-2">{error}</p>}
+          {success && <p className="sm:col-span-2 text-mbi-available text-xs bg-mbi-available-tint border border-mbi-available/30 rounded-lg px-3 py-2">{success}</p>}
 
           <div className="sm:col-span-2">
             <button
               type="submit"
               disabled={submitting}
-              className="bg-[#F2AA25] text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2"
+              className="mbi-press bg-mbi-amber text-mbi-navy font-bold text-sm px-6 py-2.5 rounded-lg hover:bg-mbi-amber-press transition-opacity disabled:opacity-60 flex items-center gap-2"
             >
               {submitting ? <><Spinner /> {uploadProgress != null ? `Uploading media ${Math.round(uploadProgress * 100)}%…` : "Saving…"}</> : "Upload Product"}
             </button>
@@ -929,15 +929,15 @@ export default function AdminProductsPage() {
       </div>
 
       {/* ── Products Table ── */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
-          <h2 className="text-sm font-bold text-[#1e2d3d] flex-1 whitespace-nowrap">
+      <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden">
+        <div className="px-5 py-4 border-b border-mbi-hairline-soft flex flex-wrap items-center gap-3">
+          <h2 className="text-sm font-bold text-mbi-navy flex-1 whitespace-nowrap">
             Products ({filteredProducts.length}{filteredProducts.length !== products.length ? ` of ${products.length}` : ""})
           </h2>
 
           {/* Search */}
           <div className="relative">
-            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-mbi-slate" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input
@@ -945,12 +945,12 @@ export default function AdminProductsPage() {
               placeholder="Search by name…"
               value={productSearch}
               onChange={e => setProductSearch(e.target.value)}
-              className="border border-gray-200 rounded-xl pl-8 pr-8 py-2 text-xs outline-none focus:border-[#F2AA25] transition-colors w-44"
+              className="border border-mbi-hairline rounded-lg pl-8 pr-8 py-2 text-xs outline-none focus:border-mbi-navy transition-colors w-44"
             />
             {productSearch && (
               <button
                 onClick={() => setProductSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-mbi-slate hover:text-mbi-navy-body"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
@@ -961,7 +961,7 @@ export default function AdminProductsPage() {
           <select
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#F2AA25] transition-colors"
+            className="border border-mbi-hairline rounded-lg px-3 py-2 text-xs outline-none focus:border-mbi-navy transition-colors"
           >
             <option value="">All Categories</option>
             {categories.map(c => (
@@ -973,7 +973,7 @@ export default function AdminProductsPage() {
           {(productSearch || categoryFilter) && (
             <button
               onClick={() => { setProductSearch(""); setCategoryFilter(""); }}
-              className="text-xs text-gray-400 hover:text-gray-700 font-semibold transition-colors"
+              className="text-xs text-mbi-slate hover:text-mbi-navy-body font-semibold transition-colors"
             >
               Clear
             </button>
@@ -982,54 +982,54 @@ export default function AdminProductsPage() {
 
         {loadingProducts ? (
           <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-12 text-gray-400 text-sm">
+          <div className="text-center py-12 text-mbi-slate text-sm">
             {products.length === 0 ? "No products yet. Upload one above." : "No products match your search."}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Product</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Category</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Final Price</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Cost Price</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Profit</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Misc. Amount</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">RMB Price</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden lg:table-cell">Stock</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Status</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Media</th>
+                <tr className="border-b border-mbi-hairline-soft bg-mbi-surface-soft">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Product</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden sm:table-cell">Category</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Final Price</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden lg:table-cell">Cost Price</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden lg:table-cell">Profit</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden lg:table-cell">Misc. Amount</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden lg:table-cell">RMB Price</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden lg:table-cell">Stock</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden md:table-cell">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden md:table-cell">Media</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody>
                 {filteredProducts.map(p => (
-                  <tr key={p.product_id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                  <tr key={p.product_id} className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft transition-colors">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
                         {p.product_image_url ? (
                           <img src={p.product_image_url} alt={p.product_name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
                         ) : (
-                          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                          <div className="w-10 h-10 rounded-lg bg-mbi-surface-soft flex items-center justify-center flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5c6b7a" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                           </div>
                         )}
-                        <span className="font-semibold text-[#1e2d3d] line-clamp-1">{p.product_name}</span>
+                        <span className="font-semibold text-mbi-navy line-clamp-1">{p.product_name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{p.category?.category_name ?? "—"}</td>
-                    <td className="px-4 py-3 font-semibold text-[#F2AA25]">GHS {Number(p.unit_price).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">GHS {Number(p.cost_price ?? 0).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">GHS {Number(p.profit ?? 0).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">GHS {Number(p.misc_amount ?? 0).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">
+                    <td className="px-4 py-3 text-mbi-slate hidden sm:table-cell">{p.category?.category_name ?? "—"}</td>
+                    <td className="px-4 py-3 font-semibold text-mbi-amber-ink">GHS {Number(p.unit_price).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-mbi-slate hidden lg:table-cell">GHS {Number(p.cost_price ?? 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-mbi-slate hidden lg:table-cell">GHS {Number(p.profit ?? 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-mbi-slate hidden lg:table-cell">GHS {Number(p.misc_amount ?? 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-mbi-slate hidden lg:table-cell">
                       {p.rmb_price != null ? `¥${Number(p.rmb_price).toLocaleString()}` : (p.size_pricing?.length ? "Per size" : "—")}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">
+                    <td className="px-4 py-3 text-mbi-slate hidden lg:table-cell">
                       {(p.product_variant_stock ?? []).length > 0
                         ? p.product_variant_stock.reduce((s, r) => s + r.stock_quantity, 0)
                         : "—"}
@@ -1037,32 +1037,32 @@ export default function AdminProductsPage() {
                     <td className="px-4 py-3 hidden md:table-cell">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         p.product_status?.status_name === "Available"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-amber-100 text-amber-700"
+                          ? "bg-mbi-available-tint text-mbi-available"
+                          : "bg-mbi-amber-tint text-mbi-amber-ink"
                       }`}>
                         {p.product_status?.status_name ?? "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
                       <div className="flex items-center gap-1">
-                        {p.product_image_url   && <span title="Image 1" className="text-xs bg-blue-50 text-blue-600 font-semibold px-1.5 py-0.5 rounded">IMG1</span>}
-                        {p.product_image_url_2 && <span title="Image 2" className="text-xs bg-blue-50 text-blue-600 font-semibold px-1.5 py-0.5 rounded">IMG2</span>}
-                        {(p.product_videos?.length ?? 0) > 0 && <span title="Uploaded videos" className="text-xs bg-purple-50 text-purple-600 font-semibold px-1.5 py-0.5 rounded">VID{p.product_videos.length > 1 ? ` ×${p.product_videos.length}` : ""}</span>}
-                        {p.product_video_url   && <span title="TikTok link" className="text-xs bg-gray-100 text-gray-600 font-semibold px-1.5 py-0.5 rounded">TT</span>}
-                        {(p.extra_image_urls?.length ?? 0) > 0 && <span title="More images" className="text-xs bg-blue-50 text-blue-600 font-semibold px-1.5 py-0.5 rounded">+{p.extra_image_urls.length}</span>}
-                        {!p.product_image_url && !p.product_image_url_2 && !p.product_video_url && !(p.product_videos?.length) && <span className="text-gray-300 text-xs">—</span>}
+                        {p.product_image_url   && <span title="Image 1" className="text-xs bg-mbi-preorder-tint text-mbi-navy font-semibold px-1.5 py-0.5 rounded">IMG1</span>}
+                        {p.product_image_url_2 && <span title="Image 2" className="text-xs bg-mbi-preorder-tint text-mbi-navy font-semibold px-1.5 py-0.5 rounded">IMG2</span>}
+                        {(p.product_videos?.length ?? 0) > 0 && <span title="Uploaded videos" className="text-xs bg-mbi-surface-strong text-mbi-navy font-semibold px-1.5 py-0.5 rounded">VID{p.product_videos.length > 1 ? ` ×${p.product_videos.length}` : ""}</span>}
+                        {p.product_video_url   && <span title="TikTok link" className="text-xs bg-mbi-surface-soft text-mbi-navy-body font-semibold px-1.5 py-0.5 rounded">TT</span>}
+                        {(p.extra_image_urls?.length ?? 0) > 0 && <span title="More images" className="text-xs bg-mbi-preorder-tint text-mbi-navy font-semibold px-1.5 py-0.5 rounded">+{p.extra_image_urls.length}</span>}
+                        {!p.product_image_url && !p.product_image_url_2 && !p.product_video_url && !(p.product_videos?.length) && <span className="text-mbi-slate text-xs">—</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
                         <button
                           onClick={() => handleEditOpen(p)}
-                          className="text-xs font-semibold text-[#F2AA25] hover:text-amber-600 transition-colors"
+                          className="text-xs font-semibold text-mbi-amber-ink hover:text-mbi-amber-ink transition-colors"
                         >Edit</button>
                         <button
                           onClick={() => handleDelete(p)}
                           disabled={deletingId === p.product_id}
-                          className="text-xs font-semibold text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                          className="text-xs font-semibold text-mbi-error hover:text-mbi-error transition-colors disabled:opacity-50"
                         >
                           {deletingId === p.product_id ? "Deleting…" : "Delete"}
                         </button>
@@ -1080,13 +1080,13 @@ export default function AdminProductsPage() {
       {editingProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={handleEditClose} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col">
+          <div className="relative bg-white rounded-mbi-card shadow-mbi-float w-full max-w-xl max-h-[90vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
-              <h2 className="text-sm font-bold text-[#1e2d3d]">Edit Product</h2>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-mbi-hairline-soft flex-shrink-0">
+              <h2 className="text-sm font-bold text-mbi-navy">Edit Product</h2>
               <button
                 onClick={handleEditClose}
-                className="w-7 h-7 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors text-gray-400 hover:text-gray-600"
+                className="w-7 h-7 rounded-full hover:bg-mbi-surface-soft flex items-center justify-center transition-colors text-mbi-slate hover:text-mbi-navy-body"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -1134,30 +1134,30 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>RMB Price (¥) <span className="text-gray-400 font-normal">(internal only, optional)</span></label>
+                  <label className={labelClass}>RMB Price (¥) <span className="text-mbi-slate font-normal">(internal only, optional)</span></label>
                   <input name="rmb_price" type="number" min="0" step="0.01" value={editForm.rmb_price} onChange={handleEditChange} className={inputClass} />
                 </div>
 
                 {!editUseSizePricing && (editForm.cost_price || editForm.profit || editForm.misc_amount) && (
-                  <div className="sm:col-span-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-4 py-2.5">
+                  <div className="sm:col-span-2 text-sm text-mbi-slate bg-mbi-surface-soft rounded-lg px-4 py-2.5">
                     Selling Price:{" "}
-                    <span className="font-bold text-[#1e2d3d]">
+                    <span className="font-bold text-mbi-navy">
                       GHS {(Number(editForm.cost_price || 0) + Number(editForm.profit || 0) + Number(editForm.misc_amount || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     {editForm.discount_price && Number(editForm.discount_price) > 0 && Number(editForm.discount_price) <= Number(editForm.profit || 0) && (
-                      <span className="ml-2 text-green-700 font-bold">
+                      <span className="ml-2 text-mbi-available font-bold">
                         → Discounted: GHS {(Number(editForm.cost_price || 0) + Number(editForm.profit || 0) + Number(editForm.misc_amount || 0) - Number(editForm.discount_price)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     )}
                     {editForm.discount_price && Number(editForm.discount_price) > Number(editForm.profit || 0) && (
-                      <span className="ml-2 text-red-600 font-semibold text-xs">Discount exceeds profit — reduce the amount.</span>
+                      <span className="ml-2 text-mbi-error font-semibold text-xs">Discount exceeds profit — reduce the amount.</span>
                     )}
                   </div>
                 )}
 
                 {!editUseSizePricing && (
                   <div>
-                    <label className={labelClass}>Discount Amount (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <label className={labelClass}>Discount Amount (GHS) <span className="text-mbi-slate font-normal">(optional)</span></label>
                     <input
                       name="discount_price"
                       type="number"
@@ -1168,7 +1168,7 @@ export default function AdminProductsPage() {
                       placeholder="Amount to deduct from profit"
                       className={inputClass}
                     />
-                    <p className="text-[10px] text-gray-400 mt-1">Deducted from profit only. Discount ≤ profit to apply.</p>
+                    <p className="text-xs text-mbi-slate mt-1">Deducted from profit only. Discount ≤ profit to apply.</p>
                   </div>
                 )}
 
@@ -1189,16 +1189,16 @@ export default function AdminProductsPage() {
                       type="checkbox"
                       checked={editUseSizePricing}
                       onChange={e => setEditUseSizePricing(e.target.checked)}
-                      className="w-4 h-4 accent-[#F2AA25]"
+                      className="w-4 h-4 accent-mbi-navy"
                     />
-                    <span className="text-xs font-semibold text-[#1e2d3d]">
-                      Enable size-based pricing <span className="text-gray-400 font-normal">(different price per size)</span>
+                    <span className="text-xs font-semibold text-mbi-navy">
+                      Enable size-based pricing <span className="text-mbi-slate font-normal">(different price per size)</span>
                     </span>
                   </label>
 
                   {editUseSizePricing ? (
                     <div className="space-y-2">
-                      <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-gray-400 px-1">
+                      <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-2 text-xs font-semibold text-mbi-slate px-1">
                         <span>Size Name</span>
                         <span>Cost Price (GHS)</span>
                         <span>Profit (GHS)</span>
@@ -1257,12 +1257,12 @@ export default function AdminProductsPage() {
                               placeholder="0.00"
                               className={inputClass}
                             />
-                            <div className="border border-gray-100 bg-gray-50 rounded-xl px-3 py-2 text-xs font-semibold text-[#1e2d3d]">
+                            <div className="border border-mbi-hairline-soft bg-mbi-surface-soft rounded-lg px-3 py-2 text-xs font-semibold text-mbi-navy">
                               {row.cost_price !== "" || row.profit !== "" ? (
                                 validSizeDiscount ? (
                                   <>
-                                    <span className="line-through text-gray-400">GHS {selling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                    {" "}<span className="text-green-700">GHS {discountedSelling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="line-through text-mbi-slate">GHS {selling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    {" "}<span className="text-mbi-available">GHS {discountedSelling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                   </>
                                 ) : `GHS ${selling.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                               ) : "—"}
@@ -1274,13 +1274,13 @@ export default function AdminProductsPage() {
                               value={row.discount_price}
                               onChange={e => setEditSizePricingRows(prev => prev.map((r, j) => j === i ? { ...r, discount_price: e.target.value } : r))}
                               placeholder="0.00"
-                              className={`${inputClass} ${row.discount_price && Number(row.discount_price) > 0 && Number(row.discount_price) > Number(row.profit || 0) ? "border-red-400 text-red-600" : ""}`}
+                              className={`${inputClass} ${row.discount_price && Number(row.discount_price) > 0 && Number(row.discount_price) > Number(row.profit || 0) ? "border-mbi-error text-mbi-error" : ""}`}
                             />
                             <button
                               type="button"
                               onClick={() => setEditSizePricingRows(prev => prev.filter((_, j) => j !== i))}
                               disabled={editSizePricingRows.length === 1}
-                              className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30 transition-colors"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-mbi-error hover:text-mbi-error hover:bg-mbi-error-tint disabled:opacity-30 transition-colors"
                             >×</button>
                           </div>
                         );
@@ -1288,12 +1288,12 @@ export default function AdminProductsPage() {
                       <button
                         type="button"
                         onClick={() => setEditSizePricingRows(prev => [...prev, { size: "", cost_price: "", profit: "", misc_amount: "", rmb_price: "", discount_price: "" }])}
-                        className="text-xs font-semibold text-[#F2AA25] hover:text-amber-600 transition-colors mt-1"
+                        className="text-xs font-semibold text-mbi-amber-ink hover:text-mbi-amber-ink transition-colors mt-1"
                       >+ Add Size</button>
                       {editSizePricingRows.some(r => r.size.trim() && r.cost_price !== "" && r.profit !== "") && (
-                        <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2">
+                        <p className="text-xs text-mbi-slate bg-mbi-surface-soft rounded-lg px-3 py-2">
                           Prices shown to customers:{" "}
-                          <span className="font-semibold text-[#1e2d3d]">
+                          <span className="font-semibold text-mbi-navy">
                             From GHS {Math.min(...editSizePricingRows.filter(r => r.cost_price !== "" && r.profit !== "").map(r => Number(r.cost_price) + Number(r.profit) + Number(r.misc_amount || 0))).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </p>
@@ -1305,19 +1305,19 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Colours <span className="text-gray-400 font-normal">(comma-separated)</span></label>
+                  <label className={labelClass}>Colours <span className="text-mbi-slate font-normal">(comma-separated)</span></label>
                   <input name="colours" value={editForm.colours} onChange={handleEditChange} placeholder="Red,Blue,White" maxLength={200} className={inputClass} />
                 </div>
 
                 <div className="sm:col-span-2">
                   <label className={labelClass}>
-                    Stock Quantity <span className="text-gray-400 font-normal">(optional — leave blank to not track stock for this product)</span>
+                    Stock Quantity <span className="text-mbi-slate font-normal">(optional — leave blank to not track stock for this product)</span>
                   </label>
                   <div className="space-y-1.5">
                     {editStockRows.map((row, i) => (
                       <div key={i} className="flex items-center gap-2">
                         {(row.size || row.colour) && (
-                          <span className="text-xs font-semibold text-gray-500 w-32 flex-shrink-0 truncate">
+                          <span className="text-xs font-semibold text-mbi-slate w-32 flex-shrink-0 truncate">
                             {[row.size, row.colour].filter(Boolean).join(" — ")}
                           </span>
                         )}
@@ -1348,7 +1348,7 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Minimum Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label className={labelClass}>Minimum Shipping Fee (GHS) <span className="text-mbi-slate font-normal">(optional)</span></label>
                   <input
                     name="estimated_shipping_fee_min"
                     type="number"
@@ -1362,7 +1362,7 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>Maximum Shipping Fee (GHS) <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label className={labelClass}>Maximum Shipping Fee (GHS) <span className="text-mbi-slate font-normal">(optional)</span></label>
                   <input
                     name="estimated_shipping_fee_max"
                     type="number"
@@ -1376,22 +1376,22 @@ export default function AdminProductsPage() {
                 </div>
 
                 {editError && (
-                  <p className="sm:col-span-2 text-red-500 text-xs bg-red-50 border border-red-100 rounded-xl px-3 py-2">{editError}</p>
+                  <p className="sm:col-span-2 text-mbi-error text-xs bg-mbi-error-tint border border-mbi-error/30 rounded-lg px-3 py-2">{editError}</p>
                 )}
               </div>
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 flex-shrink-0">
+            <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-mbi-hairline-soft flex-shrink-0">
               <button
                 type="button"
                 onClick={handleEditClose}
-                className="text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors px-4 py-2 rounded-xl hover:bg-gray-100"
+                className="text-sm font-semibold text-mbi-slate hover:text-mbi-navy-body transition-colors px-4 py-2 rounded-lg hover:bg-mbi-surface-soft"
               >Cancel</button>
               <button
                 onClick={handleEditSubmit}
                 disabled={editSubmitting}
-                className="bg-[#F2AA25] text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center gap-2"
+                className="mbi-press bg-mbi-amber text-mbi-navy font-bold text-sm px-6 py-2.5 rounded-lg hover:bg-mbi-amber-press transition-opacity disabled:opacity-60 flex items-center gap-2"
               >
                 {editSubmitting ? <><Spinner /> {uploadProgress != null ? `Uploading media ${Math.round(uploadProgress * 100)}%…` : "Saving…"}</> : "Save Changes"}
               </button>

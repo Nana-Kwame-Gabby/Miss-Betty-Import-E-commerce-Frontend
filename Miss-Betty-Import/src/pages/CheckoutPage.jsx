@@ -9,6 +9,7 @@ import usePersistedState from "../hooks/usePersistedState";
 import { getVariantImage } from "../lib/variantImage";
 import { getItemProfit } from "../lib/priceUtils";
 import { imgFallback, thumbUrl } from "../lib/imageUrl";
+import { money, primaryButtonClass } from "../lib/buyBoxStyles";
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Eastern", "Central",
@@ -23,6 +24,16 @@ const PAYMENT_RESUME_TTL_MS = 15 * 60 * 1000;
 // Photo of the exact variant bought, falling back to the main product image.
 function itemImage(item) {
   return getVariantImage(item.variant_images, item.size, item.colour) || item.product_image_url;
+}
+
+function FieldError({ id, children }) {
+  if (!children) return null;
+  return (
+  <p id={id} role="alert" className="mt-1.5 flex items-center gap-1.5 text-sm font-medium text-mbi-error">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12" y2="16.01"/></svg>
+    {children}
+  </p>
+  );
 }
 
 export default function CheckoutPage() {
@@ -87,6 +98,12 @@ export default function CheckoutPage() {
   );
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const iframeRef = useRef(null);
+
+  // Phones pin the pay button to the bottom; lift the chat launcher above it.
+  useEffect(() => {
+    document.documentElement.dataset.actionBar = "on";
+    return () => { delete document.documentElement.dataset.actionBar; };
+  }, []);
 
   // Discard a stale in-progress payment rather than reopening a likely-dead Hubtel URL.
   useEffect(() => {
@@ -314,198 +331,203 @@ export default function CheckoutPage() {
 
   if (checkoutItems.length === 0) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <p className="text-5xl mb-4">🛒</p>
-        <p className="text-gray-500 font-medium text-lg">Your cart is empty.</p>
-        <Link to="/shop" className="mt-4 inline-block text-[#F2AA25] font-semibold hover:underline">Go Shopping</Link>
+      <div className="max-w-7xl mx-auto px-4 py-16 flex flex-col items-center text-center">
+        <div className="grid size-16 place-items-center rounded-full bg-mbi-surface-soft text-mbi-slate">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+        </div>
+        <h1 className="mt-4 text-xl font-bold text-mbi-navy">Your cart is empty</h1>
+        <p className="mt-1 text-base text-mbi-slate">Add something to your cart to check out.</p>
+        <Link to="/shop" className={`${primaryButtonClass()} mt-6 !w-auto`}>Go shopping</Link>
       </div>
     );
   }
 
+  const label = "mb-1.5 block text-sm font-semibold text-mbi-navy";
   const inputClass = (field) =>
-    `w-full border rounded-2xl px-3 py-2 sm:py-2.5 text-sm outline-none transition-colors ${
-      errors[field] ? "border-red-400 focus:border-red-400" : "border-gray-300 focus:border-[#F2AA25]"
+    `h-[52px] w-full rounded-lg border bg-white px-3 text-base text-mbi-navy outline-none transition-[border-color,box-shadow] duration-150 ${
+      errors[field] ? "border-mbi-error focus:shadow-[0_0_0_2px_#fff,0_0_0_4px_#b42318]" : "border-mbi-hairline focus:border-mbi-navy focus:shadow-[0_0_0_2px_#fff,0_0_0_4px_#1e2d3d]"
     }`;
-
   const readOnlyClass =
-    "w-full bg-gray-100 border border-gray-200 rounded-2xl px-3 py-2 sm:py-2.5 text-sm text-gray-500 cursor-default outline-none";
+    "h-[52px] w-full cursor-default rounded-lg border border-mbi-hairline-soft bg-mbi-surface-soft px-3 text-base text-mbi-navy-body outline-none";
+
+  const payButton = (
+    <button type="submit" form="checkout-form" disabled={submitting || hasBlockedPreorders} className={primaryButtonClass({ disabled: submitting || hasBlockedPreorders })}>
+      {submitting ? (
+        <>
+          <svg className="size-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+          Opening payment…
+        </>
+      ) : hasBlockedPreorders ? "Pre-orders are closed" : `Pay ${money(finalTotal)}`}
+    </button>
+  );
 
   return (
     <>
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-8 pb-12">
       {hasBlockedPreorders && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl px-3 py-2.5 mb-3 text-sm text-red-700 font-medium flex items-center gap-2">
-          <span>🚫</span> Pre-orders are temporarily closed. Remove pre-order items to continue.
+        <div role="alert" className="mb-5 flex items-start gap-3 rounded-mbi-card bg-mbi-error-tint px-4 py-3 text-sm font-medium text-mbi-error">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 shrink-0"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>
+          Pre-orders are closed for now. Remove the pre-order items from your cart to continue.
         </div>
       )}
-      <h1 className="text-lg sm:text-2xl font-bold text-[#1e2d3d] mb-3 sm:mb-5">Checkout</h1>
+      <h1 className="text-2xl sm:text-[28px] font-bold tracking-[-0.4px] text-mbi-navy">Checkout</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 sm:gap-5">
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="lg:col-span-3 flex flex-col gap-3 sm:gap-5">
-          <div className="bg-white rounded-2xl shadow-sm p-3 sm:p-4">
-            <h2 className="font-bold text-[#1e2d3d] text-base mb-3">Delivery Information</h2>
+      <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-8">
+        <form id="checkout-form" onSubmit={handleSubmit} noValidate className="flex flex-col gap-5 lg:col-span-3">
+          <section className="rounded-mbi-card border border-mbi-hairline bg-white p-5" aria-labelledby="delivery-heading">
+            <h2 id="delivery-heading" className="text-xl font-bold text-mbi-navy">Delivery information</h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-[#1e2d3d] mb-1">Full Name</label>
-                <input readOnly value={form.fullName} className={readOnlyClass} />
+                <label htmlFor="co-name" className={label}>Full name</label>
+                <input id="co-name" readOnly value={form.fullName} className={readOnlyClass} />
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-[#1e2d3d] mb-1">Email Address</label>
-                <input readOnly value={form.email} className={readOnlyClass} />
+                <label htmlFor="co-email" className={label}>Email address</label>
+                <input id="co-email" readOnly value={form.email} className={readOnlyClass} />
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-[#1e2d3d] mb-1">Phone Number</label>
-                <input readOnly value={form.phone} className={readOnlyClass} />
+                <label htmlFor="co-phone" className={label}>Phone number</label>
+                <input id="co-phone" readOnly value={form.phone} className={readOnlyClass} />
               </div>
-
-              <div className="sm:col-span-2">
-                <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
-                  ℹ️ Pre-filled from your account. To update, use <strong>Delivery Details</strong> in the Account menu.
-                </p>
-              </div>
-
+              <p className="sm:col-span-2 flex items-start gap-2 rounded-lg bg-mbi-surface-soft px-3 py-2.5 text-sm text-mbi-navy-body">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 shrink-0 text-mbi-slate"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8.01"/></svg>
+                <span>Filled in from your account. To change these, open <strong className="font-semibold text-mbi-navy">Delivery details</strong> in the Account menu.</span>
+              </p>
               <div>
-                <label className="block text-xs font-semibold text-[#1e2d3d] mb-1">Region</label>
-                <select name="region" value={form.region} onChange={handleChange} className={inputClass("region")}>
+                <label htmlFor="co-region" className={label}>Region</label>
+                <select id="co-region" name="region" value={form.region ?? ""} onChange={handleChange} aria-invalid={!!errors.region} aria-describedby={errors.region ? "co-region-error" : undefined} className={inputClass("region")}>
                   <option value="">Select region</option>
                   {ghanaRegions.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
-                {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
+                <FieldError id="co-region-error">{errors.region}</FieldError>
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-[#1e2d3d] mb-1">Town / City</label>
-                <input name="town" value={form.town} onChange={handleChange} placeholder="Kumasi" className={inputClass("town")} />
-                {errors.town && <p className="text-red-500 text-xs mt-1">{errors.town}</p>}
+                <label htmlFor="co-town" className={label}>Town / city</label>
+                <input id="co-town" name="town" value={form.town ?? ""} onChange={handleChange} placeholder="e.g. Kumasi" autoComplete="address-level2" aria-invalid={!!errors.town} aria-describedby={errors.town ? "co-town-error" : undefined} className={inputClass("town")} />
+                <FieldError id="co-town-error">{errors.town}</FieldError>
               </div>
             </div>
-          </div>
+          </section>
 
           {submitError && (
-            <p className="text-red-500 text-sm bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">{submitError}</p>
+            <p role="alert" className="rounded-mbi-card bg-mbi-error-tint px-4 py-3 text-sm font-medium text-mbi-error">{submitError}</p>
           )}
 
-          <button
-            type="submit"
-            disabled={submitting || hasBlockedPreorders}
-            className="w-full bg-[#F2AA25] text-white font-bold py-2.5 sm:py-3 rounded-2xl hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                </svg>
-                Opening Payment…
-              </>
-            ) : "Pay with Hubtel"}
-          </button>
+          <div className="hidden lg:block">{payButton}</div>
+          <p className="hidden lg:flex items-center justify-center gap-1.5 text-sm text-mbi-slate">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            Secure payment by Mobile Money or card through Hubtel
+          </p>
         </form>
 
-        {/* Summary */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-sm p-3 sticky top-12">
-            <h2 className="font-bold text-[#1e2d3d] text-base mb-3">Order Summary</h2>
-            <div className="flex flex-col gap-2 mb-2.5">
-              {checkoutItems.map(item => (
-                <div key={item.cartKey} className="flex items-start gap-3">
-                  {itemImage(item) ? (
-                    <img src={thumbUrl(itemImage(item), 120)} onError={imgFallback(itemImage(item))} alt={item.product_name} className="w-10 h-12 object-cover rounded-xl flex-shrink-0" />
-                  ) : (
-                    <div className="w-10 h-12 bg-gray-100 rounded-xl flex-shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[#1e2d3d] truncate">{item.product_name}</p>
-                    <p className="text-xs text-gray-400">{item.size} · {item.colour} · ×{item.quantity}</p>
-                    <p className="text-sm font-bold text-[#DC2626]">GHS {(item.unit_price * item.quantity).toLocaleString()}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="border-t border-gray-100 pt-3">
-              <div className="flex justify-between text-sm text-gray-500 mb-2">
-                <span>Subtotal</span>
-                <span>GHS {checkoutSubtotal.toLocaleString()}</span>
+        <aside className="lg:col-span-2">
+          <div className="rounded-mbi-card border border-mbi-hairline bg-white p-5 lg:sticky lg:top-24">
+            <h2 className="text-xl font-bold text-mbi-navy">Order summary</h2>
+            <ul className="mt-4 flex flex-col gap-3">
+              {checkoutItems.map(item => {
+                const options = [item.size, item.colour].filter(Boolean).join(" · ");
+                return (
+                  <li key={item.cartKey} className="flex items-start gap-3">
+                    {itemImage(item) ? (
+                      <img src={thumbUrl(itemImage(item), 120)} onError={imgFallback(itemImage(item))} alt={item.product_name} className="size-14 shrink-0 rounded-lg bg-mbi-surface-soft object-cover" />
+                    ) : (
+                      <div className="size-14 shrink-0 rounded-lg bg-mbi-surface-soft" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-mbi-navy">{item.product_name}</p>
+                      <p className="text-sm text-mbi-slate">{options ? `${options} · ` : ""}Qty {item.quantity}</p>
+                    </div>
+                    <p className="shrink-0 text-sm font-bold text-mbi-navy tabular">{money(item.unit_price * item.quantity)}</p>
+                  </li>
+                );
+              })}
+            </ul>
+            <dl className="mt-4 space-y-2 border-t border-mbi-hairline pt-4 text-sm">
+              <div className="flex justify-between text-mbi-navy-body tabular">
+                <dt>Subtotal</dt>
+                <dd>{money(checkoutSubtotal)}</dd>
               </div>
-              {checkoutSavings > 0 && (
-                <div className="flex justify-between text-green-600 text-sm font-semibold mb-2">
-                  <span>Discount savings</span>
-                  <span>− GHS {checkoutSavings.toLocaleString()}</span>
-                </div>
-              )}
               {availableCoupons.length > 0 && (
-                <label className={`flex items-center justify-between gap-2 text-sm mb-2 ${couponEligible ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}`}>
-                  <span className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={applyCoupon}
-                      disabled={!couponEligible}
-                      onChange={e => setApplyCoupon(e.target.checked)}
-                      className="accent-[#F2AA25]"
-                    />
-                    Apply 1 coupon ({availableCoupons.length} available)
-                  </span>
-                  <span className="text-green-600 font-semibold">− GHS 100</span>
-                </label>
-              )}
-              {availableCoupons.length > 0 && !couponEligible && (
-                <p className="text-xs text-gray-400 mb-2">Coupons can only be used on orders above GHS 3,000.</p>
+                <div>
+                  <label className={`flex min-h-11 items-center justify-between gap-2 ${couponEligible ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}>
+                    <span className="flex items-center gap-2.5 text-mbi-navy">
+                      <input
+                        type="checkbox"
+                        checked={applyCoupon}
+                        disabled={!couponEligible}
+                        onChange={e => setApplyCoupon(e.target.checked)}
+                        className="size-5 accent-mbi-navy"
+                      />
+                      Use 1 coupon ({availableCoupons.length} available)
+                    </span>
+                    <span className="font-semibold text-mbi-available tabular">− {money(100)}</span>
+                  </label>
+                  {!couponEligible && <p className="text-sm text-mbi-slate">Coupons work on orders above GHS 3,000.</p>}
+                </div>
               )}
               {discountAmount > 0 && (
-                <div className="flex justify-between text-green-600 text-sm font-semibold mb-2">
-                  <span>Coupon discount</span>
-                  <span>− GHS {discountAmount.toLocaleString()}</span>
+                <div className="flex justify-between font-semibold text-mbi-available tabular">
+                  <dt>Coupon discount</dt>
+                  <dd>− {money(discountAmount)}</dd>
                 </div>
               )}
-              <div className="flex justify-between text-sm text-gray-500 mb-4">
-                <span>Delivery</span>
-                <span className="text-green-600 font-medium">To be confirmed</span>
+              <div className="flex justify-between text-mbi-navy-body">
+                <dt>Delivery</dt>
+                <dd className="text-mbi-slate">Confirmed after your order</dd>
               </div>
-              <div className="flex justify-between font-bold text-[#1e2d3d] text-base">
-                <span>Total</span>
-                <span className="text-[#DC2626]">GHS {finalTotal.toLocaleString()}</span>
+              <div className="flex justify-between border-t border-mbi-hairline pt-3 text-lg font-bold text-mbi-navy tabular">
+                <dt>Total</dt>
+                <dd>{money(finalTotal)}</dd>
               </div>
-            </div>
+              {checkoutSavings > 0 && (
+                <p className="text-sm font-medium text-mbi-available tabular">Includes {money(checkoutSavings)} in product discounts.</p>
+              )}
+            </dl>
           </div>
-        </div>
+        </aside>
       </div>
+
+      {/* Phones: pay within thumb reach, above the bottom tab bar. */}
+      <div className="fixed inset-x-0 bottom-16 z-30 border-t border-mbi-hairline bg-white px-4 py-3 shadow-mbi-float lg:hidden">
+        <div className="mx-auto max-w-xl">{payButton}</div>
+      </div>
+      <div className="h-24 lg:hidden" aria-hidden="true" />
     </div>
 
       {/* Hubtel Onsite Checkout iframe modal */}
-
       {paymentInProgress?.iframeUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={handleIframeClose} />
-          <div className="relative z-10 flex flex-col w-full h-full sm:w-[480px] sm:h-[640px] sm:rounded-2xl overflow-hidden shadow-2xl bg-white">
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-[#1e2d3d] flex-shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-label="Secure payment">
+          <div className="absolute inset-0 bg-mbi-navy/60" onClick={handleIframeClose} />
+          <div className="relative z-10 flex h-full w-full flex-col overflow-hidden bg-white shadow-mbi-float sm:h-[640px] sm:w-[480px] sm:rounded-mbi-card">
+            <div className="flex shrink-0 items-center justify-between bg-mbi-navy px-4 py-3">
               <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F2AA25" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F2AA25" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
                 </svg>
-                <span className="text-white text-sm font-semibold">Secure Payment</span>
+                <span className="text-sm font-semibold text-white">Secure payment</span>
               </div>
               <button
+                type="button"
                 onClick={handleIframeClose}
-                className="text-gray-300 hover:text-white transition-colors p-1"
+                className="mbi-press grid size-10 place-items-center rounded-full text-white/80 hover:bg-white/10 hover:text-white"
                 aria-label="Cancel payment"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
             </div>
 
-            {/* Loading spinner */}
             {!iframeLoaded && (
-              <div className="absolute inset-0 top-12 flex flex-col items-center justify-center bg-white z-10 gap-3">
-                <div className="w-10 h-10 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-gray-400 font-medium">Loading payment…</p>
+              <div className="absolute inset-0 top-16 z-10 flex flex-col items-center justify-center gap-3 bg-white">
+                <div className="size-10 animate-spin rounded-full border-4 border-mbi-amber border-t-transparent" />
+                <p className="text-sm font-medium text-mbi-slate">Loading payment…</p>
               </div>
             )}
 
@@ -513,7 +535,7 @@ export default function CheckoutPage() {
               ref={iframeRef}
               src={paymentInProgress.iframeUrl}
               onLoad={handleIframeLoad}
-              className="flex-1 w-full border-0"
+              className="w-full flex-1 border-0"
               title="Hubtel Secure Payment"
               allow="payment"
             />

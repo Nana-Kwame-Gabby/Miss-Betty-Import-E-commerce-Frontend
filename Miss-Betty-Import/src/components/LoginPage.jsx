@@ -37,7 +37,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-6">
+    <div className="min-h-screen flex items-center justify-center bg-mbi-surface-soft px-4 py-6">
       <style>{`
         .spin-vertical {
           animation: spinY 5s linear infinite;
@@ -48,19 +48,20 @@ export default function LoginPage() {
           from { transform: rotateY(0deg); }
           to   { transform: rotateY(360deg); }
         }
+        @media (prefers-reduced-motion: reduce) { .spin-vertical { animation: none; } }
       `}</style>
 
-      <div className="bg-white rounded-2xl shadow-lg w-full max-w-md px-5 py-6 sm:px-8 sm:py-8 flex flex-col items-center">
+      <div className="bg-white rounded-mbi-card shadow-mbi-float w-full max-w-md px-5 py-6 sm:px-8 sm:py-8 flex flex-col items-center">
         <img
           src={logo}
           alt="Miss Betty Import Logo"
           className="h-16 sm:h-20 mx-auto spin-vertical mb-2"
         />
 
-        <h1 className="font-bold text-lg sm:text-xl text-[#1e2d3d] text-center">
+        <h1 className="text-2xl sm:text-[28px] font-bold tracking-[-0.4px] text-mbi-navy text-center">
           Welcome to Miss Betty Import
         </h1>
-        <p className="text-xs sm:text-sm font-medium text-center mb-4 sm:mb-5">
+        <p className="text-sm text-mbi-slate text-center mb-4 sm:mb-5">
           Please log in to continue
         </p>
 
@@ -69,10 +70,10 @@ export default function LoginPage() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={googleLoading}
-          className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-2xl py-2.5 sm:py-3 mb-4 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors disabled:opacity-60 cursor-pointer"
+          className="mbi-press w-full h-12 flex items-center justify-center gap-3 border border-mbi-navy/25 rounded-lg mb-4 text-base font-semibold text-mbi-navy bg-white hover:border-mbi-navy disabled:opacity-60 cursor-pointer"
         >
           {googleLoading ? (
-            <svg className="animate-spin w-4 h-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin w-4 h-4 text-mbi-slate" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
             </svg>
@@ -88,14 +89,14 @@ export default function LoginPage() {
         </button>
 
         <div className="w-full flex items-center gap-3 mb-4">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-xs text-gray-400 font-medium">or</span>
-          <div className="flex-1 h-px bg-gray-200" />
+          <div className="flex-1 h-px bg-mbi-surface-strong" />
+          <span className="text-xs text-mbi-slate font-medium">or</span>
+          <div className="flex-1 h-px bg-mbi-surface-strong" />
         </div>
 
         <form onSubmit={handleSubmit} className="w-full flex flex-col items-center">
           <div className="w-full mb-3">
-            <label className="block font-semibold text-[#1e2d3d] mb-1.5 text-xs sm:text-sm">
+            <label className="block font-semibold text-mbi-navy mb-1.5 text-sm">
               Email Address
             </label>
             <input
@@ -104,12 +105,12 @@ export default function LoginPage() {
               onChange={e => setEmail(e.target.value)}
               placeholder="your@email.com"
               required
-              className="w-full border border-gray-300 rounded-2xl px-4 py-2.5 sm:py-3 text-sm outline-none focus:border-[#F2AA25]"
+              className="w-full h-12 border border-mbi-border-strong rounded-lg px-4 text-base text-mbi-navy bg-white placeholder:text-mbi-slate outline-none focus:border-mbi-navy focus:ring-2 focus:ring-mbi-amber/40"
             />
           </div>
 
           <div className="w-full mb-3">
-            <label className="block font-semibold text-[#1e2d3d] mb-1.5 text-xs sm:text-sm">
+            <label className="block font-semibold text-mbi-navy mb-1.5 text-sm">
               Password
             </label>
             <input
@@ -118,22 +119,22 @@ export default function LoginPage() {
               onChange={e => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
-              className="w-full border border-gray-300 rounded-2xl px-4 py-2.5 sm:py-3 text-sm outline-none focus:border-[#F2AA25]"
+              className="w-full h-12 border border-mbi-border-strong rounded-lg px-4 text-base text-mbi-navy bg-white placeholder:text-mbi-slate outline-none focus:border-mbi-navy focus:ring-2 focus:ring-mbi-amber/40"
             />
           </div>
 
           {error && (
-            <p className="w-full text-red-500 text-xs mb-3 bg-red-50 border border-red-100 rounded-xl px-3 py-1.5">
+            <p className="w-full text-mbi-error text-xs mb-3 bg-mbi-error-tint border border-mbi-error/30 rounded-lg px-3 py-1.5">
               {error}
             </p>
           )}
 
           <div className="w-full flex justify-between items-center mb-4 sm:mb-5">
-            <label className="flex items-center gap-2 font-medium text-[#1e2d3d] text-xs sm:text-sm cursor-pointer">
+            <label className="flex items-center gap-2 font-medium text-mbi-navy text-xs sm:text-sm cursor-pointer">
               <input type="checkbox" className="w-4 h-4 rounded" />
               Remember me
             </label>
-            <Link to="/forgot-password" className="text-[#F2AA25] font-medium text-xs sm:text-sm">
+            <Link to="/forgot-password" className="text-mbi-amber-ink font-medium text-xs sm:text-sm">
               Forgot password?
             </Link>
           </div>
@@ -141,8 +142,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full font-bold text-sm sm:text-base rounded-2xl py-2.5 sm:py-3 mb-4 sm:mb-5 text-white cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
-            style={{ backgroundColor: "#F2AA25" }}
+            className="mbi-press w-full h-12 rounded-lg bg-mbi-amber text-mbi-navy text-base font-semibold hover:bg-mbi-amber-press cursor-pointer mb-4 sm:mb-5 disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -156,18 +156,18 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="font-medium text-[#1e2d3d] text-xs sm:text-sm text-center">
+        <p className="text-sm text-mbi-navy-body text-center">
           Don't have an account?{" "}
-          <Link to="/signup" className="font-semibold" style={{ color: "#F2AA25" }}>
+          <Link to="/signup" className="font-semibold text-mbi-amber-ink underline-offset-2 hover:underline">
             Sign up
           </Link>
         </p>
 
-        <p className="text-xs text-gray-400 text-center mt-3 leading-relaxed">
+        <p className="text-xs text-mbi-slate text-center mt-3 leading-relaxed">
           By continuing, you agree to our{" "}
-          <Link to="/terms" className="text-[#F2AA25] hover:underline font-medium">Terms & Conditions</Link>
+          <Link to="/terms" className="text-mbi-amber-ink hover:underline font-medium">Terms & Conditions</Link>
           {" "}and{" "}
-          <Link to="/privacy-policy" className="text-[#F2AA25] hover:underline font-medium">Privacy Policy</Link>.
+          <Link to="/privacy-policy" className="text-mbi-amber-ink hover:underline font-medium">Privacy Policy</Link>.
         </p>
       </div>
     </div>

@@ -228,29 +228,29 @@ export default function AdminShippingFeesPage() {
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
-        <h1 className="text-xl font-bold text-[#1e2d3d]">Shipping Fees</h1>
+        <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy">Shipping Fees</h1>
         <PeriodSwitcher periods={periods} selectedId={selectedId} activeId={activePeriod?.id} onChange={selectPeriod} loading={periodsLoading} />
       </div>
-      <p className="text-sm text-gray-400 mb-6">Set shipping fees per product and size</p>
+      <p className="text-sm text-mbi-slate mb-6">Set shipping fees per product and size</p>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden">
+          <div className="px-5 py-4 border-b border-mbi-hairline-soft flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-bold text-[#1e2d3d]">
+              <h2 className="text-sm font-bold text-mbi-navy">
                 Product / Size ({searchTerm ? `${visibleGroups.length} of ${feeGroups.length}` : feeGroups.length})
               </h2>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-mbi-slate mt-0.5">
                 Enter one fee per product + size. Click a row to see customer payment details.
               </p>
             </div>
             {feeGroups.length > 0 && (
               <div className="relative w-full sm:w-64 sm:ml-auto">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-mbi-slate" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
                 <input
@@ -259,14 +259,14 @@ export default function AdminShippingFeesPage() {
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search by product name…"
                   aria-label="Search by product name"
-                  className="w-full border border-gray-200 rounded-xl pl-9 pr-9 py-2 text-sm outline-none focus:border-[#F2AA25] transition-colors [&::-webkit-search-cancel-button]:hidden"
+                  className="w-full border border-mbi-hairline rounded-lg pl-9 pr-9 py-2 text-sm outline-none focus:border-mbi-navy transition-colors [&::-webkit-search-cancel-button]:hidden"
                 />
                 {search && (
                   <button
                     type="button"
                     onClick={() => setSearch('')}
                     aria-label="Clear search"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-mbi-slate hover:text-mbi-navy-body"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
@@ -276,7 +276,7 @@ export default function AdminShippingFeesPage() {
             <button
               onClick={handleDownloadExcel}
               disabled={feeGroups.length === 0}
-              className="flex items-center gap-1.5 bg-[#1e2d3d] text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+              className="mbi-press flex items-center gap-1.5 bg-mbi-navy text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-mbi-navy-hover transition-colors disabled:opacity-40"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -286,11 +286,11 @@ export default function AdminShippingFeesPage() {
           </div>
 
           {feeGroups.length === 0 ? (
-            <div className="text-center py-12 text-gray-400 text-sm">No orders yet.</div>
+            <div className="text-center py-12 text-mbi-slate text-sm">No orders yet.</div>
           ) : visibleGroups.length === 0 ? (
             <div className="text-center py-12 text-sm">
-              <p className="text-gray-400">No products match “{search.trim()}”.</p>
-              <button type="button" onClick={() => setSearch('')} className="mt-2 text-xs font-semibold text-[#F2AA25] hover:underline">
+              <p className="text-mbi-slate">No products match “{search.trim()}”.</p>
+              <button type="button" onClick={() => setSearch('')} className="mt-2 text-xs font-semibold text-mbi-amber-ink hover:underline">
                 Clear search
               </button>
             </div>
@@ -298,14 +298,14 @@ export default function AdminShippingFeesPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Product Name</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Size</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Qty</th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Paid</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Status</th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Shipping Fee (GHS)</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Outstanding (GHS)</th>
+                  <tr className="border-b border-mbi-hairline-soft bg-mbi-surface-soft">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Product Name</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Size</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Total Qty</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden sm:table-cell">Paid</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden sm:table-cell">Status</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Shipping Fee (GHS)</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden md:table-cell">Outstanding (GHS)</th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
@@ -318,19 +318,19 @@ export default function AdminShippingFeesPage() {
                     const dirty = isDirty(group);
 
                     const statusBadge = group.unpaid_qty === 0
-                      ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700 whitespace-nowrap">All Paid</span>
+                      ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-mbi-available-tint text-mbi-available whitespace-nowrap">All Paid</span>
                       : group.paid_qty > 0
-                        ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 whitespace-nowrap">Partial</span>
-                        : <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 whitespace-nowrap">Unpaid</span>;
+                        ? <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-mbi-amber-tint text-mbi-amber-ink whitespace-nowrap">Partial</span>
+                        : <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-mbi-surface-soft text-mbi-slate whitespace-nowrap">Unpaid</span>;
 
                     return (
                       <>
-                        <tr key={key} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                          <td className="px-5 py-3 font-semibold text-[#1e2d3d]">{group.product_name}</td>
-                          <td className="px-4 py-3 text-gray-600">{group.size}</td>
-                          <td className="px-4 py-3 text-center font-bold text-[#1e2d3d]">{group.total_qty}</td>
+                        <tr key={key} className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft transition-colors">
+                          <td className="px-5 py-3 font-semibold text-mbi-navy">{group.product_name}</td>
+                          <td className="px-4 py-3 text-mbi-navy-body">{group.size}</td>
+                          <td className="px-4 py-3 text-center font-bold text-mbi-navy">{group.total_qty}</td>
                           <td className="px-4 py-3 text-center hidden sm:table-cell">
-                            <span className={group.paid_qty > 0 ? "font-bold text-green-600" : "text-gray-400"}>
+                            <span className={group.paid_qty > 0 ? "font-bold text-mbi-available" : "text-mbi-slate"}>
                               {group.paid_qty}
                             </span>
                           </td>
@@ -352,32 +352,32 @@ export default function AdminShippingFeesPage() {
                                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveFee(group); } }}
                                 placeholder="0.00"
                                 aria-label={`Shipping fee for ${group.product_name} ${group.size}`}
-                                className={`w-24 border rounded-lg px-2 py-1 text-xs outline-none focus:border-[#F2AA25] transition-colors ${
-                                  rowStatus[key]?.type === 'error' ? 'border-red-400' : dirty ? 'border-amber-400 bg-amber-50' : 'border-gray-200'
+                                className={`w-24 border rounded-lg px-2 py-1 text-xs outline-none focus:border-mbi-navy transition-colors ${
+                                  rowStatus[key]?.type === 'error' ? 'border-mbi-error' : dirty ? 'border-mbi-amber bg-mbi-amber-tint' : 'border-mbi-hairline'
                                 }`}
                               />
                               {savingKey === key ? (
-                                <div className="w-3.5 h-3.5 border-2 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+                                <div className="w-3.5 h-3.5 border-2 border-mbi-navy border-t-transparent rounded-full animate-spin" />
                               ) : dirty ? (
                                 <button
                                   type="button"
                                   onMouseDown={e => e.preventDefault() /* keep focus so blur doesn't save twice */}
                                   onClick={() => saveFee(group)}
-                                  className="text-xs font-semibold bg-[#1e2d3d] text-white px-2.5 py-1 rounded-lg hover:opacity-90 transition-opacity"
+                                  className="mbi-press text-xs font-semibold bg-mbi-navy text-white px-2.5 py-1 rounded-lg hover:bg-mbi-navy-hover transition-colors"
                                 >
                                   Save
                                 </button>
                               ) : null}
                             </div>
                             {rowStatus[key] ? (
-                              <p className={`text-[11px] mt-1 ${rowStatus[key].type === 'error' ? 'text-red-600' : 'text-green-600 font-semibold'}`}>
+                              <p className={`text-xs mt-1 ${rowStatus[key].type === 'error' ? 'text-mbi-error' : 'text-mbi-available font-semibold'}`}>
                                 {rowStatus[key].msg}
                               </p>
                             ) : dirty && savingKey !== key ? (
-                              <p className="text-[11px] mt-1 text-amber-600">Unsaved</p>
+                              <p className="text-xs mt-1 text-mbi-amber-ink">Unsaved</p>
                             ) : null}
                           </td>
-                          <td className="px-4 py-3 text-right font-bold text-[#F2AA25] hidden md:table-cell">
+                          <td className="px-4 py-3 text-right font-bold text-mbi-amber-ink hidden md:table-cell">
                             {outstanding != null ? `GHS ${outstanding.toLocaleString()}` : '—'}
                           </td>
                           <td className="px-4 py-3">
@@ -385,7 +385,7 @@ export default function AdminShippingFeesPage() {
                               <button
                                 onClick={() => toggleExpand(key)}
                                 title={isExpanded ? 'Collapse' : 'Show customers'}
-                                className="text-gray-400 hover:text-[#1e2d3d] transition-colors"
+                                className="text-mbi-slate hover:text-mbi-navy transition-colors"
                               >
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
@@ -405,7 +405,7 @@ export default function AdminShippingFeesPage() {
                                 <button
                                   onClick={() => handleDeleteFee(group)}
                                   title="Remove fee"
-                                  className="text-gray-300 hover:text-red-400 transition-colors"
+                                  className="text-mbi-slate hover:text-mbi-error transition-colors"
                                 >
                                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
@@ -418,11 +418,11 @@ export default function AdminShippingFeesPage() {
                         </tr>
                         {isExpanded && (
                           <tr key={key + '-detail'}>
-                            <td colSpan={8} className="px-5 pb-4 pt-0 bg-gray-50 border-b border-gray-100">
-                              <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2 pt-3">Customer Breakdown</div>
+                            <td colSpan={8} className="px-5 pb-4 pt-0 bg-mbi-surface-soft border-b border-mbi-hairline-soft">
+                              <div className="text-xs font-semibold text-mbi-slate uppercase tracking-wide mb-2 pt-3">Customer Breakdown</div>
                               <table className="w-full text-xs">
                                 <thead>
-                                  <tr className="text-gray-400">
+                                  <tr className="text-mbi-slate">
                                     <th className="text-left pb-1.5 font-semibold">Customer</th>
                                     <th className="text-center pb-1.5 font-semibold">Qty</th>
                                     <th className="text-left pb-1.5 font-semibold">Status</th>
@@ -430,13 +430,13 @@ export default function AdminShippingFeesPage() {
                                 </thead>
                                 <tbody>
                                   {group.customer_rows.map((c, i) => (
-                                    <tr key={i} className="border-t border-gray-200">
-                                      <td className="py-1.5 font-medium text-[#1e2d3d]">{c.name}</td>
-                                      <td className="py-1.5 text-center text-gray-600">{c.qty}</td>
+                                    <tr key={i} className="border-t border-mbi-hairline">
+                                      <td className="py-1.5 font-medium text-mbi-navy">{c.name}</td>
+                                      <td className="py-1.5 text-center text-mbi-navy-body">{c.qty}</td>
                                       <td className="py-1.5">
                                         {c.paid
-                                          ? <span className="font-semibold text-green-600">✓ Paid</span>
-                                          : <span className="font-semibold text-amber-600">● Awaiting</span>}
+                                          ? <span className="font-semibold text-mbi-available">✓ Paid</span>
+                                          : <span className="font-semibold text-mbi-amber-ink">● Awaiting</span>}
                                       </td>
                                     </tr>
                                   ))}

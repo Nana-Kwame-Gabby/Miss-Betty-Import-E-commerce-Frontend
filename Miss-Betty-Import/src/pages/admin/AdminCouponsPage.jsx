@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 const STATUS_COLORS = {
-  available: "bg-green-100 text-green-700",
-  used:      "bg-gray-100 text-gray-500",
+  available: "bg-mbi-available-tint text-mbi-available",
+  used:      "bg-mbi-surface-soft text-mbi-slate",
 };
 
 export default function AdminCouponsPage() {
@@ -71,46 +71,46 @@ export default function AdminCouponsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-[#1e2d3d] mb-1">Coupons & Referrals</h1>
-      <p className="text-sm text-gray-400 mb-6">Read-only overview — coupons are earned automatically via referrals</p>
+      <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy mb-1">Coupons & Referrals</h1>
+      <p className="text-sm text-mbi-slate mb-6">Read-only overview — coupons are earned automatically via referrals</p>
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <>
           {/* Per-customer summary */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-bold text-[#1e2d3d]">Customer Summary ({summaryRows.length})</h2>
+          <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden mb-8">
+            <div className="px-5 py-4 border-b border-mbi-hairline-soft">
+              <h2 className="text-sm font-bold text-mbi-navy">Customer Summary ({summaryRows.length})</h2>
             </div>
             {summaryRows.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 text-sm">No referral or coupon activity yet.</div>
+              <div className="text-center py-12 text-mbi-slate text-sm">No referral or coupon activity yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Email</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Referral Code</th>
-                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Referrals</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Available</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Used</th>
+                    <tr className="border-b border-mbi-hairline-soft bg-mbi-surface-soft">
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Customer</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Email</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Referral Code</th>
+                      <th className="text-center px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Referrals</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Available</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Used</th>
                     </tr>
                   </thead>
                   <tbody>
                     {summaryRows.map(s => (
-                      <tr key={s.customer_id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3 font-semibold text-[#1e2d3d]">{s.customer_name}</td>
-                        <td className="px-4 py-3 text-gray-500">{s.email}</td>
-                        <td className="px-4 py-3 text-gray-500 font-mono">{s.referral_code}</td>
-                        <td className="px-4 py-3 text-center font-bold text-[#1e2d3d]">{s.referralCount}</td>
-                        <td className="px-4 py-3 text-green-700">
+                      <tr key={s.customer_id} className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft transition-colors">
+                        <td className="px-5 py-3 font-semibold text-mbi-navy">{s.customer_name}</td>
+                        <td className="px-4 py-3 text-mbi-slate">{s.email}</td>
+                        <td className="px-4 py-3 text-mbi-slate font-mono">{s.referral_code}</td>
+                        <td className="px-4 py-3 text-center font-bold text-mbi-navy">{s.referralCount}</td>
+                        <td className="px-4 py-3 text-mbi-available">
                           {s.availableCount} {s.availableCount > 0 && `(GHS ${s.availableValue.toLocaleString()})`}
                         </td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-4 py-3 text-mbi-slate">
                           {s.usedCount} {s.usedCount > 0 && `(GHS ${s.usedValue.toLocaleString()})`}
                         </td>
                       </tr>
@@ -122,38 +122,38 @@ export default function AdminCouponsPage() {
           </div>
 
           {/* Coupons history */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-bold text-[#1e2d3d]">Coupon History ({coupons.length})</h2>
+          <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden mb-8">
+            <div className="px-5 py-4 border-b border-mbi-hairline-soft">
+              <h2 className="text-sm font-bold text-mbi-navy">Coupon History ({coupons.length})</h2>
             </div>
             {coupons.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 text-sm">No coupons issued yet.</div>
+              <div className="text-center py-12 text-mbi-slate text-sm">No coupons issued yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Amount</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Earned</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Used On</th>
+                    <tr className="border-b border-mbi-hairline-soft bg-mbi-surface-soft">
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Customer</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Amount</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Status</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Earned</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Used On</th>
                     </tr>
                   </thead>
                   <tbody>
                     {coupons.map(c => (
-                      <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3 font-semibold text-[#1e2d3d]">{customerName(c.customer_id)}</td>
-                        <td className="px-4 py-3 text-gray-600">GHS {Number(c.amount).toLocaleString()}</td>
+                      <tr key={c.id} className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft transition-colors">
+                        <td className="px-5 py-3 font-semibold text-mbi-navy">{customerName(c.customer_id)}</td>
+                        <td className="px-4 py-3 text-mbi-navy-body">GHS {Number(c.amount).toLocaleString()}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[c.status] ?? STATUS_COLORS.used}`}>
                             {c.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                        <td className="px-4 py-3 text-mbi-slate whitespace-nowrap">
                           {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                         </td>
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{c.used_order_id ?? "—"}</td>
+                        <td className="px-4 py-3 text-mbi-slate whitespace-nowrap">{c.used_order_id ?? "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -163,30 +163,30 @@ export default function AdminCouponsPage() {
           </div>
 
           {/* Referral history */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="text-sm font-bold text-[#1e2d3d]">Referral History ({referrals.length})</h2>
+          <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden">
+            <div className="px-5 py-4 border-b border-mbi-hairline-soft">
+              <h2 className="text-sm font-bold text-mbi-navy">Referral History ({referrals.length})</h2>
             </div>
             {referrals.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 text-sm">No referrals yet.</div>
+              <div className="text-center py-12 text-mbi-slate text-sm">No referrals yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Referrer</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Referred</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Code Used</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Date</th>
+                    <tr className="border-b border-mbi-hairline-soft bg-mbi-surface-soft">
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Referrer</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Referred</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Code Used</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {referrals.map(r => (
-                      <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3 font-semibold text-[#1e2d3d]">{customerName(r.referrer_customer_id)}</td>
-                        <td className="px-4 py-3 text-gray-600">{customerName(r.referred_customer_id)}</td>
-                        <td className="px-4 py-3 text-gray-500 font-mono">{r.referral_code_used}</td>
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      <tr key={r.id} className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft transition-colors">
+                        <td className="px-5 py-3 font-semibold text-mbi-navy">{customerName(r.referrer_customer_id)}</td>
+                        <td className="px-4 py-3 text-mbi-navy-body">{customerName(r.referred_customer_id)}</td>
+                        <td className="px-4 py-3 text-mbi-slate font-mono">{r.referral_code_used}</td>
+                        <td className="px-4 py-3 text-mbi-slate whitespace-nowrap">
                           {new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                         </td>
                       </tr>

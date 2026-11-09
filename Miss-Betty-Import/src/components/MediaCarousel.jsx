@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { imgFallback, thumbUrl } from "../lib/imageUrl";
+import { photoButtonClass, photoIconClass } from "../lib/photoButton";
 
 const SLIDE_INTERVAL = 4000;
 
@@ -17,8 +18,8 @@ const ChevronRight = () => (
   </svg>
 );
 const ExpandIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-    fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" className={photoIconClass}
+    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="15 3 21 3 21 9"/>
     <polyline points="9 21 3 21 3 15"/>
     <line x1="21" y1="3" x2="14" y2="10"/>
@@ -26,8 +27,8 @@ const ExpandIcon = () => (
   </svg>
 );
 const DownloadIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-    fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" className={photoIconClass}
+    fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
     <polyline points="7 10 12 15 17 10"/>
     <line x1="12" y1="15" x2="12" y2="3"/>
@@ -52,9 +53,9 @@ const PlayBadge = ({ size = 18 }) => (
 );
 
 const ImagePlaceholder = ({ heightClass }) => (
-  <div className={`w-full ${heightClass} bg-gray-100 flex items-center justify-center`}>
+  <div className={`w-full ${heightClass} bg-mbi-surface-soft text-mbi-slate flex items-center justify-center`}>
     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"
-      fill="none" stroke="#d1d5db" strokeWidth="1.5">
+      fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <rect x="3" y="3" width="18" height="18" rx="2"/>
       <circle cx="8.5" cy="8.5" r="1.5"/>
       <polyline points="21 15 16 10 5 21"/>
@@ -98,8 +99,14 @@ function startMuted(el) {
   el.play?.().catch(() => { /* blocked by the browser: the customer can press play */ });
 }
 
+const reducedMotion = () => {
+  try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
+};
+
 // Browsers without the Network Information API (e.g. Safari) count as a good connection.
+// Reduced motion counts too: the video then waits for a tap.
 const slowOrSaving = () => {
+  if (reducedMotion()) return true;
   try {
     const c = navigator.connection;
     return Boolean(c?.saveData) || ["slow-2g", "2g", "3g"].includes(c?.effectiveType);
@@ -131,7 +138,7 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
     if (at >= 0) { setIdx(at); setAutoKey(k => k + 1); }
   }
   const showingVideo = items[idx]?.type === "video";
-  const sliding = autoSlide && !showingVideo && items.length > 1;
+  const sliding = autoSlide && !showingVideo && items.length > 1 && !reducedMotion();
 
   // Auto-slide: runs every SLIDE_INTERVAL ms unless hovered.
   // autoKey dependency means any manual navigation resets the countdown.
@@ -169,12 +176,11 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
   if (items.length === 0) return <ImagePlaceholder heightClass={heightClass} />;
 
   const item     = items[idx] ?? items[0];
-  const btnClass = "bg-black/50 hover:bg-black/75 text-white rounded-lg p-1.5 transition-colors flex items-center justify-center";
 
   return (
     <>
       <div
-        className="relative w-full overflow-hidden bg-black"
+        className="relative w-full overflow-hidden bg-mbi-surface-soft"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
@@ -237,14 +243,14 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
             <button
               onClick={prev}
               aria-label="Previous"
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/65 text-white rounded-full p-1.5 transition-colors z-10"
+              className="mbi-press absolute left-3 top-1/2 -translate-y-1/2 grid place-items-center size-10 rounded-full bg-white/95 text-mbi-navy shadow-mbi-float hover:bg-white z-10"
             >
               <ChevronLeft />
             </button>
             <button
               onClick={next}
               aria-label="Next"
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/65 text-white rounded-full p-1.5 transition-colors z-10"
+              className="mbi-press absolute right-3 top-1/2 -translate-y-1/2 grid place-items-center size-10 rounded-full bg-white/95 text-mbi-navy shadow-mbi-float hover:bg-white z-10"
             >
               <ChevronRight />
             </button>
@@ -253,12 +259,12 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
 
         {/* ── Action buttons (images only) ── */}
         {item.type === "image" && (
-          <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 z-10">
+          <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-2.5 z-10">
             <button
               title="Expand"
               aria-label="Expand image"
               onClick={() => setLightbox(true)}
-              className={btnClass}
+              className={photoButtonClass}
             >
               <ExpandIcon />
             </button>
@@ -266,7 +272,7 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
               title="Download"
               aria-label="Download image"
               onClick={() => triggerDownload(item.url, `${name}-${idx + 1}.jpg`)}
-              className={btnClass}
+              className={photoButtonClass}
             >
               <DownloadIcon />
             </button>
@@ -282,8 +288,8 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
                 onClick={() => goTo(i)}
                 aria-label={`Go to slide ${i + 1}`}
                 style={{ pointerEvents: "auto" }}
-                className={`rounded-full transition-all duration-300 ${
-                  i === idx ? "w-5 h-2 bg-white" : "w-2 h-2 bg-white/50 hover:bg-white/80"
+                className={`rounded-full shadow-[0_1px_2px_rgba(15,23,32,0.35)] transition-[width,background-color] duration-200 ease-mbi-out ${
+                  i === idx ? "w-5 h-2 bg-white" : "w-2 h-2 bg-white/60 hover:bg-white/90"
                 }`}
               />
             ))}
@@ -292,7 +298,7 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
 
         {/* ── Slide counter — top-right ── */}
         {items.length > 1 && (
-          <span className="absolute top-2.5 right-2.5 bg-black/40 text-white text-xs font-semibold px-2 py-0.5 rounded-full z-10 select-none">
+          <span className="absolute top-3 right-3 bg-white/95 text-mbi-navy text-xs font-bold tabular px-2.5 py-1 rounded-full z-10 select-none">
             {idx + 1} / {items.length}
           </span>
         )}
@@ -311,7 +317,7 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
 
       {/* ── Thumbnail strip ── */}
       {thumbnails && items.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto p-2 bg-white" role="tablist" aria-label="Product media">
+        <div className="flex gap-2 overflow-x-auto py-2.5 bg-white" role="tablist" aria-label="Product media">
           {items.map((m, i) => (
             <button
               key={m.url}
@@ -320,8 +326,8 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
               aria-selected={i === idx}
               aria-label={m.type === "video" ? `Play video ${i + 1}` : m.type === "tiktok" ? "TikTok video" : `Image ${i + 1}`}
               onClick={() => goTo(i)}
-              className={`relative flex-shrink-0 w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-xl overflow-hidden border-2 transition-colors ${
-                i === idx ? "border-[#F2AA25]" : "border-transparent hover:border-gray-300"
+              className={`mbi-press relative flex-shrink-0 w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-lg overflow-hidden border-2 ${
+                i === idx ? "border-mbi-navy" : "border-transparent hover:border-mbi-hairline"
               }`}
             >
               {m.type === "image" ? (
@@ -330,14 +336,13 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
                 <>
                   {m.poster
                     ? <img src={thumbUrl(m.poster, 160)} onError={imgFallback(m.poster)} alt="" loading="lazy" className="w-full h-full object-cover" />
-                    : <span className="block w-full h-full bg-[#1e2d3d]" />}
-                  <span className="absolute inset-0 flex items-center justify-center bg-black/25">
-                    <span className="w-7 h-7 rounded-full bg-black/60 flex items-center justify-center pl-0.5"><PlayBadge size={14} /></span>
+                    : <span className="block w-full h-full bg-mbi-navy" />}
+                  <span className="absolute inset-0 flex items-center justify-center bg-mbi-navy/20">
+                    <span className="w-7 h-7 rounded-full bg-mbi-navy/80 flex items-center justify-center pl-0.5"><PlayBadge size={14} /></span>
                   </span>
-                  <span className="absolute bottom-0.5 left-0.5 text-[9px] font-bold text-white bg-black/60 px-1 rounded">VIDEO</span>
                 </>
               ) : (
-                <span className="w-full h-full bg-black flex items-center justify-center text-[10px] font-bold text-white">TikTok</span>
+                <span className="w-full h-full bg-black flex items-center justify-center text-xs font-bold text-white">TikTok</span>
               )}
             </button>
           ))}
@@ -347,14 +352,18 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
       {/* ── Lightbox ── */}
       {lightbox && item.type === "image" && (
         <div
-          className="fixed inset-0 z-[60] bg-black/92 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] bg-[#0f1720]/95 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${name} photo`}
           onClick={() => setLightbox(false)}
         >
           {/* Download button */}
           <button
             onClick={(e) => { e.stopPropagation(); triggerDownload(item.url, `${name}-${idx + 1}.jpg`); }}
-            className="absolute top-4 left-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+            className="mbi-press absolute top-4 left-4 grid place-items-center size-11 rounded-full bg-white/10 text-white hover:bg-white/20"
             title="Download image"
+            aria-label="Download image"
           >
             <DownloadIcon />
           </button>
@@ -362,7 +371,7 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
           {/* Close button */}
           <button
             onClick={() => setLightbox(false)}
-            className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+            className="mbi-press absolute top-4 right-4 grid place-items-center size-11 rounded-full bg-white/10 text-white hover:bg-white/20"
             aria-label="Close"
           >
             <CloseIcon />
@@ -371,7 +380,7 @@ export default function MediaCarousel({ media, heightClass = "h-56 sm:h-72", nam
           <img
             src={item.url}
             alt={name}
-            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl"
+            className="max-w-full max-h-[90vh] object-contain rounded-mbi-card"
             onClick={(e) => e.stopPropagation()}
           />
         </div>

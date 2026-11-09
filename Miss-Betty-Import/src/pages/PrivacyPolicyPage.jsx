@@ -4,15 +4,15 @@ import useSeo from "../hooks/useSeo";
 export default function PrivacyPolicyPage() {
   useSeo({ title: "Privacy Policy", description: "How Miss Betty Import collects, uses and protects your personal information, in line with Ghana’s Data Protection Act, 2012 (Act 843).", path: "/privacy-policy" });
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-white">
       {/* Header */}
-      <div className="bg-[#1e2d3d] text-white py-10 px-4 text-center">
+      <div className="bg-mbi-navy text-white py-10 px-4 text-center">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-gray-300 text-sm">Last updated: October 2026</p>
+        <p className="text-white/70 text-sm">Last updated: October 2026</p>
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto px-4 py-10 sm:py-14 space-y-8 text-gray-700 text-sm sm:text-base leading-relaxed">
+      <div className="max-w-3xl mx-auto px-4 py-10 sm:py-14 space-y-8 text-mbi-navy-body text-sm sm:text-base leading-relaxed">
 
         <section>
           <p>
@@ -137,14 +137,14 @@ export default function PrivacyPolicyPage() {
                 href="https://wa.me/233202697541"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#F2AA25] hover:underline"
+                className="text-mbi-amber-ink hover:underline"
               >
                 +233 20 269 7541
               </a>
             </li>
             <li>
               <strong>Contact form:</strong>{" "}
-              <Link to="/contact" className="text-[#F2AA25] hover:underline">
+              <Link to="/contact" className="text-mbi-amber-ink hover:underline">
                 missbettyimport.vercel.app/contact
               </Link>
             </li>
@@ -164,17 +164,13 @@ export default function PrivacyPolicyPage() {
         </Section>
 
         {/* Back link */}
-        <div className="pt-4 border-t border-gray-200">
-          <Link to="/" className="text-[#F2AA25] hover:underline text-sm">
+        <div className="pt-4 border-t border-mbi-hairline">
+          <Link to="/" className="text-mbi-amber-ink hover:underline text-sm">
             &larr; Back to Home
           </Link>
         </div>
       </div>
 
-      {/* Simple footer */}
-      <div className="bg-[#1e2d3d] text-center text-gray-500 text-xs py-5 px-4">
-        © {new Date().getFullYear()} Miss Betty Import. All rights reserved.
-      </div>
     </div>
   );
 }
@@ -182,7 +178,7 @@ export default function PrivacyPolicyPage() {
 function Section({ title, children }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-base sm:text-lg font-semibold text-[#1e2d3d]">{title}</h2>
+      <h2 className="text-base sm:text-lg font-semibold text-mbi-navy">{title}</h2>
       {children}
     </section>
   );

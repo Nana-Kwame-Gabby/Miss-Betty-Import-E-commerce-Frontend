@@ -8,24 +8,24 @@ import PeriodSwitcher from "../../components/PeriodSwitcher";
 const STATUS_OPTIONS = ["Ordered", "Processing", "Delivered", "Cancelled"];
 const STATUS_COLORS = {
   Ordered:    "bg-teal-100 text-teal-700",
-  Pending:    "bg-amber-100 text-amber-700",
-  Processing: "bg-blue-100 text-blue-700",
-  Delivered:  "bg-green-100 text-green-700",
-  Cancelled:  "bg-red-100 text-red-700",
+  Pending:    "bg-mbi-amber-tint text-mbi-amber-ink",
+  Processing: "bg-mbi-preorder-tint text-mbi-navy",
+  Delivered:  "bg-mbi-available-tint text-mbi-available",
+  Cancelled:  "bg-mbi-error-tint text-mbi-error",
   // Offline invoices show their payment status
-  Paid:             "bg-green-100 text-green-700",
-  'Partially paid': "bg-amber-100 text-amber-700",
-  Unpaid:           "bg-gray-100 text-gray-600",
+  Paid:             "bg-mbi-available-tint text-mbi-available",
+  'Partially paid': "bg-mbi-amber-tint text-mbi-amber-ink",
+  Unpaid:           "bg-mbi-surface-soft text-mbi-slate",
 };
 
 const PRODUCT_TYPE_COLORS = {
-  'Available': 'bg-green-100 text-green-700',
+  'Available': 'bg-mbi-available-tint text-mbi-available',
   'Pre-order': 'bg-teal-100 text-teal-700',
 };
 function ProductTypeBadge({ status }) {
-  if (!status) return <span className="text-gray-400 text-xs">—</span>;
+  if (!status) return <span className="text-mbi-slate text-xs">—</span>;
   return (
-    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${PRODUCT_TYPE_COLORS[status] ?? 'bg-gray-100 text-gray-500'}`}>
+    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${PRODUCT_TYPE_COLORS[status] ?? 'bg-mbi-surface-soft text-mbi-slate'}`}>
       {status}
     </span>
   );
@@ -69,9 +69,9 @@ function InvoiceModal({ invoice, onClose, onCancelLine, cancellingLineId, notice
   if (!invoice) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 print:bg-white print:inset-auto print:fixed print:top-0 print:left-0">
-      <div id="invoice-print-area" className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto print:rounded-none print:shadow-none print:max-h-none print:overflow-visible">
+      <div id="invoice-print-area" className="bg-white rounded-mbi-card shadow-mbi-float w-full max-w-2xl max-h-[90vh] overflow-y-auto print:rounded-none print:shadow-none print:max-h-none print:overflow-visible">
         <div className="flex justify-end px-6 pt-5 print:hidden">
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-mbi-slate hover:text-mbi-navy-body">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
@@ -80,14 +80,14 @@ function InvoiceModal({ invoice, onClose, onCancelLine, cancellingLineId, notice
           {/* Invoice Header */}
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-[#1e2d3d]">INVOICE</h2>
-              <p className="text-sm text-gray-500 mt-0.5">#{invoice.invoice_id}</p>
+              <h2 className="text-2xl font-bold text-mbi-navy">INVOICE</h2>
+              <p className="text-sm text-mbi-slate mt-0.5">#{invoice.invoice_id}</p>
             </div>
             <div className="text-right">
-              <p className="font-bold text-[#1e2d3d]">Miss Betty Import</p>
-              <p className="text-xs text-gray-400">Ghana</p>
+              <p className="font-bold text-mbi-navy">Miss Betty Import</p>
+              <p className="text-xs text-mbi-slate">Ghana</p>
               {invoice.date && (
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-mbi-slate mt-1">
                   {new Date(invoice.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </p>
               )}
@@ -95,14 +95,14 @@ function InvoiceModal({ invoice, onClose, onCancelLine, cancellingLineId, notice
           </div>
 
           {/* Bill To */}
-          <div className="bg-gray-50 rounded-xl px-4 py-3 mb-6">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Bill To</p>
-            <p className="font-bold text-[#1e2d3d]">{invoice.customer_name}</p>
+          <div className="bg-mbi-surface-soft rounded-lg px-4 py-3 mb-6">
+            <p className="text-xs font-semibold text-mbi-slate uppercase tracking-wide mb-1">Bill To</p>
+            <p className="font-bold text-mbi-navy">{invoice.customer_name}</p>
           </div>
 
           {notice && (
-            <div className={`mb-4 rounded-xl px-3 py-2.5 text-xs font-medium border print:hidden ${
-              notice.type === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'
+            <div className={`mb-4 rounded-lg px-3 py-2.5 text-xs font-medium border print:hidden ${
+              notice.type === 'error' ? 'bg-mbi-error-tint border-mbi-error/30 text-mbi-error' : 'bg-mbi-available-tint border-mbi-available/30 text-mbi-available'
             }`}>
               {notice.msg}
             </div>
@@ -111,40 +111,40 @@ function InvoiceModal({ invoice, onClose, onCancelLine, cancellingLineId, notice
           {/* Items Table */}
           <table className="w-full text-sm mb-6">
             <thead>
-              <tr className="border-b-2 border-[#1e2d3d]">
-                <th className="text-left py-2 text-xs font-semibold text-[#1e2d3d] uppercase">Product</th>
-                <th className="text-center py-2 text-xs font-semibold text-[#1e2d3d] uppercase hidden sm:table-cell">Size</th>
-                <th className="text-center py-2 text-xs font-semibold text-[#1e2d3d] uppercase hidden sm:table-cell">Colour</th>
-                <th className="text-center py-2 text-xs font-semibold text-[#1e2d3d] uppercase hidden sm:table-cell">Type</th>
-                <th className="text-center py-2 text-xs font-semibold text-[#1e2d3d] uppercase">Qty</th>
-                <th className="text-right py-2 text-xs font-semibold text-[#1e2d3d] uppercase">Unit Price</th>
-                <th className="text-right py-2 text-xs font-semibold text-[#1e2d3d] uppercase">Total</th>
+              <tr className="border-b-2 border-mbi-navy">
+                <th className="text-left py-2 text-xs font-semibold text-mbi-navy uppercase">Product</th>
+                <th className="text-center py-2 text-xs font-semibold text-mbi-navy uppercase hidden sm:table-cell">Size</th>
+                <th className="text-center py-2 text-xs font-semibold text-mbi-navy uppercase hidden sm:table-cell">Colour</th>
+                <th className="text-center py-2 text-xs font-semibold text-mbi-navy uppercase hidden sm:table-cell">Type</th>
+                <th className="text-center py-2 text-xs font-semibold text-mbi-navy uppercase">Qty</th>
+                <th className="text-right py-2 text-xs font-semibold text-mbi-navy uppercase">Unit Price</th>
+                <th className="text-right py-2 text-xs font-semibold text-mbi-navy uppercase">Total</th>
                 <th className="py-2 print:hidden" />
               </tr>
             </thead>
             <tbody>
               {invoice.items.map((item, i) => (
-                <tr key={i} className={`border-b border-gray-100 ${item.cancelled ? 'text-gray-400 print:hidden' : ''}`}>
+                <tr key={i} className={`border-b border-mbi-hairline-soft ${item.cancelled ? 'text-mbi-slate print:hidden' : ''}`}>
                   <td className="py-2.5">
-                    <span className={item.cancelled ? 'line-through' : 'text-[#1e2d3d]'}>{item.product_name}</span>
+                    <span className={item.cancelled ? 'line-through' : 'text-mbi-navy'}>{item.product_name}</span>
                     {item.cancelled && (
-                      <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700 no-underline">Cancelled</span>
+                      <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-mbi-error-tint text-mbi-error no-underline">Cancelled</span>
                     )}
                   </td>
-                  <td className="py-2.5 text-center text-gray-500 hidden sm:table-cell">{item.size ?? '—'}</td>
-                  <td className="py-2.5 text-center text-gray-500 hidden sm:table-cell">{item.colour ?? '—'}</td>
+                  <td className="py-2.5 text-center text-mbi-slate hidden sm:table-cell">{item.size ?? '—'}</td>
+                  <td className="py-2.5 text-center text-mbi-slate hidden sm:table-cell">{item.colour ?? '—'}</td>
                   <td className="py-2.5 text-center hidden sm:table-cell">
                     <ProductTypeBadge status={item.product_status_name} />
                   </td>
-                  <td className={`py-2.5 text-center text-gray-500 ${item.cancelled ? 'line-through' : ''}`}>{item.quantity}</td>
-                  <td className={`py-2.5 text-right text-gray-500 ${item.cancelled ? 'line-through' : ''}`}>GHS {Number(item.unit_price).toLocaleString()}</td>
-                  <td className={`py-2.5 text-right font-semibold ${item.cancelled ? 'line-through' : 'text-[#1e2d3d]'}`}>GHS {Number(item.total).toLocaleString()}</td>
+                  <td className={`py-2.5 text-center text-mbi-slate ${item.cancelled ? 'line-through' : ''}`}>{item.quantity}</td>
+                  <td className={`py-2.5 text-right text-mbi-slate ${item.cancelled ? 'line-through' : ''}`}>GHS {Number(item.unit_price).toLocaleString()}</td>
+                  <td className={`py-2.5 text-right font-semibold ${item.cancelled ? 'line-through' : 'text-mbi-navy'}`}>GHS {Number(item.total).toLocaleString()}</td>
                   <td className="py-2.5 pl-3 text-right print:hidden">
                     {!item.cancelled && item.order_line_id && (
                       <button
                         onClick={() => onCancelLine(item)}
                         disabled={cancellingLineId != null}
-                        className="text-[11px] font-semibold text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 rounded-lg px-2 py-1 whitespace-nowrap transition-colors disabled:opacity-50"
+                        className="text-xs font-semibold text-mbi-error hover:text-mbi-error border border-mbi-error/30 hover:border-mbi-error rounded-lg px-2 py-1 whitespace-nowrap transition-colors disabled:opacity-50"
                       >
                         {cancellingLineId === item.order_line_id ? 'Cancelling…' : 'Cancel product'}
                       </button>
@@ -154,15 +154,15 @@ function InvoiceModal({ invoice, onClose, onCancelLine, cancellingLineId, notice
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t-2 border-[#1e2d3d]">
+              <tr className="border-t-2 border-mbi-navy">
                 <td colSpan={4} className="py-3 hidden sm:table-cell" />
-                <td colSpan={2} className="py-3 text-right font-bold text-[#1e2d3d] text-base">Grand Total</td>
-                <td className="py-3 text-right font-bold text-[#F2AA25] text-base">GHS {invoice.total.toLocaleString()}</td>
+                <td colSpan={2} className="py-3 text-right font-bold text-mbi-navy text-base">Grand Total</td>
+                <td className="py-3 text-right font-bold text-mbi-amber-ink text-base">GHS {invoice.total.toLocaleString()}</td>
                 <td className="print:hidden" />
               </tr>
               {invoice.cancelled_count > 0 && (
                 <tr className="print:hidden">
-                  <td colSpan={8} className="pt-1 text-right text-[11px] text-gray-400">
+                  <td colSpan={8} className="pt-1 text-right text-xs text-mbi-slate">
                     Excludes {invoice.cancelled_count} cancelled product{invoice.cancelled_count !== 1 ? 's' : ''}
                   </td>
                 </tr>
@@ -174,7 +174,7 @@ function InvoiceModal({ invoice, onClose, onCancelLine, cancellingLineId, notice
           <div className="flex justify-end print:hidden">
             <button
               onClick={() => window.print()}
-              className="bg-[#1e2d3d] text-white font-bold text-sm px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity flex items-center gap-2"
+              className="mbi-press bg-mbi-navy text-white font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-mbi-navy-hover transition-colors flex items-center gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
               Print Invoice
@@ -414,14 +414,14 @@ export default function AdminInvoicesPage() {
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
-        <h1 className="text-xl font-bold text-[#1e2d3d]">Invoices</h1>
+        <h1 className="text-2xl font-bold tracking-[-0.4px] text-mbi-navy">Invoices</h1>
         <PeriodSwitcher periods={periods} selectedId={selectedId} activeId={activePeriod?.id} onChange={selectPeriod} loading={periodsLoading} />
       </div>
-      <p className="text-sm text-gray-400 mb-4">All customer invoices — update order status here, or open an invoice to cancel a single product</p>
+      <p className="text-sm text-mbi-slate mb-4">All customer invoices — update order status here, or open an invoice to cancel a single product</p>
 
       {notice && !selected && (
-        <div className={`mb-4 rounded-xl px-4 py-3 text-sm font-medium border flex items-start justify-between gap-3 ${
-          notice.type === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'
+        <div className={`mb-4 rounded-lg px-4 py-3 text-sm font-medium border flex items-start justify-between gap-3 ${
+          notice.type === 'error' ? 'bg-mbi-error-tint border-mbi-error/30 text-mbi-error' : 'bg-mbi-available-tint border-mbi-available/30 text-mbi-available'
         }`}>
           <span>{notice.msg}</span>
           <button onClick={() => setNotice(null)} aria-label="Dismiss" className="opacity-60 hover:opacity-100">✕</button>
@@ -431,19 +431,19 @@ export default function AdminInvoicesPage() {
       {/* Search bar + Download */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="relative max-w-sm flex-1">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-mbi-slate" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search by customer name or Invoice ID…"
-            className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-sm outline-none focus:border-[#F2AA25] transition-colors"
+            className="w-full border border-mbi-hairline rounded-lg pl-9 pr-4 py-2 text-sm outline-none focus:border-mbi-navy transition-colors"
           />
           {query && (
             <button
               onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-mbi-slate hover:text-mbi-navy-body"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
@@ -454,10 +454,10 @@ export default function AdminInvoicesPage() {
             <button
               key={f.key}
               onClick={() => setSource(f.key)}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors whitespace-nowrap ${
+              className={`mbi-press inline-flex h-9 items-center text-sm font-medium px-3.5 rounded-full border transition-colors whitespace-nowrap ${
                 source === f.key
-                  ? "bg-[#F2AA25] text-white border-[#F2AA25]"
-                  : "border-gray-200 text-gray-500 hover:border-[#F2AA25] hover:text-[#F2AA25]"
+                  ? "bg-mbi-navy text-white border-mbi-navy"
+                  : "bg-white border-mbi-navy/20 text-mbi-navy hover:border-mbi-navy"
               }`}
             >
               {f.label}
@@ -467,7 +467,7 @@ export default function AdminInvoicesPage() {
         <button
           onClick={handleDownloadExcel}
           disabled={loading || filtered.length === 0}
-          className="flex items-center gap-2 bg-[#1e2d3d] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+          className="mbi-press flex items-center gap-2 bg-mbi-navy text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-mbi-navy-hover transition-colors disabled:opacity-40"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -477,7 +477,7 @@ export default function AdminInvoicesPage() {
         <button
           onClick={() => setConfirmDelete(true)}
           disabled={loading || sourceInvoices.length === 0}
-          className="flex items-center gap-2 bg-red-500 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
+          className="flex items-center gap-2 bg-mbi-error text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-mbi-error/90 transition-colors disabled:opacity-40"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
@@ -489,64 +489,64 @@ export default function AdminInvoicesPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-mbi-navy border-t-transparent rounded-full animate-spin" />
         </div>
       ) : sourceInvoices.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
+        <div className="bg-white rounded-mbi-card border border-mbi-hairline p-12 text-center text-mbi-slate text-sm">
           {source === 'online' ? 'No online invoices yet.' : source === 'offline' ? 'No offline invoices yet.' : 'No invoices yet.'}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
+        <div className="bg-white rounded-mbi-card border border-mbi-hairline p-12 text-center text-mbi-slate text-sm">
           No invoices match <strong>"{query}"</strong>.
         </div>
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-mbi-card border border-mbi-hairline overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Invoice #</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Customer</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Date</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden sm:table-cell">Product Type</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide hidden md:table-cell">Items</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Total</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+              <tr className="border-b border-mbi-hairline-soft bg-mbi-surface-soft">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Invoice #</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Customer</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden sm:table-cell">Date</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden sm:table-cell">Product Type</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide hidden md:table-cell">Items</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Total</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-mbi-slate uppercase tracking-wide">Status</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {filtered.map(inv => (
-                <tr key={inv.invoice_id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-3 font-semibold text-[#1e2d3d] text-xs">
+                <tr key={inv.invoice_id} className="border-b border-mbi-hairline-soft hover:bg-mbi-surface-soft transition-colors">
+                  <td className="px-5 py-3 font-semibold text-mbi-navy text-xs">
                     {inv.invoice_id}
                     {inv.source === 'offline' && (
-                      <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 whitespace-nowrap">Offline</span>
+                      <span className="ml-1.5 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-mbi-surface-soft text-mbi-slate whitespace-nowrap">Offline</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-[#1e2d3d]">{inv.customer_name}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">
+                  <td className="px-4 py-3 text-mbi-navy">{inv.customer_name}</td>
+                  <td className="px-4 py-3 text-mbi-slate text-xs hidden sm:table-cell">
                     {inv.date ? new Date(inv.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
                     {(() => {
                       const types = [...new Set(inv.items.map(i => i.product_status_name).filter(Boolean))];
-                      if (types.length === 0) return <span className="text-gray-400 text-xs">—</span>;
+                      if (types.length === 0) return <span className="text-mbi-slate text-xs">—</span>;
                       if (types.length === 1) return <ProductTypeBadge status={types[0]} />;
-                      return <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 whitespace-nowrap">Mixed</span>;
+                      return <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-mbi-surface-strong text-mbi-navy whitespace-nowrap">Mixed</span>;
                     })()}
                   </td>
-                  <td className="px-4 py-3 text-gray-400 hidden md:table-cell">
+                  <td className="px-4 py-3 text-mbi-slate hidden md:table-cell">
                     {inv.active_count} item{inv.active_count !== 1 ? 's' : ''}
-                    {inv.cancelled_count > 0 && <span className="text-red-400"> · {inv.cancelled_count} cancelled</span>}
+                    {inv.cancelled_count > 0 && <span className="text-mbi-error"> · {inv.cancelled_count} cancelled</span>}
                   </td>
-                  <td className="px-4 py-3 text-right font-bold text-[#F2AA25]">GHS {inv.total.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right font-bold text-mbi-amber-ink">GHS {inv.total.toLocaleString()}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[inv.order_status] ?? 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[inv.order_status] ?? 'bg-mbi-surface-soft text-mbi-navy-body'}`}>
                         {inv.order_status}
                       </span>
                       {inv.source === 'offline' ? (
-                        <Link to="/admin/offline-buyers" className="text-[11px] font-semibold text-gray-400 hover:text-[#F2AA25] whitespace-nowrap">
+                        <Link to="/admin/offline-buyers" className="text-xs font-semibold text-mbi-slate hover:text-mbi-amber-ink whitespace-nowrap">
                           Manage in Offline Buyers
                         </Link>
                       ) : (
@@ -554,7 +554,7 @@ export default function AdminInvoicesPage() {
                           value={inv.order_status}
                           disabled={updatingId === inv.invoice_id}
                           onChange={e => handleStatusChange(inv.invoice_id, e.target.value)}
-                          className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-[#F2AA25] disabled:opacity-60 cursor-pointer"
+                          className="text-xs border border-mbi-hairline rounded-lg px-2 py-1 outline-none focus:border-mbi-navy disabled:opacity-60 cursor-pointer"
                         >
                           {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
@@ -564,7 +564,7 @@ export default function AdminInvoicesPage() {
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => setSelected(inv)}
-                      className="text-xs font-semibold text-[#1e2d3d] hover:text-[#F2AA25] transition-colors"
+                      className="text-xs font-semibold text-mbi-navy hover:text-mbi-amber-ink transition-colors"
                     >
                       View
                     </button>
@@ -586,11 +586,11 @@ export default function AdminInvoicesPage() {
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
-            <h3 className="text-base font-bold text-[#1e2d3d] mb-2">
+          <div className="bg-white rounded-mbi-card shadow-mbi-float p-6 max-w-sm w-full">
+            <h3 className="text-base font-bold text-mbi-navy mb-2">
               {source === 'online' ? 'Delete All Online Invoices?' : source === 'offline' ? 'Clear All Offline Invoices?' : 'Delete All Invoices?'}
             </h3>
-            <div className="text-sm text-gray-500 mb-5 space-y-2">
+            <div className="text-sm text-mbi-slate mb-5 space-y-2">
               {source !== 'offline' && onlineCount > 0 && (
                 <p>This will permanently delete {onlineCount} online invoice record{onlineCount !== 1 ? 's' : ''} for this period. This can't be undone.</p>
               )}
@@ -601,14 +601,14 @@ export default function AdminInvoicesPage() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setConfirmDelete(false)}
-                className="text-sm font-semibold px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50"
+                className="text-sm font-semibold px-4 py-2 rounded-lg border border-mbi-hairline hover:bg-mbi-surface-soft"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAll}
                 disabled={deleting}
-                className="text-sm font-semibold px-4 py-2 rounded-xl bg-red-500 text-white hover:opacity-90 disabled:opacity-60"
+                className="text-sm font-semibold px-4 py-2 rounded-lg bg-mbi-error text-white hover:bg-mbi-error/90 disabled:opacity-60"
               >
                 {deleting ? 'Deleting…' : 'Delete All'}
               </button>

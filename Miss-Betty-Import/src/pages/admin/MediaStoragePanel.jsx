@@ -61,67 +61,67 @@ export default function MediaStoragePanel({ onChanged }) {
     setBusy("");
   }
 
-  const btn = "px-3 py-2 rounded-xl text-xs font-semibold transition-colors disabled:opacity-40";
+  const btn = "px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40";
   return (
-    <div className="bg-white rounded-2xl shadow-sm mb-6">
+    <div className="bg-white rounded-mbi-card border border-mbi-hairline mb-6">
       <button type="button" onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-5 py-3 text-left">
         <span>
-          <span className="text-sm font-bold text-[#1e2d3d]">Media storage</span>
-          <span className="text-xs text-gray-400 ml-2">Cloudflare R2 · move existing media and clean up unused files</span>
+          <span className="text-sm font-bold text-mbi-navy">Media storage</span>
+          <span className="text-xs text-mbi-slate ml-2">Cloudflare R2 · move existing media and clean up unused files</span>
         </span>
-        <span className="text-gray-400 text-sm">{open ? "▲" : "▼"}</span>
+        <span className="text-mbi-slate text-sm">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
         <div className="px-5 pb-5 space-y-4">
           <div className="grid sm:grid-cols-3 gap-3">
-            <div className="border border-gray-100 rounded-xl p-3">
-              <p className="text-xs font-bold text-[#1e2d3d] mb-1">1. Move existing media to R2</p>
-              <p className="text-[11px] text-gray-500 mb-2">Copies every product image (and any uploaded video) from Supabase to R2 and updates the products. Safe to run again; finished products are skipped.</p>
-              <button onClick={moveAll} disabled={!!busy} className={`${btn} bg-[#1e2d3d] text-white hover:opacity-90`}>
+            <div className="border border-mbi-hairline-soft rounded-lg p-3">
+              <p className="text-xs font-bold text-mbi-navy mb-1">1. Move existing media to R2</p>
+              <p className="text-xs text-mbi-slate mb-2">Copies every product image (and any uploaded video) from Supabase to R2 and updates the products. Safe to run again; finished products are skipped.</p>
+              <button onClick={moveAll} disabled={!!busy} className={`${btn} bg-mbi-navy text-white hover:bg-mbi-navy-hover`}>
                 {busy === "migrate" ? "Moving…" : "Move media to R2"}
               </button>
               {progress && (
                 <div className="mt-2">
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#F2AA25]" style={{ width: `${(progress.moved / Math.max(1, progress.moved + progress.remaining)) * 100}%` }} />
+                  <div className="h-1.5 bg-mbi-surface-soft rounded-full overflow-hidden">
+                    <div className="h-full bg-mbi-amber" style={{ width: `${(progress.moved / Math.max(1, progress.moved + progress.remaining)) * 100}%` }} />
                   </div>
-                  <p className="text-[11px] text-gray-500 mt-1">{progress.moved} moved · {progress.remaining} still on Supabase</p>
+                  <p className="text-xs text-mbi-slate mt-1">{progress.moved} moved · {progress.remaining} still on Supabase</p>
                 </div>
               )}
             </div>
-            <div className="border border-gray-100 rounded-xl p-3">
-              <p className="text-xs font-bold text-[#1e2d3d] mb-1">2. Delete old Supabase copies</p>
-              <p className="text-[11px] text-gray-500 mb-2">After checking the shop looks right, remove the Supabase copies of media that now lives on R2. Only copies no product uses are deleted.</p>
-              <button onClick={() => check("cleanup")} disabled={!!busy} className={`${btn} border border-gray-300 text-gray-700 hover:border-gray-400`}>
+            <div className="border border-mbi-hairline-soft rounded-lg p-3">
+              <p className="text-xs font-bold text-mbi-navy mb-1">2. Delete old Supabase copies</p>
+              <p className="text-xs text-mbi-slate mb-2">After checking the shop looks right, remove the Supabase copies of media that now lives on R2. Only copies no product uses are deleted.</p>
+              <button onClick={() => check("cleanup")} disabled={!!busy} className={`${btn} border border-mbi-hairline text-mbi-navy-body hover:border-mbi-navy`}>
                 {busy === "cleanup" ? "Checking…" : "Check old copies"}
               </button>
             </div>
-            <div className="border border-gray-100 rounded-xl p-3">
-              <p className="text-xs font-bold text-[#1e2d3d] mb-1">Clean up unused R2 files</p>
-              <p className="text-[11px] text-gray-500 mb-2">Finds files on R2 that no product uses (older than 24 hours) so storage doesn't fill up with leftovers.</p>
-              <button onClick={() => check("sweep")} disabled={!!busy} className={`${btn} border border-gray-300 text-gray-700 hover:border-gray-400`}>
+            <div className="border border-mbi-hairline-soft rounded-lg p-3">
+              <p className="text-xs font-bold text-mbi-navy mb-1">Clean up unused R2 files</p>
+              <p className="text-xs text-mbi-slate mb-2">Finds files on R2 that no product uses (older than 24 hours) so storage doesn't fill up with leftovers.</p>
+              <button onClick={() => check("sweep")} disabled={!!busy} className={`${btn} border border-mbi-hairline text-mbi-navy-body hover:border-mbi-navy`}>
                 {busy === "sweep" ? "Checking…" : "Find unused files"}
               </button>
             </div>
           </div>
 
           {confirm && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm text-yellow-800">
+            <div className="bg-mbi-amber-tint border border-mbi-amber/40 rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-mbi-amber-ink">
                 Delete {confirm.count} {confirm.kind === "cleanup" ? "old Supabase cop" + (confirm.count === 1 ? "y" : "ies") : "unused R2 file(s)"}? This can't be undone.
               </p>
               <div className="flex gap-2">
-                <button onClick={() => setConfirm(null)} className={`${btn} border border-gray-300 text-gray-600 bg-white`}>Cancel</button>
-                <button onClick={runDelete} className={`${btn} bg-red-500 text-white hover:bg-red-600`}>Delete</button>
+                <button onClick={() => setConfirm(null)} className={`${btn} border border-mbi-hairline text-mbi-navy-body bg-white`}>Cancel</button>
+                <button onClick={runDelete} className={`${btn} bg-mbi-error text-white hover:bg-mbi-error/90`}>Delete</button>
               </div>
             </div>
           )}
 
           {log.length > 0 && (
-            <ul className="text-xs space-y-1 max-h-48 overflow-y-auto bg-gray-50 rounded-xl p-3">
+            <ul className="text-xs space-y-1 max-h-48 overflow-y-auto bg-mbi-surface-soft rounded-lg p-3">
               {log.map((l, i) => (
-                <li key={i} className={l.type === "error" ? "text-red-600" : l.type === "warn" ? "text-yellow-700" : "text-green-700"}>
-                  <span className="text-gray-400">{l.at}</span> {l.text}
+                <li key={i} className={l.type === "error" ? "text-mbi-error" : l.type === "warn" ? "text-mbi-amber-ink" : "text-mbi-available"}>
+                  <span className="text-mbi-slate">{l.at}</span> {l.text}
                 </li>
               ))}
             </ul>
