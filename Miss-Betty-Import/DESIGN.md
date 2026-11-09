@@ -297,7 +297,7 @@ The palette is white and navy with one warm accent. Colour never decorates; it s
 - **Surface Soft** (#f6f7f9): photo placeholders, input wells, quiet bands. **Surface Strong** (#eceff3): pressed states of neutral controls.
 - **Scrim** (#0f1720 at 50%): modal and drawer backdrop.
 
-**The One Voltage Rule.** Amber appears at most once or twice per screen, and always means "the next step". If two amber buttons are visible together, one of them is wrong.
+**The One Voltage Rule.** Amber appears at most once or twice per screen, and always means "the next step". If two amber buttons are visible together, one of them is wrong. One owner-approved exception: on phones (under 640px) every product card's Add button is full amber, paired with a navy Buy now (the same navy as a selected filter chip), so the two card actions read at a glance on a small screen.
 
 **The Navy-on-Amber Rule.** Text and icons on amber are always navy. White on amber (1.99:1) is banned.
 

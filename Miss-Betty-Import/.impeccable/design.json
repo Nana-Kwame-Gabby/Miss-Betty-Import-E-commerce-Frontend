@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-09T16:20:41.845Z",
+  "generatedAt": "2026-11-09T21:32:54.980Z",
   "title": "Design System: Miss Betty Import",
   "extensions": {
     "colorMeta": {
@@ -524,7 +524,7 @@
     "rules": [
       {
         "name": "The One Voltage Rule",
-        "body": "Amber appears at most once or twice per screen, and always means \"the next step\". If two amber buttons are visible together, one of them is wrong.",
+        "body": "Amber appears at most once or twice per screen, and always means \"the next step\". If two amber buttons are visible together, one of them is wrong. One owner-approved exception: on phones (under 640px) every product card's Add button is full amber, paired with a navy Buy now (the same navy as a selected filter chip), so the two card actions read at a glance on a small screen.",
         "section": "colors"
       },
       {

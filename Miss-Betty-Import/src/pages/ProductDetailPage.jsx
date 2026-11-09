@@ -16,7 +16,7 @@ import {
   AddVariantRow, AddedLabel, ColourSwatches, PriceLine, QtyStepper, SelectionList, ShippingEstimate,
   SizeChips, StatusTag,
 } from "../components/shop/BuyBox";
-import { primaryButtonClass, secondaryButtonClass } from "../lib/buyBoxStyles";
+import { buyNowButtonClass, primaryButtonClass, secondaryButtonClass } from "../lib/buyBoxStyles";
 
 function mapProduct(p) {
   const rawSizePricing = Array.isArray(p.size_pricing) && p.size_pricing.length > 0
@@ -297,7 +297,7 @@ export default function ProductDetailPage() {
           : totalQty > 0 ? (short ? `Add ${totalQty} to cart` : `Add ${totalQty} item${totalQty !== 1 ? "s" : ""} to cart`)
           : "Add to cart"}
       </button>
-      <button type="button" onClick={handleBuyNow} disabled={closedForPreorder || pendingVariants.length === 0} className={secondaryButtonClass({ disabled: closedForPreorder || pendingVariants.length === 0 })}>
+      <button type="button" onClick={handleBuyNow} disabled={closedForPreorder || pendingVariants.length === 0} className={buyNowButtonClass({ disabled: closedForPreorder || pendingVariants.length === 0 })}>
         {closedForPreorder ? (short ? "Orders closed" : "Pre-orders are closed") : (short ? "Checkout" : "Proceed to checkout")}
       </button>
     </>
@@ -306,7 +306,7 @@ export default function ProductDetailPage() {
       <button type="button" onClick={handleSimpleAdd} disabled={curOutOfStock} className={curOutOfStock ? secondaryButtonClass({ disabled: true }) : primaryButtonClass({ added })}>
         {curOutOfStock ? "Out of stock" : added ? <AddedLabel>{short ? "Added" : "Added to cart"}</AddedLabel> : "Add to cart"}
       </button>
-      <button type="button" onClick={handleSimpleBuyNow} disabled={closedForPreorder || curOutOfStock} className={secondaryButtonClass({ disabled: closedForPreorder || curOutOfStock })}>
+      <button type="button" onClick={handleSimpleBuyNow} disabled={closedForPreorder || curOutOfStock} className={buyNowButtonClass({ disabled: closedForPreorder || curOutOfStock })}>
         {curOutOfStock ? "Out of stock" : closedForPreorder ? (short ? "Orders closed" : "Pre-orders are closed") : "Buy now"}
       </button>
     </>

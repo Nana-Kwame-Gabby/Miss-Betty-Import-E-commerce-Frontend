@@ -11,8 +11,9 @@ const NBSP = String.fromCharCode(160); // keeps "GHS" and the amount on one line
 const money = n => `GHS${NBSP}${Number(n ?? 0).toLocaleString()}`;
 
 // Photo-first product card shared by the Shop and Home pages (DESIGN.md "Product card").
-// The whole card opens the product; Add to cart and Buy now stay on the card. Amber stays the
-// single "next step" voltage, so the card's Add to cart is the soft amber-tint button.
+// The whole card opens the product; Add to cart and Buy now stay on the card. From tablet width
+// Add to cart is the soft amber-tint button (full amber on hover) and Buy now is white; on phones
+// (owner's decision) Add is full amber and Buy now is navy with white text, like a selected filter chip.
 export default function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed, priority = false }) {
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
@@ -168,7 +169,7 @@ export default function ProductCard({ product, onSelect, onViewImage, onBuyNow, 
                 ? "bg-mbi-surface-soft text-mbi-slate cursor-not-allowed"
                 : added
                   ? "bg-mbi-available-tint text-mbi-available"
-                  : "bg-mbi-amber-tint text-mbi-navy hover:bg-mbi-amber"
+                  : "bg-mbi-amber-tint text-mbi-navy hover:bg-mbi-amber max-sm:bg-mbi-amber max-sm:active:bg-mbi-amber-press"
             }`}
           >
             {outOfStock ? "Sold out" : added ? (
@@ -194,7 +195,7 @@ export default function ProductCard({ product, onSelect, onViewImage, onBuyNow, 
             className={`mbi-press flex-1 h-11 rounded-lg border px-2 text-[13px] sm:text-sm font-semibold ${
               blockedByOrders || outOfStock
                 ? "border-mbi-hairline bg-mbi-surface-soft text-mbi-slate cursor-not-allowed"
-                : "border-mbi-navy/25 bg-white text-mbi-navy hover:border-mbi-navy hover:bg-mbi-navy hover:text-white"
+                : "border-mbi-navy/25 bg-white text-mbi-navy hover:border-mbi-navy hover:bg-mbi-navy hover:text-white max-sm:border-mbi-navy max-sm:bg-mbi-navy max-sm:text-white max-sm:hover:border-mbi-navy max-sm:hover:bg-mbi-navy"
             }`}
           >
             {outOfStock ? "Sold out" : blockedByOrders ? "Closed" : "Buy now"}
