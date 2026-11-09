@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import * as XLSX from 'xlsx';
 import { useSelectedOrderPeriod } from "../../hooks/useSelectedOrderPeriod";
@@ -11,6 +12,10 @@ const STATUS_COLORS = {
   Processing: "bg-blue-100 text-blue-700",
   Delivered:  "bg-green-100 text-green-700",
   Cancelled:  "bg-red-100 text-red-700",
+  // Offline invoices show their payment status
+  Paid:             "bg-green-100 text-green-700",
+  'Partially paid': "bg-amber-100 text-amber-700",
+  Unpaid:           "bg-gray-100 text-gray-600",
 };
 
 const PRODUCT_TYPE_COLORS = {
@@ -190,13 +195,18 @@ function InvoiceModal({ invoice, onClose, onCancelLine, cancellingLineId, notice
 
 // Fetch a period's invoices with each line's own status (via invoices.order_line_id).
 async function fetchInvoices(periodId) {
-  const [{ data: rawData }, { data: orderRows }, { data: productData }] = await Promise.all([
+  const [{ data: rawData }, { data: orderRows }, { data: productData }, { data: offlineSales }] = await Promise.all([
     supabase.from('invoices').select('*')
       .eq('deleted_by_admin', false)
       .eq('order_period_id', periodId)
       .order('date', { ascending: false }),
     supabase.from('orders').select('id, order_id, status, customer_id, customers(customer_name)').order('order_id'),
     supabase.from('products').select('product_name, product_status(status_name)'),
+    supabase.from('offline_sales')
+      .select('id, invoice_number, buyer_name, status, payment_status, created_at, offline_sale_items(id, product_name_snapshot, product_type, size, colour, quantity, unit_price)')
+      .eq('order_period_id', periodId)
+      .is('invoices_hidden_at', null)
+      .order('created_at', { ascending: false }),
   ]);
 
   // Per-line status (by order line id), plus an order-level fallback and customer names
@@ -219,8 +229,70 @@ async function fetchInvoices(periodId) {
     }
   });
 
-  return groupByInvoiceId(rawData ?? [], customerNameMap, productTypeMap, lineStatusMap, orderStatusMap);
+  const online = groupByInvoiceId(rawData ?? [], customerNameMap, productTypeMap, lineStatusMap, orderStatusMap)
+    .map(inv => ({ ...inv, source: 'online' }));
+  const offline = (offlineSales ?? []).map(sale => offlineToInvoice(sale, productTypeMap));
+  return [...online, ...offline].sort((a, b) => new Date(b.date ?? 0) - new Date(a.date ?? 0));
 }
+
+// An offline sale (Admin › Offline Buyers) shown as an invoice in the same shape as online
+// ones. It is read straight from offline_sales, never copied into the invoices table, so it
+// can't be counted twice. Cancellation is per sale, so a cancelled sale's lines are all
+// cancelled; its status column shows the payment status instead of an order status.
+function offlineToInvoice(sale, productTypeMap = {}) {
+  const cancelled = sale.status === 'Cancelled';
+  const items = [...(sale.offline_sale_items ?? [])]
+    .sort((a, b) => a.id - b.id)
+    .map(i => ({
+      id: `offline-${i.id}`,
+      product_name: i.product_name_snapshot,
+      size: i.size,
+      colour: i.colour,
+      quantity: i.quantity,
+      unit_price: Number(i.unit_price),
+      total: Math.round(Number(i.unit_price) * Number(i.quantity) * 100) / 100,
+      product_status_name: productTypeMap[i.product_name_snapshot] ?? i.product_type ?? null,
+      line_status: cancelled ? 'Cancelled' : sale.payment_status,
+      cancelled,
+      order_line_id: null, // no "Cancel product" here; offline sales are managed on Offline Buyers
+    }));
+  const active = items.filter(i => !i.cancelled);
+  return {
+    invoice_id: sale.invoice_number,
+    sale_id: sale.id,
+    source: 'offline',
+    customer_name: sale.buyer_name,
+    date: sale.created_at,
+    items,
+    active_count: active.length,
+    cancelled_count: items.length - active.length,
+    total: Math.round(active.reduce((s, r) => s + r.total, 0) * 100) / 100,
+    order_status: cancelled ? 'Cancelled' : (sale.payment_status ?? 'Paid'),
+  };
+}
+
+// Excel rows for the given invoices: active products only (no Status column, so cancelled
+// products are left out and the file matches the totals shown).
+function invoiceExportRows(invoices) {
+  return invoices.flatMap(inv =>
+    inv.items.filter(item => !item.cancelled).map(item => ({
+      Customer:            inv.customer_name ?? '—',
+      'Product Type':      item.product_status_name ?? '—',
+      Product:             item.product_name ?? '—',
+      Size:                item.size ?? '—',
+      Colour:              item.colour ?? '—',
+      Quantity:            Number(item.quantity ?? 0),
+      'Unit Price (GHS)':  Number(item.unit_price),
+      'Total Price (GHS)': Number(item.total),
+    }))
+  );
+}
+
+const SOURCE_FILTERS = [
+  { key: 'all',     label: 'All Invoices' },
+  { key: 'online',  label: 'Online Buyers' },
+  { key: 'offline', label: 'Offline Buyers' },
+];
 
 export default function AdminInvoicesPage() {
   const { periods, activePeriod, selectedId, selectPeriod, loading: periodsLoading } = useSelectedOrderPeriod();
@@ -233,6 +305,7 @@ export default function AdminInvoicesPage() {
   const [deleting, setDeleting] = useState(false);
   const [cancellingLineId, setCancellingLineId] = useState(null);
   const [notice, setNotice] = useState(null); // { type: 'success' | 'error', msg }
+  const [source, setSource] = useState('all'); // all | online | offline
 
   // Apply freshly fetched invoices, keeping an open invoice in step with the new data.
   function applyInvoices(grouped) {
@@ -299,43 +372,44 @@ export default function AdminInvoicesPage() {
     ));
   }
 
+  // Follows the source filter. Online invoice records are deleted (as before); offline
+  // invoices are the offline sales themselves, so they are only hidden from this page.
   async function handleDeleteAll() {
     if (selectedId == null) return;
     setDeleting(true);
-    const { error } = await supabase.from('invoices').delete().eq('order_period_id', selectedId);
-    if (!error) {
-      setInvoices([]);
+    const offlineIds = sourceInvoices.filter(inv => inv.source === 'offline').map(inv => inv.sale_id);
+    const ok = { error: null };
+    const [{ error: onErr }, { error: offErr }] = await Promise.all([
+      source !== 'offline' ? supabase.from('invoices').delete().eq('order_period_id', selectedId) : ok,
+      source !== 'online' && offlineIds.length ? supabase.rpc('offline_sales_hide_invoices', { p_sale_ids: offlineIds }) : ok,
+    ]);
+    if (!onErr && !offErr) {
+      setInvoices(prev => prev.filter(inv =>
+        source === 'online' ? inv.source !== 'online' : source === 'offline' ? inv.source !== 'offline' : false));
       setSelected(null);
       setConfirmDelete(false);
     } else {
       alert('Delete failed. Please try again.');
+      await loadInvoices(selectedId);
     }
     setDeleting(false);
   }
 
+  // Exports what is shown: the source filter and any search.
   function handleDownloadExcel() {
-    const rows = invoices.flatMap(inv =>
-      inv.items.map(item => ({
-        Customer:            inv.customer_name ?? '—',
-        'Product Type':      item.product_status_name ?? '—',
-        Product:             item.product_name ?? '—',
-        Size:                item.size ?? '—',
-        Colour:              item.colour ?? '—',
-        Status:              item.line_status ?? '—',
-        'Unit Price (GHS)':  Number(item.unit_price),
-        'Total Price (GHS)': Number(item.total),
-      }))
-    );
-    const ws = XLSX.utils.json_to_sheet(rows);
+    const ws = XLSX.utils.json_to_sheet(invoiceExportRows(filtered));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
     XLSX.writeFile(wb, 'Miss-Betty-Invoices.xlsx');
   }
 
-  const filtered = invoices.filter(inv =>
+  const sourceInvoices = source === 'all' ? invoices : invoices.filter(inv => inv.source === source);
+  const filtered = sourceInvoices.filter(inv =>
     inv.invoice_id.toLowerCase().includes(query.toLowerCase()) ||
     (inv.customer_name ?? "").toLowerCase().includes(query.toLowerCase())
   );
+  const onlineCount = sourceInvoices.filter(inv => inv.source === 'online').length;
+  const offlineCount = sourceInvoices.length - onlineCount;
 
   return (
     <div>
@@ -375,9 +449,24 @@ export default function AdminInvoicesPage() {
             </button>
           )}
         </div>
+        <div className="flex items-center gap-2">
+          {SOURCE_FILTERS.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setSource(f.key)}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors whitespace-nowrap ${
+                source === f.key
+                  ? "bg-[#F2AA25] text-white border-[#F2AA25]"
+                  : "border-gray-200 text-gray-500 hover:border-[#F2AA25] hover:text-[#F2AA25]"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
         <button
           onClick={handleDownloadExcel}
-          disabled={loading || invoices.length === 0}
+          disabled={loading || filtered.length === 0}
           className="flex items-center gap-2 bg-[#1e2d3d] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -387,7 +476,7 @@ export default function AdminInvoicesPage() {
         </button>
         <button
           onClick={() => setConfirmDelete(true)}
-          disabled={loading || invoices.length === 0}
+          disabled={loading || sourceInvoices.length === 0}
           className="flex items-center gap-2 bg-red-500 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -402,9 +491,9 @@ export default function AdminInvoicesPage() {
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-4 border-[#F2AA25] border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : invoices.length === 0 ? (
+      ) : sourceInvoices.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
-          No invoices yet.
+          {source === 'online' ? 'No online invoices yet.' : source === 'offline' ? 'No offline invoices yet.' : 'No invoices yet.'}
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm p-12 text-center text-gray-400 text-sm">
@@ -428,7 +517,12 @@ export default function AdminInvoicesPage() {
             <tbody>
               {filtered.map(inv => (
                 <tr key={inv.invoice_id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-3 font-semibold text-[#1e2d3d] text-xs">{inv.invoice_id}</td>
+                  <td className="px-5 py-3 font-semibold text-[#1e2d3d] text-xs">
+                    {inv.invoice_id}
+                    {inv.source === 'offline' && (
+                      <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 whitespace-nowrap">Offline</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-[#1e2d3d]">{inv.customer_name}</td>
                   <td className="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">
                     {inv.date ? new Date(inv.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
@@ -451,14 +545,20 @@ export default function AdminInvoicesPage() {
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_COLORS[inv.order_status] ?? 'bg-gray-100 text-gray-600'}`}>
                         {inv.order_status}
                       </span>
-                      <select
-                        value={inv.order_status}
-                        disabled={updatingId === inv.invoice_id}
-                        onChange={e => handleStatusChange(inv.invoice_id, e.target.value)}
-                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-[#F2AA25] disabled:opacity-60 cursor-pointer"
-                      >
-                        {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
+                      {inv.source === 'offline' ? (
+                        <Link to="/admin/offline-buyers" className="text-[11px] font-semibold text-gray-400 hover:text-[#F2AA25] whitespace-nowrap">
+                          Manage in Offline Buyers
+                        </Link>
+                      ) : (
+                        <select
+                          value={inv.order_status}
+                          disabled={updatingId === inv.invoice_id}
+                          onChange={e => handleStatusChange(inv.invoice_id, e.target.value)}
+                          className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-[#F2AA25] disabled:opacity-60 cursor-pointer"
+                        >
+                          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -487,10 +587,17 @@ export default function AdminInvoicesPage() {
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
-            <h3 className="text-base font-bold text-[#1e2d3d] mb-2">Delete All Invoices?</h3>
-            <p className="text-sm text-gray-500 mb-5">
-              This will permanently delete all invoice records. This action cannot be undone.
-            </p>
+            <h3 className="text-base font-bold text-[#1e2d3d] mb-2">
+              {source === 'online' ? 'Delete All Online Invoices?' : source === 'offline' ? 'Clear All Offline Invoices?' : 'Delete All Invoices?'}
+            </h3>
+            <div className="text-sm text-gray-500 mb-5 space-y-2">
+              {source !== 'offline' && onlineCount > 0 && (
+                <p>This will permanently delete {onlineCount} online invoice record{onlineCount !== 1 ? 's' : ''} for this period. This can't be undone.</p>
+              )}
+              {source !== 'online' && offlineCount > 0 && (
+                <p>{offlineCount} offline invoice{offlineCount !== 1 ? 's' : ''} will be removed from this page only. The offline sales and their PDF invoices stay on the Offline Buyers page.</p>
+              )}
+            </div>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setConfirmDelete(false)}
