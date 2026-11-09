@@ -29,6 +29,7 @@ function groupByProduct(rows) {
         procurement_status: row.products?.procurement_status ?? 'Not Ordered',
         sizeColourMap: {},
         total_quantity: 0,
+        offline_quantity: 0,
       };
     }
 
@@ -49,8 +50,11 @@ function groupByProduct(rows) {
       rmb_price: liveRmb,
     };
     entry.total_quantity += qty;
+    if (row.source === 'offline') entry.offline_quantity += qty;
 
-    const dedupeKey = `${row.customers?.customer_name ?? ""}::${row.delivery_town ?? ""}`;
+    const dedupeKey = row.source === 'offline'
+      ? `offline::${(row.customers?.customer_name ?? "").trim().toLowerCase()}`
+      : `${row.customers?.customer_name ?? ""}::${row.delivery_town ?? ""}`;
     if (!deliverySet.has(dedupeKey)) {
       deliverySet.add(dedupeKey);
       deliveryRows.push({
@@ -59,6 +63,7 @@ function groupByProduct(rows) {
         telephone: row.customers?.telephone ?? "—",
         delivery_town: row.delivery_town ?? "—",
         delivery_region: row.delivery_region ?? "—",
+        offline: row.source === 'offline',
       });
     }
   }
@@ -66,11 +71,32 @@ function groupByProduct(rows) {
   return { productRows: Object.values(productMap), deliveryRows };
 }
 
+// An offline sale line (Admin › Offline Buyers) in the shape groupByProduct reads, so it
+// merges into the same product / size / colour cells as online orders. Offline buyers have
+// a name only: no phone or delivery address.
+function offlineToRow(item) {
+  return {
+    id: `offline-${item.id}`,
+    source: 'offline',
+    sale_id: item.offline_sales.id,
+    product_id: item.product_id,
+    product_name_snapshot: item.product_name_snapshot,
+    size: item.size,
+    colour: item.colour,
+    quantity: item.quantity,
+    products: item.products,
+    customers: { customer_name: item.offline_sales.buyer_name, telephone: null },
+    delivery_town: null,
+    delivery_region: null,
+  };
+}
+
 export default function AdminOrdersPage() {
   const { periods, activePeriod, selectedId, selectPeriod, loading: periodsLoading } = useSelectedOrderPeriod();
   const [productRows, setProductRows] = useState([]);
   const [deliveryRows, setDeliveryRows] = useState([]);
   const [orderIds, setOrderIds] = useState([]);
+  const [offlineSaleIds, setOfflineSaleIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [filter, setFilter] = useState("All");
@@ -81,21 +107,33 @@ export default function AdminOrdersPage() {
 
   async function loadOrders() {
     setLoading(true);
-    const { data } = await supabase
-      .from('orders')
-      .select('*, products(product_name, procurement_status, product_status(status_name), rmb_price, size_pricing), customers(customer_name, telephone)')
-      .eq('deleted_by_admin', false)
-      .eq('order_period_id', selectedId)
-      .neq('status', 'Cancelled') // cancelled lines no longer count toward quantities
-      .order('created_at', { ascending: false });
+    const [{ data }, { data: offlineData }] = await Promise.all([
+      supabase
+        .from('orders')
+        .select('*, products(product_name, procurement_status, product_status(status_name), rmb_price, size_pricing), customers(customer_name, telephone)')
+        .eq('deleted_by_admin', false)
+        .eq('order_period_id', selectedId)
+        .neq('status', 'Cancelled') // cancelled lines no longer count toward quantities
+        .order('created_at', { ascending: false }),
+      // Offline sales in the same period (not cancelled, not cleared by Delete All).
+      supabase
+        .from('offline_sale_items')
+        .select('id, product_id, product_name_snapshot, size, colour, quantity, offline_sales!inner(id, buyer_name, status, order_period_id, preorders_hidden_at), products(product_name, procurement_status, product_status(status_name), rmb_price, size_pricing)')
+        .eq('offline_sales.order_period_id', selectedId)
+        .eq('offline_sales.status', 'Active')
+        .is('offline_sales.preorders_hidden_at', null)
+        .order('id', { ascending: false }),
+    ]);
 
-    const preOrderRows = (data ?? []).filter(
-      r => r.products?.product_status?.status_name === 'Pre-order'
-    );
-    const { productRows: pr, deliveryRows: dr } = groupByProduct(preOrderRows);
+    // Same rule for both sources: the product is currently a Pre-order product.
+    const isPreOrder = r => r.products?.product_status?.status_name === 'Pre-order';
+    const preOrderRows = (data ?? []).filter(isPreOrder);
+    const offlineRows = (offlineData ?? []).filter(isPreOrder).map(offlineToRow);
+    const { productRows: pr, deliveryRows: dr } = groupByProduct([...preOrderRows, ...offlineRows]);
     setProductRows(pr);
     setDeliveryRows(dr);
     setOrderIds(preOrderRows.map(r => r.order_id));
+    setOfflineSaleIds([...new Set(offlineRows.map(r => r.sale_id))]);
     setLoading(false);
   }
 
@@ -137,17 +175,21 @@ export default function AdminOrdersPage() {
     : productRows.filter(r => r.product_status_name === filter);
 
   async function handleDeleteAll() {
-    if (orderIds.length === 0) return;
+    if (orderIds.length === 0 && offlineSaleIds.length === 0) return;
     setDeleting(true);
-    const [{ error: ordErr }, { error: invErr }] = await Promise.all([
-      supabase.from('orders').update({ deleted_by_admin: true }).in('order_id', orderIds),
-      supabase.from('invoices').update({ deleted_by_admin: true }).in('invoice_id', orderIds),
+    const ok = { error: null };
+    const [{ error: ordErr }, { error: invErr }, { error: offErr }] = await Promise.all([
+      orderIds.length ? supabase.from('orders').update({ deleted_by_admin: true }).in('order_id', orderIds) : ok,
+      orderIds.length ? supabase.from('invoices').update({ deleted_by_admin: true }).in('invoice_id', orderIds) : ok,
+      // Offline sales are only hidden from this page; the sales and invoices are kept.
+      offlineSaleIds.length ? supabase.rpc('offline_sales_hide_preorders', { p_sale_ids: offlineSaleIds }) : ok,
     ]);
-    const error = ordErr || invErr;
+    const error = ordErr || invErr || offErr;
     if (!error) {
       setProductRows([]);
       setDeliveryRows([]);
       setOrderIds([]);
+      setOfflineSaleIds([]);
       setConfirmDelete(false);
     } else {
       alert('Delete failed. Please try again.');
@@ -263,7 +305,12 @@ export default function AdminOrdersPage() {
                             ))}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-center font-bold text-[#1e2d3d]">{row.total_quantity}</td>
+                        <td className="px-4 py-3 text-center font-bold text-[#1e2d3d]">
+                          {row.total_quantity}
+                          {row.offline_quantity > 0 && (
+                            <span className="block text-[10px] font-semibold text-gray-400 whitespace-nowrap">incl. {row.offline_quantity} offline</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${PROCUREMENT_COLORS[row.procurement_status] ?? PROCUREMENT_COLORS["Not Ordered"]}`}>
@@ -313,7 +360,12 @@ export default function AdminOrdersPage() {
                   <tbody>
                     {deliveryRows.map(row => (
                       <tr key={row.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3 font-semibold text-[#1e2d3d]">{row.customer_name}</td>
+                        <td className="px-5 py-3 font-semibold text-[#1e2d3d]">
+                          {row.customer_name}
+                          {row.offline && (
+                            <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 align-middle">Offline</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-gray-500">{row.telephone}</td>
                         <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{row.delivery_town}</td>
                         <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{row.delivery_region}</td>
@@ -331,7 +383,7 @@ export default function AdminOrdersPage() {
           <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
             <h3 className="text-base font-bold text-[#1e2d3d] mb-2">Delete All Orders?</h3>
             <p className="text-sm text-gray-500 mb-5">
-              This will clear all orders from the admin view. Customer order histories are not affected.
+              This will clear all orders, online and offline, from this page. Customer order histories are not affected, and offline sales and their invoices stay on the Offline Buyers page.
             </p>
             <div className="flex justify-end gap-3">
               <button
