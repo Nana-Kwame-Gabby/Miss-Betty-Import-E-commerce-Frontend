@@ -43,7 +43,7 @@ export default function ShopPage() {
       return matchSearch && matchCat && matchStatus;
     });
   }, [products, search, activeCategory, statusFilter]);
-  const { shelves, every: shelfEvery } = usePromoShelves({ products, filters: { search, activeCategory, statusFilter }, ordersClosed, total: filtered.length });
+  const { shelves, every: shelfEvery } = usePromoShelves({ products, filters: { search, activeCategory, statusFilter }, total: filtered.length });
   const { visible: visibleProducts, sentinelRef: moreRef, hasMore: hasMoreProducts, showAll: showAllProducts } =
     useIncrementalList(filtered, "mbimport_list_shop", `${search}|${activeCategory}|${statusFilter}`);
 

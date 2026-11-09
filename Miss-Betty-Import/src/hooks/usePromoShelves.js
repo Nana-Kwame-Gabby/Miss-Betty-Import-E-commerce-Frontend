@@ -38,7 +38,7 @@ function cachedRank() {
 // The shelves for a product listing page. `filters` are the page's search/category/status and
 // `total` the length of its filtered list. Returns the shelves and their spacing (`every`):
 // 6 products on phones and tablets, 8 on desktop (lg, 4 per row).
-export default function usePromoShelves({ products, filters, ordersClosed, total }) {
+export default function usePromoShelves({ products, filters, total }) {
   const every = useMediaQuery("(min-width: 1024px)") ? EVERY_DESKTOP : EVERY_PHONE;
   // Plan for the phone spacing (the most shelves), so a resize never changes what a shelf holds.
   const count = shelvesNeeded(total, EVERY_PHONE);
@@ -66,12 +66,11 @@ export default function usePromoShelves({ products, filters, ordersClosed, total
       products,
       rankedIds,
       filters: { search, activeCategory, statusFilter },
-      ordersClosed,
       seed,
       seen,
       count,
     }),
-    [products, rankedIds, search, activeCategory, statusFilter, ordersClosed, seed, seen, count],
+    [products, rankedIds, search, activeCategory, statusFilter, seed, seen, count],
   );
   return { shelves, every };
 }

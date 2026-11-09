@@ -14,8 +14,6 @@ export function hasStock(p) {
   return rows.length === 0 || rows.some(r => r.stock_quantity > 0);
 }
 
-const isPreorder = p => typeof p.product_status === "string" && p.product_status.toLowerCase().includes("pre");
-
 export function isReadyToShip(p) {
   return p.product_status === "Available" && !!p.product_image_url && hasStock(p);
 }
@@ -31,14 +29,15 @@ export function readyToShipPool(products) {
   return products.filter(isReadyToShip);
 }
 
-export function mostOrderedPool(products, rankedIds, { ordersClosed = false } = {}) {
+// Best sellers in ranking order. Independent of whether pre-orders are open: closing pre-orders
+// only changes what a pre-order card's Buy now button says, never which products are shown.
+export function mostOrderedPool(products, rankedIds) {
   const byId = new Map(products.map(p => [p.id, p]));
   const out = [];
   for (const id of rankedIds ?? []) {
     const p = byId.get(id);
     if (!p || !p.product_image_url) continue;
     if (p.product_status === "Available" && !hasStock(p)) continue; // never promote a sold-out item
-    if (ordersClosed && isPreorder(p)) continue;                     // its card would only say "Closed"
     out.push(p);
   }
   return out;
@@ -83,14 +82,14 @@ function unseenFirst(list, seen) {
 // Kinds alternate (ready first); when one has too few products the other continues. Each kind
 // walks through its pool in order, so no product repeats until every product of that kind has
 // been shown; then it starts over from the top (unseen-this-visit products first).
-export function planShelves({ products, rankedIds, filters, ordersClosed = false, seed = 1, seen = new Set(), count = 0 }) {
+export function planShelves({ products, rankedIds, filters, seed = 1, seen = new Set(), count = 0 }) {
   const rand = rng(seed);
   const match = p => matchesFilters(p, filters);
   // Browsing "Available" already lists only ready-to-deliver goods, so that shelf would just repeat it.
   const browsingAvailable = filters?.statusFilter === "Available";
   const pools = {
     ready: browsingAvailable ? [] : unseenFirst(shuffle(readyToShipPool(products).filter(match), rand), seen),
-    popular: unseenFirst(shuffleWithinBlocks(mostOrderedPool(products, rankedIds, { ordersClosed }).filter(match), rand), seen),
+    popular: unseenFirst(shuffleWithinBlocks(mostOrderedPool(products, rankedIds).filter(match), rand), seen),
   };
   const usable = kind => pools[kind].length >= SHELF_MIN;
   const cursor = { ready: 0, popular: 0 };
