@@ -13,13 +13,6 @@ export function primaryButtonClass({ added = false, disabled = false } = {}) {
   }`;
 }
 
-// Buy now / Checkout on the product page: the secondary style, but navy with white text on
-// phones (owner's decision, matching the product card).
-export function buyNowButtonClass({ disabled = false } = {}) {
-  return disabled ? secondaryButtonClass({ disabled: true })
-    : `${secondaryButtonClass()} max-sm:border-mbi-navy max-sm:bg-mbi-navy max-sm:text-white max-sm:hover:border-mbi-navy max-sm:hover:bg-mbi-navy`;
-}
-
 export function secondaryButtonClass({ disabled = false } = {}) {
   return `mbi-press inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border px-6 text-base font-semibold ${
     disabled ? "border-mbi-hairline bg-mbi-surface-soft text-mbi-slate cursor-not-allowed"

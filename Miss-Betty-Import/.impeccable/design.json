@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-09T21:32:54.980Z",
+  "generatedAt": "2026-11-09T23:03:14.291Z",
   "title": "Design System: Miss Betty Import",
   "extensions": {
     "colorMeta": {
@@ -47,6 +47,21 @@
           "#ada491",
           "#cfc9bb",
           "#f2eee6"
+        ]
+      },
+      "amber-band": {
+        "role": "neutral",
+        "displayName": "amber-band",
+        "canonical": "oklch(94.0% 0.052 84.0)",
+        "tonalRamp": [
+          "#0f0a04",
+          "#2d2411",
+          "#4e4023",
+          "#6f5f3e",
+          "#91805e",
+          "#b3a383",
+          "#d3c8b1",
+          "#f4eee1"
         ]
       },
       "amber-ink": {
@@ -524,7 +539,7 @@
     "rules": [
       {
         "name": "The One Voltage Rule",
-        "body": "Amber appears at most once or twice per screen, and always means \"the next step\". If two amber buttons are visible together, one of them is wrong. One owner-approved exception: on phones (under 640px) every product card's Add button is full amber, paired with a navy Buy now (the same navy as a selected filter chip), so the two card actions read at a glance on a small screen.",
+        "body": "Amber appears at most once or twice per screen, and always means \"the next step\". If two amber buttons are visible together, one of them is wrong. One owner-approved exception: on phones (under 640px) the product card's short \"Add\" button is full amber so it reads at a glance; from tablet width it is the soft Amber Tint \"Add to cart\" (full amber on hover). Buy now is white on every screen size.",
         "section": "colors"
       },
       {

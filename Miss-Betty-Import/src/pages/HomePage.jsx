@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { Fragment, useState, useMemo, useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useAppSettings } from "../context/AppSettingsContext";
 import { supabase } from "../lib/supabase";
@@ -9,6 +9,9 @@ import useScrollRestoration from "../hooks/useScrollRestoration";
 import useSeo from "../hooks/useSeo";
 import useIncrementalList from "../hooks/useIncrementalList";
 import ProductCard from "../components/shop/ProductCard";
+import PromoShelf from "../components/shop/PromoShelf";
+import usePromoShelves from "../hooks/usePromoShelves";
+import { shelfAfter } from "../lib/promotions";
 import ShopHeader from "../components/shop/ShopHeader";
 import ShopNotice from "../components/shop/ShopNotice";
 import ShopFooter from "../components/shop/ShopFooter";
@@ -143,8 +146,16 @@ export default function HomePage() {
       return matchSearch && matchCat && matchStatus;
     });
   }, [products, search, activeCategory, statusFilter]);
+  const { shelves, every: shelfEvery } = usePromoShelves({ products, filters: { search, activeCategory, statusFilter }, ordersClosed, total: filtered.length });
   const { visible: visibleProducts, sentinelRef: moreRef, hasMore: hasMoreProducts, showAll: showAllProducts } =
     useIncrementalList(filtered, "mbimport_list_home", `${search}|${activeCategory}|${statusFilter}`);
+
+  const cardProps = {
+    onSelect: setSelectedProduct,
+    onViewImage: (src, alt) => setLightboxImage({ src, alt }),
+    onBuyNow: setBuyNowProduct,
+    ordersClosed,
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -170,17 +181,15 @@ export default function HomePage() {
         ) : filtered.length > 0 ? (
           <>
             <div className={GRID_CLASS}>
-              {visibleProducts.map((p, i) => (
-                <ProductCard
-                  key={p.id}
-                  priority={i < 4}
-                  product={p}
-                  onSelect={setSelectedProduct}
-                  onViewImage={(src, alt) => setLightboxImage({ src, alt })}
-                  onBuyNow={setBuyNowProduct}
-                  ordersClosed={ordersClosed}
-                />
-              ))}
+              {visibleProducts.map((p, i) => {
+                const shelf = shelfAfter(i, filtered.length, shelves, shelfEvery);
+                return (
+                  <Fragment key={p.id}>
+                    <ProductCard priority={i < 4} product={p} {...cardProps} />
+                    {shelf && <PromoShelf kind={shelf.kind} items={shelf.items} cardProps={cardProps} />}
+                  </Fragment>
+                );
+              })}
             </div>
             {hasMoreProducts && <ShowMore moreRef={moreRef} onShowAll={showAllProducts} />}
           </>

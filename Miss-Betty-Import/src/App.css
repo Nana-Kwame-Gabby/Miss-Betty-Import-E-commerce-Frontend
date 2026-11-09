@@ -9,6 +9,7 @@
   --color-mbi-amber: #F2AA25;
   --color-mbi-amber-press: #E09612;
   --color-mbi-amber-tint: #FDF3DD;
+  --color-mbi-amber-band: #FCE9C4; /* promoted shelves; Slate text still passes 4.5:1 */
   --color-mbi-amber-ink: #9A5B00;
   --color-mbi-navy: #1e2d3d;
   --color-mbi-navy-hover: #2a3d52;
