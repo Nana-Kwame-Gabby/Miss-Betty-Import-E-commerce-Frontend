@@ -26,27 +26,24 @@ const SantaHat = () => (
   </svg>
 );
 
-// Full-width Christmas hero from the owner's mockup: the photo sharp on the right, melting into a
-// blurred, mirrored copy of itself that fills the rest of the banner with soft tree lights;
-// falling snow; a script "Christmas" with a Santa hat; the admin's headline (*starred* words in
+// Full-width Christmas hero from the owner's mockup: a plain warm background taken from the
+// photo's own edge colours, the photo sharp on the right with only a short soft edge (so its
+// Christmas tree stays clearly visible); falling snow; a script "Christmas" with a Santa hat; the admin's headline (*starred* words in
 // yellow) and message; and a "Shop Christmas Deals" button. Always shown while Christmas is on.
-// Phones get a short horizontal banner (about 170 px); computers the full 440 px hero.
+// Phones get a short horizontal banner (about 190 px); computers the full 440 px hero.
 export default function ChristmasHero({ headline, message, photo, preview = false }) {
   useScriptFont();
   const src = photo || CHRISTMAS_DEFAULT_PHOTO;
 
   return (
-    <section aria-label="Christmas" className="festive-in relative isolate overflow-hidden bg-[#2B1A12] text-white">
-      {/* backfill: the photo's own trees and lights, softly blurred, so there is no flat block */}
-      <img
-        src={src}
-        alt=""
-        aria-hidden="true"
-        decoding="async"
-        className="absolute -inset-[8%] h-[116%] w-[116%] max-w-none -scale-x-100 object-cover [filter:blur(6px)_brightness(0.72)_saturate(1.1)]"
-      />
-      {/* the sharp photo on the right, fading in from the left */}
-      <div aria-hidden="true" className="absolute inset-y-0 right-0 w-[55%] [mask-image:linear-gradient(to_right,transparent,black_38%)] md:w-[60%] md:[mask-image:linear-gradient(to_right,transparent,black_30%)]">
+    <section
+      aria-label="Christmas"
+      className="festive-in relative isolate overflow-hidden text-white"
+      // the photo's own left-edge colours, top to bottom, so background and photo meet without a seam
+      style={{ background: "linear-gradient(180deg, #5B3C2A 0%, #7A4231 55%, #8A4636 100%)" }}
+    >
+      {/* the sharp photo on the right, with only a short soft edge */}
+      <div aria-hidden="true" className="absolute inset-y-0 right-0 w-[48%] [mask-image:linear-gradient(to_right,transparent,black_14%)] sm:w-[52%] md:w-[60%]">
         <img
           src={src}
           alt=""
@@ -57,32 +54,30 @@ export default function ChristmasHero({ headline, message, photo, preview = fals
           }`}
         />
       </div>
-      {/* a gentle darkening behind the text, not a block: the trees stay visible through it */}
-      <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(24,12,6,0.62)_0%,rgba(24,12,6,0.42)_38%,rgba(24,12,6,0)_64%)]" />
       <Snowfall mode="contained" count={70} maxAlpha={0.85} />
 
-      <div className="relative z-10 mx-auto flex min-h-[168px] max-w-7xl flex-col justify-center px-4 py-3 sm:min-h-[230px] sm:px-6 sm:py-6 md:min-h-[440px] md:py-8 lg:px-8">
-        <h2 className="max-w-[62%] sm:max-w-[55%] md:max-w-xl">
+      <div className="relative z-10 mx-auto flex min-h-[188px] max-w-7xl flex-col justify-center px-4 py-3 sm:min-h-[240px] sm:px-6 sm:py-6 md:min-h-[440px] md:py-8 lg:px-8">
+        <h2 className="max-w-[56%] sm:max-w-[50%] md:max-w-[42%]">
           <span
-            className="relative inline-block pt-1 text-[34px] leading-[0.95] text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] sm:pt-2 sm:text-[52px] md:text-[96px]"
+            className="relative inline-block pt-1 text-[32px] leading-[0.95] text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] sm:pt-2 sm:text-[52px] md:text-[64px] lg:text-[88px]"
             style={{ fontFamily: '"Kaushan Script", "Brush Script MT", cursive' }}
           >
             <SantaHat />
             Christmas
           </span>
-          <span className="mt-0.5 block text-[17px] leading-[1.15] font-extrabold tracking-[-0.01em] sm:mt-1 sm:text-[26px] md:mt-2 md:text-[52px] md:leading-[1.05] md:tracking-[-0.02em]">
+          <span className="mt-0.5 block text-[16px] leading-[1.15] font-extrabold tracking-[-0.01em] drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)] sm:mt-1 sm:text-[26px] md:mt-2 md:text-[36px] md:leading-[1.05] md:tracking-[-0.02em] lg:text-[46px]">
             {highlightParts(headline).map((p, i) =>
               p.hi ? <span key={i} className="text-[#FFC72C]">{p.text}</span> : <span key={i}>{p.text}</span>)}
           </span>
         </h2>
         {message && (
-          <p className="mt-2 hidden max-w-md text-sm leading-relaxed text-white/85 sm:block md:mt-4 md:text-lg">{message}</p>
+          <p className="mt-1 line-clamp-3 max-w-[56%] text-[12px] leading-snug text-white/90 sm:mt-2 sm:max-w-[50%] sm:text-sm sm:leading-relaxed md:mt-4 md:max-w-[42%] md:text-lg">{message}</p>
         )}
-        <div className="mt-2.5 sm:mt-4 md:mt-7">
+        <div className="mt-2 sm:mt-4 md:mt-7">
           <button
             type="button"
             onClick={() => { if (!preview) scrollToProducts(); }}
-            className="mbi-press inline-flex h-9 items-center gap-1.5 rounded-full bg-[#CC4A0B] px-3.5 text-sm font-bold whitespace-nowrap text-white shadow-[0_6px_18px_rgba(204,74,11,0.35)] hover:bg-[#B53F08] sm:h-11 sm:gap-2 sm:px-5 sm:text-base md:h-14 md:px-8 md:text-[19px]"
+            className="mbi-press inline-flex h-8 items-center gap-1.5 rounded-full bg-[#CC4A0B] px-3 text-[13px] font-bold whitespace-nowrap text-white shadow-[0_6px_18px_rgba(204,74,11,0.35)] hover:bg-[#B53F08] sm:h-11 sm:gap-2 sm:px-5 sm:text-base md:h-14 md:px-8 md:text-[19px]"
           >
             Shop Christmas Deals
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>

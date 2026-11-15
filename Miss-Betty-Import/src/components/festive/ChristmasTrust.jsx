@@ -1,7 +1,7 @@
 import PineCorner from "./PineCorner";
 
 const Icon = ({ children }) => (
-  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-mbi-navy">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-[22px] shrink-0 text-mbi-navy md:size-[34px]">
     {children}
   </svg>
 );
@@ -25,19 +25,20 @@ const ITEMS = [
   },
 ];
 
-// The reassurance row under the Christmas hero.
+// The reassurance row under the Christmas hero: four across at every size. Phones stack each
+// item's icon over a small title and line; computers put the icon beside the text.
 export default function ChristmasTrust() {
   return (
     <div className="relative bg-mbi-surface-soft">
       <PineCorner className="absolute top-1/2 left-0 hidden h-28 -translate-y-1/2 2xl:block" />
       <PineCorner flip className="absolute top-1/2 right-0 hidden h-28 -translate-y-1/2 2xl:block" />
-      <ul className="mx-auto grid max-w-7xl grid-cols-2 gap-x-3 gap-y-4 px-4 py-4 sm:px-6 md:grid-cols-4 md:gap-0 md:py-5 lg:px-8">
+      <ul className="mx-auto grid max-w-7xl grid-cols-4 px-2 py-3 sm:px-6 md:py-5 lg:px-8">
         {ITEMS.map((it, i) => (
-          <li key={it.title} className={`flex items-center gap-2.5 md:justify-center md:gap-3.5 ${i ? "md:border-l md:border-mbi-border-strong" : ""}`}>
+          <li key={it.title} className={`flex min-w-0 flex-col items-center gap-1 px-1 text-center md:flex-row md:justify-center md:gap-3.5 md:px-2 md:text-left ${i ? "border-l border-mbi-border-strong" : ""}`}>
             {it.icon}
             <div className="min-w-0">
-              <p className="text-sm leading-tight font-bold text-mbi-navy md:text-base">{it.title}</p>
-              <p className="text-xs leading-tight text-mbi-slate md:text-sm">{it.line}</p>
+              <p className="text-[11px] leading-tight font-bold text-mbi-navy sm:text-xs md:text-base">{it.title}</p>
+              <p className="mt-0.5 text-[10px] leading-tight text-mbi-slate sm:text-[11px] md:mt-0 md:text-sm">{it.line}</p>
             </div>
           </li>
         ))}
