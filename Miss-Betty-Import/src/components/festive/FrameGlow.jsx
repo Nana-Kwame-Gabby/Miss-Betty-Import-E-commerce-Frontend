@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useAppSettings } from "../../context/AppSettingsContext";
 
-// One observer for every card: a frame's snowflakes only move while it is on screen.
+// One observer for every card: a frame's snow only falls while it is on screen.
 let observer = null;
 function watch(el) {
   if (typeof IntersectionObserver === "undefined") { el.dataset.inView = ""; return () => {}; }
@@ -15,10 +15,10 @@ function watch(el) {
   return () => observer?.unobserve(el);
 }
 
-// Three small red snowflakes that circle a product photo's frame while Christmas Animations are
-// on (styles in christmas.css, which only applies on Home and Shop). Decorative only: never
-// in the way of a tap, gone completely when Christmas is switched off.
-export default function FrameFlakes() {
+// A soft red glow with gently falling glowing red snow, sitting *behind* a product photo's
+// frame, so it shows as a festive halo around the edges and never over the picture (styles in
+// christmas.css, which only applies on Home and Shop). Shown only while Christmas is on.
+export default function FrameGlow() {
   const { christmasActive } = useAppSettings();
   const ref = useRef(null);
 
@@ -30,10 +30,8 @@ export default function FrameFlakes() {
 
   if (!christmasActive) return null;
   return (
-    <span ref={ref} aria-hidden="true" className="xmas-frame">
-      <i style={{ "--d": "0%" }} />
-      <i style={{ "--d": "33.333%" }} />
-      <i style={{ "--d": "66.667%" }} />
+    <span ref={ref} aria-hidden="true" className="xmas-glow">
+      <b />
     </span>
   );
 }
