@@ -14,6 +14,7 @@ import usePromoShelves from "../hooks/usePromoShelves";
 import { shelfAfter } from "../lib/promotions";
 import ShopHeader from "../components/shop/ShopHeader";
 import ShopNotice from "../components/shop/ShopNotice";
+import ChristmasDecor from "../components/festive/ChristmasDecor";
 import ShopFooter from "../components/shop/ShopFooter";
 import { GRID_CLASS, ProductGridSkeleton, NoProductsFound, ShowMore } from "../components/shop/ProductGrid";
 import ProductDetailModal from "../components/shop/ProductDetailModal";
@@ -72,6 +73,7 @@ export default function ShopPage() {
         onStatus={setStatusFilter}
         countdownData={countdownData}
       />
+      <ChristmasDecor />
       <ShopNotice countdownData={countdownData} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-5 pb-16">

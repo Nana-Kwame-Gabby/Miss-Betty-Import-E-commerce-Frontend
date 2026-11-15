@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { CHRISTMAS_DEFAULTS, parseChristmasText } from "../lib/christmas";
 
 const AppSettingsContext = createContext({
   ordersClosed: false,
@@ -11,6 +12,10 @@ const AppSettingsContext = createContext({
   promoMessage: "",
   savePromoAlert: async () => {},
   setPageShowsNotice: () => {},
+  christmasActive: false,
+  christmasHeadline: "",
+  christmasMessage: "",
+  saveChristmas: async () => null,
 });
 
 // Remembers, for this browser tab's visit, that a message was seen or dismissed.
@@ -99,10 +104,12 @@ export function AppSettingsProvider({ children }) {
   const [promoActive,         setPromoActive]         = useState(false);
   const [promoMessage,        setPromoMessage]        = useState("");
   const [pageShowsNotice,     setPageShowsNotice]     = useState(false);
+  const [christmasActive,     setChristmasActive]     = useState(false);
+  const [christmasText,       setChristmasText]       = useState(CHRISTMAS_DEFAULTS);
 
   useEffect(() => {
     async function load() {
-      const [ordersResult, promoResult] = await Promise.all([
+      const [ordersResult, promoResult, christmasResult] = await Promise.all([
         supabase.from("app_settings")
           .select("setting_value_bool, setting_value_text")
           .eq("setting_key", "orders_closed")
@@ -111,11 +118,17 @@ export function AppSettingsProvider({ children }) {
           .select("setting_value_bool, setting_value_text")
           .eq("setting_key", "promo_alert")
           .maybeSingle(),
+        supabase.from("app_settings")
+          .select("setting_value_bool, setting_value_text")
+          .eq("setting_key", "christmas_mode")
+          .maybeSingle(),
       ]);
       setOrdersClosed(ordersResult.data?.setting_value_bool ?? false);
       setAnnouncementMessage(ordersResult.data?.setting_value_text ?? "");
       setPromoActive(promoResult.data?.setting_value_bool ?? false);
       setPromoMessage(promoResult.data?.setting_value_text ?? "");
+      setChristmasActive(christmasResult.data?.setting_value_bool ?? false);
+      setChristmasText(parseChristmasText(christmasResult.data?.setting_value_text));
       setSettingsLoading(false);
     }
     load();
@@ -144,9 +157,23 @@ export function AppSettingsProvider({ children }) {
       )
       .subscribe();
 
+    const christmasChannel = supabase
+      .channel("christmas_mode_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "app_settings", filter: "setting_key=eq.christmas_mode" },
+        (payload) => {
+          if (!payload.new) return;
+          setChristmasActive(payload.new.setting_value_bool ?? false);
+          setChristmasText(parseChristmasText(payload.new.setting_value_text));
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(promoChannel);
+      supabase.removeChannel(christmasChannel);
     };
   }, []);
 
@@ -198,11 +225,32 @@ export function AppSettingsProvider({ children }) {
     return error ?? null;
   }
 
+  // One click in the admin switches Christmas on or off for every customer page at once.
+  async function saveChristmas(active, headline, message) {
+    const prev = { active: christmasActive, text: christmasText };
+    const text = { headline: headline ?? christmasText.headline, message: message ?? christmasText.message };
+    setChristmasActive(active);
+    setChristmasText(text);
+    const { data, error } = await supabase
+      .from("app_settings")
+      .update({ setting_value_bool: active, setting_value_text: JSON.stringify(text), updated_at: new Date().toISOString() })
+      .eq("setting_key", "christmas_mode")
+      .select("setting_key");
+    const failure = error ?? (data?.length ? null : { message: "The Christmas setting could not be saved. Please make sure you are signed in as an admin." });
+    if (failure) {
+      setChristmasActive(prev.active);
+      setChristmasText(prev.text);
+      console.error("[Christmas] save error:", failure.message);
+    }
+    return failure;
+  }
+
   return (
     <AppSettingsContext.Provider value={{
       ordersClosed, announcementMessage, settingsLoading,
       toggleOrdersClosed, updateAnnouncementMessage,
       promoActive, promoMessage, savePromoAlert, setPageShowsNotice,
+      christmasActive, christmasHeadline: christmasText.headline, christmasMessage: christmasText.message, saveChristmas,
     }}>
       {children}
       <AnnouncementModal visible={ordersClosed && !!announcementMessage} message={announcementMessage} />

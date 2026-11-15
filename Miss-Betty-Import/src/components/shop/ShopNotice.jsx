@@ -29,7 +29,7 @@ export default function ShopNotice({ countdownData = null, announcementOnly = fa
   if (!showText && !countdownData) return null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 space-y-2">
+    <div data-above-snow className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 space-y-2">
       {showText && (
         <div role="status" className="flex items-start gap-3 rounded-mbi-card bg-mbi-amber-tint px-4 py-3 text-mbi-navy">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mt-0.5 shrink-0 text-mbi-amber-ink">

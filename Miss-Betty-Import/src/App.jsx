@@ -40,6 +40,7 @@ const AdminSmsMessagingPage = lazy(() => import("./pages/admin/AdminSmsMessaging
 const AdminAvailableOrdersPage = lazy(() => import("./pages/admin/AdminAvailableOrdersPage"));
 const AdminAvailableDashboard = lazy(() => import("./pages/admin/AdminAvailableDashboard"));
 const AdminPromoAlertPage = lazy(() => import("./pages/admin/AdminPromoAlertPage"));
+const AdminChristmasPage = lazy(() => import("./pages/admin/AdminChristmasPage"));
 const AdminNotificationsPage = lazy(() => import("./pages/admin/AdminNotificationsPage"));
 const AdminCountdownTimersPage = lazy(() => import("./pages/admin/AdminCountdownTimersPage"));
 const AdminCouponsPage = lazy(() => import("./pages/admin/AdminCouponsPage"));
@@ -163,6 +164,7 @@ function App() {
                   <Route path="/admin/emails" element={<AdminEmailsPage />} />
                   <Route path="/admin/bulk-email" element={<AdminBulkEmailPage />} />
                   <Route path="/admin/promo-alert" element={<AdminPromoAlertPage />} />
+                  <Route path="/admin/christmas" element={<AdminChristmasPage />} />
                   <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
                   <Route path="/admin/countdown-timers" element={<AdminCountdownTimersPage />} />
                   <Route path="/admin/coupons" element={<AdminCouponsPage />} />
