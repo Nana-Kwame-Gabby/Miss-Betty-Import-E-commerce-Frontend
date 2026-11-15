@@ -1,6 +1,6 @@
 // Christmas Animations: the wording and hero photo live in app_settings (key "christmas_mode")
 // as JSON text. Words wrapped in *stars* show in yellow.
-export const CHRISTMAS_DEFAULT_PHOTO = "/festive/christmas-hero.webp";
+export const CHRISTMAS_DEFAULT_PHOTO = "/festive/christmas-banner.webp";
 
 export const CHRISTMAS_DEFAULTS = {
   strip: "Christmas Special: Get up to *50% OFF* on selected items!",

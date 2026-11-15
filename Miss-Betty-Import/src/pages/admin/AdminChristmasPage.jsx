@@ -144,7 +144,7 @@ export default function AdminChristmasPage() {
       {/* Hero photo */}
       <div className="bg-white rounded-mbi-card border border-mbi-hairline p-5 mb-5">
         <h2 className="text-sm font-bold text-mbi-navy mb-1">Banner photo</h2>
-        <p className="text-xs text-mbi-slate mb-3">A wide photo works best; the right-hand part shows on computers and the middle on phones.</p>
+        <p className="text-xs text-mbi-slate mb-3">Fills the whole banner. Use a wide photo (about 3 times wider than tall) with a plain, darker left side where the text sits.</p>
         <div className="flex flex-wrap items-center gap-4">
           <img src={christmas.photo || CHRISTMAS_DEFAULT_PHOTO} alt="Current Christmas banner photo" className="h-24 w-40 rounded-lg object-cover border border-mbi-hairline" />
           <div className="flex flex-wrap gap-2">

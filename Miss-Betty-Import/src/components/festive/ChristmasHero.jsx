@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { CHRISTMAS_DEFAULT_PHOTO, highlightParts } from "../../lib/christmas";
 import Snowfall from "./Snowfall";
-import ChristmasTree from "./ChristmasTree";
 import { scrollToProducts } from "./scrollToProducts";
 
 // The script face for the "Christmas" title, fetched only when the hero shows and trimmed to
@@ -27,44 +26,23 @@ const SantaHat = () => (
   </svg>
 );
 
-// Full-width Christmas hero from the owner's mockup: a lit, decorated Christmas tree on the left
-// in a warm room of out-of-focus lights that runs straight into the photo on the right (sharp,
-// with only a short soft edge); falling snow; a script "Christmas" with a Santa hat; the admin's headline (*starred* words in
-// yellow) and message; and a "Shop Christmas Deals" button. Always shown while Christmas is on.
+// Full-width Christmas hero using the owner's own mockup background (trees, gifts, warm lights and
+// the shopper with her bags, with the mockup's text painted out); falling snow on top; a script
+// "Christmas" with a Santa hat; the admin's headline (*starred* words in yellow) and message; and
+// a "Shop Christmas Deals" button. Always shown while Christmas is on.
 // Phones get a short horizontal banner (about 190 px); computers the full 440 px hero.
 export default function ChristmasHero({ headline, message, photo, preview = false }) {
   useScriptFont();
-  const src = photo || CHRISTMAS_DEFAULT_PHOTO;
 
   return (
-    <section
-      aria-label="Christmas"
-      className="festive-in relative isolate overflow-hidden text-white"
-      // a warm room lit by out-of-focus lights, in the photo's own tones, so the scene runs on into the photo
-      style={{
-        background:
-          "radial-gradient(circle at 8% 18%, rgba(255,196,110,0.30), transparent 9%)," +
-          "radial-gradient(circle at 30% 10%, rgba(255,214,150,0.22), transparent 7%)," +
-          "radial-gradient(circle at 44% 62%, rgba(255,170,90,0.20), transparent 10%)," +
-          "radial-gradient(circle at 36% 88%, rgba(255,120,80,0.18), transparent 9%)," +
-          "radial-gradient(circle at 18% 72%, rgba(255,200,120,0.16), transparent 8%)," +
-          "linear-gradient(180deg, #3E2A20 0%, #55301F 55%, #6A3526 100%)",
-      }}
-    >
-      {/* the Christmas tree on the left, behind the text */}
-      <ChristmasTree className="absolute bottom-0 -left-[14%] h-full w-auto [filter:brightness(0.82)_saturate(0.9)] sm:-left-[6%] md:left-[11%] md:h-[96%]" />
-      {/* the sharp photo on the right, with only a short soft edge */}
-      <div aria-hidden="true" className="absolute inset-y-0 right-0 w-[48%] [mask-image:linear-gradient(to_right,transparent,black_14%)] sm:w-[52%] md:w-[60%]">
-        <img
-          src={src}
-          alt=""
-          decoding="async"
-          className={`h-full w-full object-cover md:transform-none md:object-[40%_30%] ${
-            // phones: the default photo is mirrored so the shopper stands on the right, clear of the text
-            photo ? "object-[62%_25%]" : "-scale-x-100 object-[70%_22%]"
-          }`}
-        />
-      </div>
+    <section aria-label="Christmas" className="festive-in relative isolate overflow-hidden bg-[#3E2A20] text-white">
+      <img
+        src={photo || CHRISTMAS_DEFAULT_PHOTO}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover object-[66%_center] md:object-[100%_center]"
+      />
       <Snowfall mode="contained" count={70} maxAlpha={0.85} />
 
       <div className="relative z-10 mx-auto flex min-h-[188px] max-w-7xl flex-col justify-center px-4 py-3 sm:min-h-[240px] sm:px-6 sm:py-6 md:min-h-[440px] md:py-8 lg:px-8">
