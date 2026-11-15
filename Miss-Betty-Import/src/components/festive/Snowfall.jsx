@@ -5,11 +5,11 @@ const reduceMotion = () => !!window.matchMedia?.("(prefers-reduced-motion: reduc
 // One lightweight canvas snow engine (no DOM node per flake).
 //   mode "contained": fills its positioned parent (the Christmas banner).
 //   mode "page":      a fixed full-screen layer that sits behind the page content (z-0), so flakes
-//                     only show in the gaps between product cards. It fades out as the shopper
-//                     scrolls past the top of the page, keeping the deep product grid clean.
+//                     only show in the gaps between product cards. With fadeOnScroll it fades out
+//                     as the shopper scrolls past the top of the page; without, it snows all the way.
 // The loop pauses off screen and in hidden tabs; reduced-motion visitors get one still frame
 // (banner) or nothing at all (page).
-export default function Snowfall({ mode = "contained", count = 40, color = "255,255,255", maxAlpha = 0.9, className = "" }) {
+export default function Snowfall({ mode = "contained", count = 40, color = "255,255,255", maxAlpha = 0.9, fadeOnScroll = true, className = "" }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -107,6 +107,7 @@ export default function Snowfall({ mode = "contained", count = 40, color = "255,
     if (page) {
       const onResize = () => resize();
       const onScroll = () => {
+        if (!fadeOnScroll) return;
         const vh = window.innerHeight;
         fade = Math.max(0, Math.min(1, 1 - (window.scrollY - vh * 0.8) / (vh * 0.7)));
         canvas.style.opacity = String(fade);
@@ -127,7 +128,7 @@ export default function Snowfall({ mode = "contained", count = 40, color = "255,
     }
 
     return () => { cancelAnimationFrame(raf); cleanups.forEach(c => c()); };
-  }, [mode, count, color, maxAlpha]);
+  }, [mode, count, color, maxAlpha, fadeOnScroll]);
 
   return (
     <canvas

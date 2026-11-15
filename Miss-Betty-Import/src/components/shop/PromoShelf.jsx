@@ -243,6 +243,7 @@ export default function PromoShelf({ kind, items, cardProps }) {
     <section
       ref={sectionRef}
       aria-label={title}
+      data-festive="shelf"
       onPointerEnter={e => engineRef.current?.hover(true, e)}
       onPointerLeave={e => engineRef.current?.hover(false, e)}
       onFocus={e => engineRef.current?.focus(true, e)}

@@ -1,0 +1,150 @@
+/* Christmas Animations: the festive layer that runs through the whole Home and Shop pages.
+   Loaded only while Christmas is switched on (imported by ChristmasAmbience), and every rule is
+   scoped to html[data-christmas], which exists only while that layer is mounted. Decorations are
+   pseudo-elements with small inline SVGs: no extra DOM, never in the way of a tap. */
+
+:root {
+  /* a fairy-light string: drooping wire, amber, berry-red, pine-green and warm-white bulbs */
+  --xmas-lights: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='18' viewBox='0 0 96 18'%3E%3Cpath d='M0 2 Q12 8 24 2 T48 2 T72 2 T96 2' fill='none' stroke='%2333475b' stroke-opacity='.55' stroke-width='1.1'/%3E%3Crect x='10.5' y='4.4' width='3' height='2.6' rx='.6' fill='%235c6b7a'/%3E%3Cellipse cx='12' cy='10.6' rx='2.6' ry='3.8' fill='%23F2AA25'/%3E%3Crect x='34.5' y='4.4' width='3' height='2.6' rx='.6' fill='%235c6b7a'/%3E%3Cellipse cx='36' cy='10.6' rx='2.6' ry='3.8' fill='%23C8322B'/%3E%3Crect x='58.5' y='4.4' width='3' height='2.6' rx='.6' fill='%235c6b7a'/%3E%3Cellipse cx='60' cy='10.6' rx='2.6' ry='3.8' fill='%231F7A4D'/%3E%3Crect x='82.5' y='4.4' width='3' height='2.6' rx='.6' fill='%235c6b7a'/%3E%3Cellipse cx='84' cy='10.6' rx='2.6' ry='3.8' fill='%23FFF1C9' stroke='%23d9b45a' stroke-width='.5'/%3E%3C/svg%3E");
+  /* the soft glow around every other bulb, pulsed to make the string twinkle */
+  --xmas-glow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='18' viewBox='0 0 96 18'%3E%3Cdefs%3E%3CradialGradient id='a'%3E%3Cstop offset='0' stop-color='%23FFC861' stop-opacity='.85'/%3E%3Cstop offset='1' stop-color='%23FFC861' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='b'%3E%3Cstop offset='0' stop-color='%23FF8A80' stop-opacity='.7'/%3E%3Cstop offset='1' stop-color='%23FF8A80' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='12' cy='10.6' r='8' fill='url(%23a)'/%3E%3Ccircle cx='36' cy='10.6' r='7' fill='url(%23b)'/%3E%3Ccircle cx='84' cy='10.6' r='8' fill='url(%23a)'/%3E%3C/svg%3E");
+  /* snow lying along the top of the footer */
+  --xmas-snowcap: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='16' viewBox='0 0 80 16'%3E%3Cpath d='M0 0 H80 V7 Q70 14 60 8 T40 9 T20 7 T0 8 Z' fill='%23fff'/%3E%3C/svg%3E");
+  /* a holly sprig: two leaves and three berries */
+  --xmas-holly: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='34' viewBox='0 0 40 34'%3E%3Cpath d='M3 23 C7 12 17 10 21 16 C16 18 14 24 17 31 C11 27 5 29 3 23Z' fill='%232E7D4F'/%3E%3Cpath d='M37 18 C33 8 23 8 20 14 C25 16 27 22 25 28 C30 24 35 25 37 18Z' fill='%233A9A5E'/%3E%3Cpath d='M5 23 C10 20 15 18 20 16 M35 18 C30 16 25 15 21 15' stroke='%23175c33' stroke-width='.9' fill='none'/%3E%3Ccircle cx='19' cy='16' r='3.8' fill='%23C8202A'/%3E%3Ccircle cx='24.5' cy='19' r='3.3' fill='%23B3121B'/%3E%3Ccircle cx='15.5' cy='20.5' r='3.1' fill='%23D7262E'/%3E%3Ccircle cx='17.8' cy='14.8' r='1.1' fill='%23fff' opacity='.7'/%3E%3C/svg%3E");
+  /* a small gold star */
+  --xmas-star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 8.7l7.1-.6z' fill='%23F7C948' stroke='%23C98D1E' stroke-width='.8'/%3E%3C/svg%3E");
+}
+
+@keyframes xmas-glow {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
+@keyframes xmas-star-in {
+  0% { opacity: 0; transform: scale(0.3) rotate(-40deg); }
+  60% { opacity: 1; transform: scale(1.15) rotate(8deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes xmas-burst {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+  to { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1) rotate(40deg); }
+}
+
+/* ── Fairy lights hanging from the sticky shop header ─────────────────────────────────────── */
+html[data-christmas] header.sticky::before,
+html[data-christmas] header.sticky::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -16px;
+  height: 18px;
+  background-repeat: repeat-x;
+  background-size: 96px 18px;
+  pointer-events: none;
+}
+html[data-christmas] header.sticky::before { background-image: var(--xmas-lights); }
+html[data-christmas] header.sticky::after {
+  background-image: var(--xmas-glow);
+  animation: xmas-glow 1.8s ease-in-out infinite alternate;
+}
+
+/* ── Promoted shelves: a light string along the top and a holly sprig in the corner ────────── */
+html[data-christmas] [data-festive="shelf"] { position: relative; }
+html[data-christmas] [data-festive="shelf"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14px;
+  right: 14px;
+  height: 14px;
+  background: var(--xmas-lights) repeat-x 0 0 / 74px 14px;
+  pointer-events: none;
+}
+html[data-christmas] [data-festive="shelf"]::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: -6px;
+  width: 40px;
+  height: 34px;
+  background: var(--xmas-holly) no-repeat center / contain;
+  pointer-events: none;
+}
+
+/* ── Product cards: a gold ring and a twinkling star on hover / keyboard focus ─────────────── */
+html[data-christmas] main article > div:first-child {
+  transition: box-shadow 200ms var(--ease-mbi-out);
+}
+html[data-christmas] main article > div:first-child::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 22px;
+  height: 22px;
+  background: var(--xmas-star) no-repeat center / contain;
+  opacity: 0;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  html[data-christmas] main article:hover > div:first-child {
+    box-shadow: 0 0 0 2px #E7B44C, 0 12px 26px -10px rgba(201, 141, 35, 0.55);
+  }
+  html[data-christmas] main article:hover > div:first-child::after {
+    animation: xmas-star-in 420ms var(--ease-mbi-out) forwards;
+  }
+}
+html[data-christmas] main article:focus-within > div:first-child {
+  box-shadow: 0 0 0 2px #E7B44C;
+}
+
+/* ── Footer: snow lying along its top edge, with a light string under it ───────────────────── */
+html[data-christmas] footer { position: relative; }
+html[data-christmas] footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  background: var(--xmas-snowcap) repeat-x 0 0 / 80px 16px;
+  pointer-events: none;
+}
+html[data-christmas] footer::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 0;
+  right: 0;
+  height: 18px;
+  background: var(--xmas-lights) repeat-x 0 0 / 96px 18px;
+  pointer-events: none;
+}
+
+/* ── Phones: a fine light string along the top of the bottom bar ─────────────────────────── */
+html[data-christmas] nav[aria-label="Account shortcuts"]::before {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 0;
+  right: 0;
+  height: 13px;
+  background: var(--xmas-lights) repeat-x 0 0 / 70px 13px;
+  pointer-events: none;
+}
+
+/* ── Tap sparkle (sparkleBurst.js) ─────────────────────────────────────────────────────── */
+.xmas-burst {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  overflow: hidden;
+}
+.xmas-burst > span {
+  position: absolute;
+  line-height: 1;
+  text-shadow: 0 0 4px rgba(30, 45, 61, 0.45);
+  animation: xmas-burst 650ms var(--ease-mbi-out) both;
+}
