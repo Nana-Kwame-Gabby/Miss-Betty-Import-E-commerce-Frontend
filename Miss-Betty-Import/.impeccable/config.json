@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "plus jakarta sans",
+        "createdAt": "2026-11-10T01:24:57.421Z",
+        "reason": "Brand typeface documented in DESIGN.md typography (fontFamily 'Plus Jakarta Sans'); the tutorial video must match the site"
+      }
+    ]
+  }
+}

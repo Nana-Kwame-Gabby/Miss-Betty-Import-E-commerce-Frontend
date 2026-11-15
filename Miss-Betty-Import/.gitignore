@@ -26,3 +26,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Brag tutorial videos and their working files (demo login stays local)
+brag-output*/
