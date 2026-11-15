@@ -7,7 +7,7 @@ const COPY = {
   popular: { title: "Most ordered", sub: "What other shoppers buy most" },
 };
 
-const SPEED = 35;          // px per second: a card drifts past in roughly 6–8 s
+const SPEED = 45;          // px per second: a card drifts past in roughly 6–8 s
 const RESUME_AFTER = 4000; // ms after a touch, swipe or arrow press before the drift picks up again
 
 const ReadyIcon = () => (
