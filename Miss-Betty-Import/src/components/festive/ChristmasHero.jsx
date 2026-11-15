@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { CHRISTMAS_DEFAULT_PHOTO, highlightParts } from "../../lib/christmas";
 import Snowfall from "./Snowfall";
+import ChristmasTree from "./ChristmasTree";
 import { scrollToProducts } from "./scrollToProducts";
 
 // The script face for the "Christmas" title, fetched only when the hero shows and trimmed to
@@ -26,9 +27,9 @@ const SantaHat = () => (
   </svg>
 );
 
-// Full-width Christmas hero from the owner's mockup: a plain warm background taken from the
-// photo's own edge colours, the photo sharp on the right with only a short soft edge (so its
-// Christmas tree stays clearly visible); falling snow; a script "Christmas" with a Santa hat; the admin's headline (*starred* words in
+// Full-width Christmas hero from the owner's mockup: a lit, decorated Christmas tree on the left
+// in a warm room of out-of-focus lights that runs straight into the photo on the right (sharp,
+// with only a short soft edge); falling snow; a script "Christmas" with a Santa hat; the admin's headline (*starred* words in
 // yellow) and message; and a "Shop Christmas Deals" button. Always shown while Christmas is on.
 // Phones get a short horizontal banner (about 190 px); computers the full 440 px hero.
 export default function ChristmasHero({ headline, message, photo, preview = false }) {
@@ -39,9 +40,19 @@ export default function ChristmasHero({ headline, message, photo, preview = fals
     <section
       aria-label="Christmas"
       className="festive-in relative isolate overflow-hidden text-white"
-      // the photo's own left-edge colours, top to bottom, so background and photo meet without a seam
-      style={{ background: "linear-gradient(180deg, #5B3C2A 0%, #7A4231 55%, #8A4636 100%)" }}
+      // a warm room lit by out-of-focus lights, in the photo's own tones, so the scene runs on into the photo
+      style={{
+        background:
+          "radial-gradient(circle at 8% 18%, rgba(255,196,110,0.30), transparent 9%)," +
+          "radial-gradient(circle at 30% 10%, rgba(255,214,150,0.22), transparent 7%)," +
+          "radial-gradient(circle at 44% 62%, rgba(255,170,90,0.20), transparent 10%)," +
+          "radial-gradient(circle at 36% 88%, rgba(255,120,80,0.18), transparent 9%)," +
+          "radial-gradient(circle at 18% 72%, rgba(255,200,120,0.16), transparent 8%)," +
+          "linear-gradient(180deg, #3E2A20 0%, #55301F 55%, #6A3526 100%)",
+      }}
     >
+      {/* the Christmas tree on the left, behind the text */}
+      <ChristmasTree className="absolute bottom-0 -left-[14%] h-full w-auto [filter:brightness(0.82)_saturate(0.9)] sm:-left-[6%] md:left-[11%] md:h-[96%]" />
       {/* the sharp photo on the right, with only a short soft edge */}
       <div aria-hidden="true" className="absolute inset-y-0 right-0 w-[48%] [mask-image:linear-gradient(to_right,transparent,black_14%)] sm:w-[52%] md:w-[60%]">
         <img
@@ -65,13 +76,13 @@ export default function ChristmasHero({ headline, message, photo, preview = fals
             <SantaHat />
             Christmas
           </span>
-          <span className="mt-0.5 block text-[16px] leading-[1.15] font-extrabold tracking-[-0.01em] drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)] sm:mt-1 sm:text-[26px] md:mt-2 md:text-[36px] md:leading-[1.05] md:tracking-[-0.02em] lg:text-[46px]">
+          <span className="mt-0.5 block text-[16px] leading-[1.15] font-extrabold tracking-[-0.01em] drop-shadow-[0_1px_4px_rgba(0,0,0,0.55)] sm:mt-1 sm:text-[26px] md:mt-2 md:text-[36px] md:leading-[1.05] md:tracking-[-0.02em] lg:text-[46px]">
             {highlightParts(headline).map((p, i) =>
               p.hi ? <span key={i} className="text-[#FFC72C]">{p.text}</span> : <span key={i}>{p.text}</span>)}
           </span>
         </h2>
         {message && (
-          <p className="mt-1 line-clamp-3 max-w-[56%] text-[12px] leading-snug text-white/90 sm:mt-2 sm:max-w-[50%] sm:text-sm sm:leading-relaxed md:mt-4 md:max-w-[42%] md:text-lg">{message}</p>
+          <p className="mt-1 line-clamp-3 [text-shadow:0_1px_3px_rgba(0,0,0,0.7)] max-w-[56%] text-[12px] leading-snug text-white/90 sm:mt-2 sm:max-w-[50%] sm:text-sm sm:leading-relaxed md:mt-4 md:max-w-[42%] md:text-lg">{message}</p>
         )}
         <div className="mt-2 sm:mt-4 md:mt-7">
           <button
