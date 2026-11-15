@@ -86,10 +86,6 @@
 
 /* Christmas Animations (components/festive). Every keyframe ends at its resting pose, so the
    reduced-motion rule below leaves decorations still but in place. */
-@keyframes festive-twinkle {
-  0%, 100% { opacity: 1; }
-  45% { opacity: 0.45; }
-}
 @keyframes festive-sway {
   0%, 100% { transform: rotate(0deg); }
   25% { transform: rotate(4deg); }
@@ -108,10 +104,10 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.festive-bulb { animation: festive-twinkle 3.6s ease-in-out infinite; }
 .festive-sway { transform-origin: 50% 0; animation: festive-sway 5s ease-in-out infinite; }
 .festive-bob { transform-origin: 50% 100%; animation: festive-bob 4.5s var(--ease-mbi-out) infinite; }
 .festive-sparkle { transform-box: fill-box; transform-origin: center; animation: festive-sparkle 2.8s ease-in-out infinite; }
+.festive-hat { transform-origin: 20% 90%; animation: festive-sway 4.5s ease-in-out infinite; }
 .festive-in { animation: festive-in 520ms var(--ease-mbi-out) both; }
 /* While the page snow is showing, page content sits above it so flakes only fill the gaps. */
 html[data-christmas] main,

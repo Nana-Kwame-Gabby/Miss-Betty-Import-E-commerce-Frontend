@@ -2,12 +2,14 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { useAppSettings } from "../../context/AppSettingsContext";
 
 // The festive code is only downloaded while Christmas Animations are switched on.
-const ChristmasSeason = lazy(() => import("./ChristmasSeason"));
+const ChristmasTop = lazy(() => import("./ChristmasTop"));
+const ChristmasMain = lazy(() => import("./ChristmasMain"));
 
-// One line on the Home and Shop pages. Follows the admin's central switch live (app_settings
-// realtime): switching on brings the decorations in, switching off fades them away.
-export default function ChristmasDecor() {
-  const { christmasActive, christmasHeadline, christmasMessage } = useAppSettings();
+// Placed on the Home and Shop pages: slot="top" before the shop header (red promo strip), and
+// the default slot right after it (photo hero, trust strip, page snow). Follows the admin's
+// central switch live (app_settings realtime): on brings the decorations in, off fades them away.
+export default function ChristmasDecor({ slot = "main" }) {
+  const { christmasActive, christmas } = useAppSettings();
   // Stays mounted for the fade-out after the switch goes off.
   const [shown, setShown] = useState(christmasActive);
   if (christmasActive && !shown) setShown(true);
@@ -19,9 +21,10 @@ export default function ChristmasDecor() {
   }, [christmasActive]);
 
   if (!shown) return null;
+  const Part = slot === "top" ? ChristmasTop : ChristmasMain;
   return (
     <Suspense fallback={null}>
-      <ChristmasSeason headline={christmasHeadline} message={christmasMessage} leaving={!christmasActive} />
+      <Part christmas={christmas} leaving={!christmasActive} />
     </Suspense>
   );
 }

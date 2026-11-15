@@ -8,6 +8,12 @@
         "value": "plus jakarta sans",
         "createdAt": "2026-11-10T01:24:57.421Z",
         "reason": "Brand typeface documented in DESIGN.md typography (fontFamily 'Plus Jakarta Sans'); the tutorial video must match the site"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "kaushan script",
+        "createdAt": "2026-11-15T07:47:49.307Z",
+        "reason": "Owner's own Christmas mockup (sent in chat) uses this script for the seasonal 'Christmas' title; loaded only while Christmas Animations are on"
       }
     ]
   }

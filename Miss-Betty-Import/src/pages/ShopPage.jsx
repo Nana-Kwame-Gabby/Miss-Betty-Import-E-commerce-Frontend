@@ -61,6 +61,7 @@ export default function ShopPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <ChristmasDecor slot="top" />
       <ShopHeader
         logoTo="/shop"
         showBell={true}

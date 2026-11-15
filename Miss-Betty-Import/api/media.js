@@ -202,6 +202,11 @@ async function cleanup(token, body) {
 async function sweep(token, body) {
   const products = await db(token, `products?select=${MEDIA_COLUMNS}`);
   const used = new Set(products.flatMap(productUrls).map(keyFromUrl).filter(Boolean));
+  // The Christmas banner photo (Admin → Christmas Animations) lives on R2 too; never sweep it.
+  const settings = await db(token, "app_settings?select=setting_value_text&setting_key=eq.christmas_mode");
+  for (const row of settings ?? []) {
+    try { const key = keyFromUrl(JSON.parse(row.setting_value_text ?? "{}").photo); if (key) used.add(key); } catch { /* not JSON */ }
+  }
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   const orphans = (await listObjects()).filter(o => !used.has(o.key) && o.modified < cutoff);
   if (body.dryRun !== false) return { dryRun: true, orphans: orphans.length, sample: orphans.slice(0, 10).map(o => o.key) };

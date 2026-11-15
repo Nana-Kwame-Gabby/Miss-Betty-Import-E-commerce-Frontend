@@ -13,8 +13,7 @@ const AppSettingsContext = createContext({
   savePromoAlert: async () => {},
   setPageShowsNotice: () => {},
   christmasActive: false,
-  christmasHeadline: "",
-  christmasMessage: "",
+  christmas: CHRISTMAS_DEFAULTS,
   saveChristmas: async () => null,
 });
 
@@ -226,9 +225,10 @@ export function AppSettingsProvider({ children }) {
   }
 
   // One click in the admin switches Christmas on or off for every customer page at once.
-  async function saveChristmas(active, headline, message) {
+  // patch: any of { strip, headline, message, photo }; omitted fields keep their saved value.
+  async function saveChristmas(active, patch = {}) {
     const prev = { active: christmasActive, text: christmasText };
-    const text = { headline: headline ?? christmasText.headline, message: message ?? christmasText.message };
+    const text = { ...christmasText, ...patch };
     setChristmasActive(active);
     setChristmasText(text);
     const { data, error } = await supabase
@@ -250,7 +250,7 @@ export function AppSettingsProvider({ children }) {
       ordersClosed, announcementMessage, settingsLoading,
       toggleOrdersClosed, updateAnnouncementMessage,
       promoActive, promoMessage, savePromoAlert, setPageShowsNotice,
-      christmasActive, christmasHeadline: christmasText.headline, christmasMessage: christmasText.message, saveChristmas,
+      christmasActive, christmas: christmasText, saveChristmas,
     }}>
       {children}
       <AnnouncementModal visible={ordersClosed && !!announcementMessage} message={announcementMessage} />
