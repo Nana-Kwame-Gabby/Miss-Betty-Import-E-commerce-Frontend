@@ -155,6 +155,12 @@ export default function ChatWidget() {
 
   useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
 
+  // Lets page decorations (the Christmas Santa on this button) step aside while the chat is open.
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-chat-open", open);
+    return () => document.documentElement.removeAttribute("data-chat-open");
+  }, [open]);
+
   useEffect(() => {
     try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch { /* storage unavailable */ }
   }, [messages]);

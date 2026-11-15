@@ -6,7 +6,6 @@ import { productPath } from "../../lib/seo";
 import { imgFallback, thumbUrl } from "../../lib/imageUrl";
 import { downloadImage } from "../../lib/downloadImage";
 import { photoButtonClass, photoIconClass } from "../../lib/photoButton";
-import FrameGlow from "../festive/FrameGlow";
 
 const NBSP = String.fromCharCode(160); // keeps "GHS" and the amount on one line
 const money = n => `GHS${NBSP}${Number(n ?? 0).toLocaleString()}`;
@@ -139,7 +138,6 @@ export default function ProductCard({ product, onSelect, onViewImage, onBuyNow, 
           </div>
         )}
       </div>
-      <FrameGlow />
 
       <div className="flex flex-1 flex-col pt-2.5">
         <p className="truncate text-xs font-medium text-mbi-slate">{product.category}</p>

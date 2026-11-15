@@ -12,18 +12,11 @@
   --xmas-snowcap: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='16' viewBox='0 0 80 16'%3E%3Cpath d='M0 0 H80 V7 Q70 14 60 8 T40 9 T20 7 T0 8 Z' fill='%23fff'/%3E%3C/svg%3E");
   /* a holly sprig: two leaves and three berries */
   --xmas-holly: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='34' viewBox='0 0 40 34'%3E%3Cpath d='M3 23 C7 12 17 10 21 16 C16 18 14 24 17 31 C11 27 5 29 3 23Z' fill='%232E7D4F'/%3E%3Cpath d='M37 18 C33 8 23 8 20 14 C25 16 27 22 25 28 C30 24 35 25 37 18Z' fill='%233A9A5E'/%3E%3Cpath d='M5 23 C10 20 15 18 20 16 M35 18 C30 16 25 15 21 15' stroke='%23175c33' stroke-width='.9' fill='none'/%3E%3Ccircle cx='19' cy='16' r='3.8' fill='%23C8202A'/%3E%3Ccircle cx='24.5' cy='19' r='3.3' fill='%23B3121B'/%3E%3Ccircle cx='15.5' cy='20.5' r='3.1' fill='%23D7262E'/%3E%3Ccircle cx='17.8' cy='14.8' r='1.1' fill='%23fff' opacity='.7'/%3E%3C/svg%3E");
-  /* a small gold star */
-  --xmas-star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 8.7l7.1-.6z' fill='%23F7C948' stroke='%23C98D1E' stroke-width='.8'/%3E%3C/svg%3E");
 }
 
 @keyframes xmas-glow {
   from { opacity: 0.3; }
   to { opacity: 1; }
-}
-@keyframes xmas-star-in {
-  0% { opacity: 0; transform: scale(0.3) rotate(-40deg); }
-  60% { opacity: 1; transform: scale(1.15) rotate(8deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 @keyframes xmas-burst {
   from { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
@@ -70,33 +63,6 @@ html[data-christmas] [data-festive="shelf"]::after {
   height: 34px;
   background: var(--xmas-holly) no-repeat center / contain;
   pointer-events: none;
-}
-
-/* ── Product cards: a gold ring and a twinkling star on hover / keyboard focus ─────────────── */
-html[data-christmas] main article > div:first-child {
-  transition: box-shadow 200ms var(--ease-mbi-out);
-}
-html[data-christmas] main article > div:first-child::after {
-  content: "";
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  width: 22px;
-  height: 22px;
-  background: var(--xmas-star) no-repeat center / contain;
-  opacity: 0;
-  pointer-events: none;
-}
-@media (hover: hover) {
-  html[data-christmas] main article:hover > div:first-child {
-    box-shadow: 0 0 0 2px #E7B44C, 0 12px 26px -10px rgba(201, 141, 35, 0.55);
-  }
-  html[data-christmas] main article:hover > div:first-child::after {
-    animation: xmas-star-in 420ms var(--ease-mbi-out) forwards;
-  }
-}
-html[data-christmas] main article:focus-within > div:first-child {
-  box-shadow: 0 0 0 2px #E7B44C;
 }
 
 /* ── Footer: snow lying along its top edge, with a light string under it ───────────────────── */
@@ -149,68 +115,68 @@ html[data-christmas] nav[aria-label="Account shortcuts"]::before {
   animation: xmas-burst 650ms var(--ease-mbi-out) both;
 }
 
-/* ── Glowing red snow behind each product photo frame (FrameGlow.jsx) ──────────────────────
-   Sits behind the frame (z-index -1 inside the card), so only a halo shows around the edges and
-   the picture is never covered. The halo pulses gently; red snow drifts down through it. */
-.xmas-glow { display: none; }
-html[data-christmas] main article { position: relative; isolation: isolate; }
-html[data-christmas] main .xmas-glow {
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  aspect-ratio: 4 / 5;
-  z-index: -1;
+/* ── Dancing Santa on the Ask Betty button (DancingSanta.jsx) ─────────────────────────────
+   Every keyframe ends at the resting pose, so reduced motion leaves him standing still. */
+.xmas-santa {
+  position: fixed;
+  z-index: 58; /* above the page, below the chat panel (60) and its button (61) */
+  width: 60px;
+  height: 72px;
   pointer-events: none;
+  transform-origin: 50% 100%;
+  transition: opacity 180ms var(--ease-mbi-out), transform 240ms var(--ease-mbi-out), visibility 0s linear 0s;
+  animation: santa-pop 420ms var(--ease-mbi-out) backwards; /* entrance only: never holds a state */
 }
-/* the red glow */
-html[data-christmas] main .xmas-glow::before {
-  content: "";
-  position: absolute;
-  inset: -5px;
-  border-radius: 19px;
-  background: rgba(215, 38, 46, 0.16);
-  box-shadow: 0 0 14px 3px rgba(215, 38, 46, 0.42), 0 0 28px 6px rgba(255, 90, 90, 0.18);
-  animation: xmas-halo 4.2s ease-in-out infinite alternate;
-  animation-play-state: paused;
-}
-/* the falling snow, clipped to a soft band around the frame */
-html[data-christmas] main .xmas-glow > b {
-  position: absolute;
-  inset: -8px;
-  border-radius: 22px;
-  overflow: hidden;
-}
-html[data-christmas] main .xmas-glow > b::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -48px;
-  bottom: 0;
-  background-image:
-    radial-gradient(circle at 10px 8px, rgba(255, 92, 92, 0.95) 0 1.6px, rgba(255, 60, 60, 0.35) 2.6px, transparent 4px),
-    radial-gradient(circle at 32px 26px, rgba(255, 140, 140, 0.95) 0 1.2px, rgba(255, 70, 70, 0.3) 2.2px, transparent 3.4px),
-    radial-gradient(circle at 20px 40px, rgba(230, 40, 50, 0.95) 0 1.4px, rgba(230, 40, 50, 0.32) 2.4px, transparent 3.6px);
-  background-size: 48px 48px;
-  animation: xmas-redsnow 7s linear infinite;
-  animation-play-state: paused;
-}
-html[data-christmas] main .xmas-glow[data-in-view]::before,
-html[data-christmas] main .xmas-glow[data-in-view] > b::before { animation-play-state: running; }
-@keyframes xmas-halo {
-  from { opacity: 0.6; }
-  to { opacity: 1; }
-}
-@keyframes xmas-redsnow {
-  from { transform: translateY(0); }
-  to { transform: translateY(48px); }
-}
-/* phones: a narrower band so neighbouring cards' halos don't run together */
+.xmas-santa svg { overflow: visible; display: block; }
 @media (max-width: 639px) {
-  html[data-christmas] main .xmas-glow::before { inset: -3px; border-radius: 17px; }
-  html[data-christmas] main .xmas-glow > b { inset: -5px; border-radius: 19px; }
+  .xmas-santa { transform: scale(0.86); }
 }
-/* room above the shelf cards so their halo isn't clipped by the scrolling row */
-html[data-christmas] [data-festive="shelf"] .no-scrollbar { padding-top: 10px; margin-top: -10px; }
+/* step down into the button while the chat (or a product sheet) is open */
+html[data-chat-open] .xmas-santa,
+html[data-sheet-open] .xmas-santa {
+  opacity: 0;
+  transform: translateY(26px) scale(0.3);
+  visibility: hidden;
+  transition: opacity 140ms ease-in, transform 180ms ease-in, visibility 0s linear 180ms;
+}
+.xmas-santa .santa-body { transform-box: fill-box; transform-origin: 50% 100%; animation: santa-dance 1.1s ease-in-out infinite; }
+.xmas-santa .santa-arm { transform-box: fill-box; animation: santa-wave 1.1s ease-in-out infinite; }
+.xmas-santa .santa-arm-l { transform-origin: 95% 5%; }
+.xmas-santa .santa-arm-r { transform-origin: 5% 5%; animation-delay: -0.55s; }
+.xmas-santa .santa-leg { transform-box: fill-box; transform-origin: 50% 0; animation: santa-step 1.1s ease-in-out infinite; }
+.xmas-santa .santa-leg-r { animation-delay: -0.55s; }
+.xmas-santa .santa-head { transform-box: fill-box; transform-origin: 50% 90%; animation: santa-nod 0.55s ease-in-out infinite; }
+.xmas-santa .santa-pom { transform-box: fill-box; transform-origin: 0% 0%; animation: santa-pom 0.55s ease-in-out infinite; }
+.xmas-santa .santa-sparkle { transform-box: fill-box; transform-origin: center; animation: santa-sparkle 2.2s ease-in-out infinite; }
+
+@keyframes santa-pop {
+  0% { opacity: 0; transform: translateY(20px) scale(0.4); }
+  70% { opacity: 1; transform: translateY(-4px) scale(1.06); }
+}
+@keyframes santa-dance {
+  0%, 50%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-5px) rotate(-7deg); }
+  75% { transform: translateY(-5px) rotate(7deg); }
+}
+@keyframes santa-wave {
+  0%, 50%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(var(--santa-wave, 110deg)); }
+}
+.xmas-santa .santa-arm-l { --santa-wave: 115deg; }
+.xmas-santa .santa-arm-r { --santa-wave: -115deg; }
+@keyframes santa-step {
+  0%, 50%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-3px) rotate(-14deg); }
+}
+@keyframes santa-nod {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(4deg); }
+}
+@keyframes santa-pom {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-22deg); }
+}
+@keyframes santa-sparkle {
+  0%, 60%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  75% { opacity: 1; transform: scale(1.1) rotate(45deg); }
+}
