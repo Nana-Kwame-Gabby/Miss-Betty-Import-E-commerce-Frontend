@@ -148,3 +148,34 @@ html[data-christmas] nav[aria-label="Account shortcuts"]::before {
   text-shadow: 0 0 4px rgba(30, 45, 61, 0.45);
   animation: xmas-burst 650ms var(--ease-mbi-out) both;
 }
+
+/* ── Red snowflakes circling each product photo frame (FrameFlakes.jsx) ───────────────────── */
+.xmas-frame { display: none; }
+@supports (offset-path: inset(0 round 1px)) {
+  html[data-christmas] main .xmas-frame {
+    display: block;
+    position: absolute;
+    inset: 4px;
+    pointer-events: none;
+  }
+  html[data-christmas] main .xmas-frame > i {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 11px;
+    height: 11px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-12 -12 24 24'%3E%3Cg stroke='%23fff' stroke-width='4.2' stroke-linecap='round' opacity='.85'%3E%3Cpath d='M0-10V10M-8.7-5 8.7 5M-8.7 5 8.7-5'/%3E%3C/g%3E%3Cg stroke='%23C8202A' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M0-10V10M-8.7-5 8.7 5M-8.7 5 8.7-5M-3-7.5 0-4.5 3-7.5M-3 7.5 0 4.5 3 7.5'/%3E%3C/g%3E%3Ccircle r='2' fill='%23C8202A'/%3E%3C/svg%3E") no-repeat center / contain;
+    opacity: 0.9;
+    offset-path: inset(0 round 10px);
+    offset-anchor: center;
+    offset-rotate: 0deg;
+    offset-distance: var(--d);
+    animation: xmas-orbit 22s linear infinite;
+    animation-play-state: paused;
+  }
+  html[data-christmas] main .xmas-frame[data-in-view] > i { animation-play-state: running; }
+}
+@keyframes xmas-orbit {
+  from { offset-distance: var(--d); transform: rotate(0deg); }
+  to { offset-distance: calc(var(--d) + 100%); transform: rotate(360deg); }
+}
