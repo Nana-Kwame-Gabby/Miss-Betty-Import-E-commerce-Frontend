@@ -13,7 +13,11 @@ const money = n => `GHS${NBSP}${Number(n ?? 0).toLocaleString()}`;
 // Photo-first product card shared by the Shop and Home pages (DESIGN.md "Product card").
 // The whole card opens the product; Add to cart and Buy now stay on the card. Amber stays the
 // single "next step" voltage, so the card's Add to cart is the soft amber-tint button.
-export default function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed, priority = false }) {
+// onDark: the card sits on a dark band (the promoted shelves), so the text under the photo goes light.
+export default function ProductCard({ product, onSelect, onViewImage, onBuyNow, ordersClosed, priority = false, onDark = false }) {
+  const ink = onDark
+    ? { muted: "text-white/70", strong: "text-white", struck: "text-white/60" }
+    : { muted: "text-mbi-slate", strong: "text-mbi-navy", struck: "text-mbi-slate" };
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -140,8 +144,8 @@ export default function ProductCard({ product, onSelect, onViewImage, onBuyNow, 
       </div>
 
       <div className="flex flex-1 flex-col pt-2.5">
-        <p className="truncate text-xs font-medium text-mbi-slate">{product.category}</p>
-        <h2 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-mbi-navy">
+        <p className={`truncate text-xs font-medium ${ink.muted}`}>{product.category}</p>
+        <h2 className={`mt-0.5 line-clamp-2 text-sm font-semibold leading-snug ${ink.strong}`}>
           <a
             href={productPath(product)}
             onClick={e => { if (e.metaKey || e.ctrlKey || e.shiftKey) e.stopPropagation(); else e.preventDefault(); }}
@@ -151,11 +155,11 @@ export default function ProductCard({ product, onSelect, onViewImage, onBuyNow, 
           </a>
         </h2>
         <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5 tabular">
-          <span className="text-base font-bold text-mbi-navy">{from}{money(getEffectivePrice(product))}</span>
-          {onSale && <s className="text-sm text-mbi-slate">{money(product.unit_price)}</s>}
+          <span className={`text-base font-bold ${ink.strong}`}>{from}{money(getEffectivePrice(product))}</span>
+          {onSale && <s className={`text-sm ${ink.struck}`}>{money(product.unit_price)}</s>}
         </p>
         {product.product_status === "Available" && isTracked && totalStock > 0 && (
-          <p className="mt-0.5 text-xs font-medium text-mbi-slate">{totalStock} in stock</p>
+          <p className={`mt-0.5 text-xs font-medium ${ink.muted}`}>{totalStock} in stock</p>
         )}
 
         <div className="mt-auto flex gap-1.5 pt-2.5">

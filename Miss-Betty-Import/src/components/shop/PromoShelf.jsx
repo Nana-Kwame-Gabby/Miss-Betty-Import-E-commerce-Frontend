@@ -27,7 +27,7 @@ const Arrow = ({ dir }) => (
   </svg>
 );
 
-const arrowClass = "mbi-press grid place-items-center size-9 rounded-full border border-mbi-navy/20 bg-white text-mbi-navy hover:border-mbi-navy disabled:opacity-30 disabled:pointer-events-none";
+const arrowClass = "mbi-press grid place-items-center size-9 rounded-full border border-white/30 bg-white text-mbi-navy hover:border-white disabled:opacity-30 disabled:pointer-events-none";
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -248,16 +248,16 @@ export default function PromoShelf({ kind, items, cardProps }) {
       onPointerLeave={e => engineRef.current?.hover(false, e)}
       onFocus={e => engineRef.current?.focus(true, e)}
       onBlur={e => engineRef.current?.focus(false, e)}
-      className="col-span-full -mx-4 bg-mbi-amber-band px-4 py-5 sm:mx-0 sm:rounded-mbi-card sm:px-5 lg:px-6"
+      className="promo-shelf col-span-full -mx-4 bg-mbi-brown px-4 py-5 sm:mx-0 sm:rounded-mbi-card sm:px-5 lg:px-6"
     >
       <div className="mb-4 flex items-end justify-between gap-3">
         <div className="flex items-start gap-2.5">
-          <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-white text-mbi-amber-ink">
+          <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-white text-mbi-brown">
             {kind === "ready" ? <ReadyIcon /> : <PopularIcon />}
           </span>
           <div>
-            <h2 className="text-lg font-bold leading-tight text-mbi-navy">{title}</h2>
-            <p className="text-sm text-mbi-navy-body">{sub}</p>
+            <h2 className="text-lg font-bold leading-tight text-white">{title}</h2>
+            <p className="text-sm text-white/80">{sub}</p>
           </div>
         </div>
         <div className="hidden gap-2 lg:flex">
@@ -277,7 +277,7 @@ export default function PromoShelf({ kind, items, cardProps }) {
         {shown.map(p => (
           <div key={p.id} className="flex w-[44%] shrink-0 snap-start sm:w-[30%] lg:w-[calc((100%-4.5rem)/4)] [&>article]:min-w-0 [&>article]:flex-1">
             {/* the card stretches to the tallest in the row, so every card's buttons line up */}
-            <ProductCard product={p} {...cardProps} />
+            <ProductCard product={p} {...cardProps} onDark />
           </div>
         ))}
       </div>

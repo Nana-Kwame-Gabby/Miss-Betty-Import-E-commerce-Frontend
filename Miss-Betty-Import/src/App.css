@@ -9,7 +9,8 @@
   --color-mbi-amber: #F2AA25;
   --color-mbi-amber-press: #E09612;
   --color-mbi-amber-tint: #FDF3DD;
-  --color-mbi-amber-band: #FCE9C4; /* promoted shelves; Slate text still passes 4.5:1 */
+  --color-mbi-amber-band: #FCE9C4;
+  --color-mbi-brown: #532505; /* the deep brown of the logo letters; promoted shelves, with light text */
   --color-mbi-amber-ink: #9A5B00;
   --color-mbi-navy: #1e2d3d;
   --color-mbi-navy-hover: #2a3d52;
@@ -114,6 +115,11 @@ html[data-christmas] main,
 html[data-christmas] [data-above-snow] {
   position: relative;
   z-index: 1;
+}
+
+/* Promoted shelves sit on the dark logo brown: keep keyboard focus visible there. */
+.promo-shelf :focus-visible {
+  outline-color: #fff;
 }
 
 /* Pages with a pinned bottom action bar (product page) set data-action-bar on <html>;
